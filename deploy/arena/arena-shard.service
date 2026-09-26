@@ -1,0 +1,19 @@
+[Unit]
+Description=UO Tavern Arena ServUO shard
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=uoarena
+StateDirectory=uoarena
+WorkingDirectory=/opt/uoarena/shard
+ExecStart=/usr/bin/mono /opt/uoarena/shard/ServUO.exe -service
+Restart=on-failure
+RestartSec=10
+TimeoutStopSec=45
+UMask=0077
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target

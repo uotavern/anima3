@@ -1,0 +1,6 @@
+{
+  "schema": 1,
+  "build": "mage",
+  "version": "baseline-v1",
+  "playbook": "standard"
+}

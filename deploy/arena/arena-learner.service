@@ -1,0 +1,17 @@
+[Unit]
+Description=UO Tavern Arena policy training and evaluation
+After=arena-shard.service
+
+[Service]
+Type=simple
+User=uoarena
+StateDirectory=uoarena
+WorkingDirectory=/opt/uoarena/anima3
+ExecStart=/opt/uoarena/anima3/.venv/bin/python -m anima3.arena_learning --events /opt/uoarena/shard/Logs/Arena/events.jsonl --policies /var/lib/uoarena/policies --watch --promote
+Restart=on-failure
+RestartSec=30
+UMask=0077
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target

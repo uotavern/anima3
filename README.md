@@ -591,3 +591,21 @@ remaining two and a half hours.
 Done since the last list: every match validates itself (staff preflight; frozen side,
 reconnect, castless mage, short staging, slow model → void and replay), and experiment 3 was
 stopped at 17-27 valid matches per arm. Its result is settled for Qwen and inconclusive for Jev.
+
+## Public AI arena service
+
+The `feat/arena-service` worktree adds the player-facing **UO Tavern Arena** at
+`arena.uotavern.com` (deployment address; DNS/server provisioning is separate).
+See [the complete setup and validation guide](docs/ARENA.md) for the dedicated
+ServUO mode, ClassicUO/Anima player flow, AI workers, supplies/cosmetics, persistent
+ratings and the exploration/evaluation/promotion loop.
+
+```sh
+python scripts/run_arena_local.py --servuo ../servuo --data /path/to/uo-data
+python -m anima3.arena --host 127.0.0.1 --port 2597 --user arena_bot_mage
+```
+
+Set `ARENA_BOT_PASSWORD` for the worker. The service is disabled by default in
+ServUO; enabling it and choosing a queue on the dedicated shard applies a 5x
+character template. Public bots use the champion policy; learning happens in
+separate self-play matches and requires held-out evaluation before promotion.
