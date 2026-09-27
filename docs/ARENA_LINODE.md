@@ -72,7 +72,7 @@ inbound traffic except explicitly allowed ports.
 ## Release inputs
 
 - ServUO `a2c68a251` (includes arena-only Rising Tide disable option)
-- anima3 `a6977e9` (application code)
+- anima3 `a6977e9` plus `439e5f5` (warrior healing follow-up)
 - anima-client `581c511`
 
 The new shard uses fresh accounts/world data. Local acceptance saves were not
@@ -120,7 +120,14 @@ The general world spawner algorithm is unchanged. The interrupted warrior test
 is not counted as a successful acceptance test. After the corrected restart,
 domain login, mage ranked match completion, rating update (0W 2L, 969), live
 recovery, and a complete self-play match passed. The previous 984 rating survived
-restart. Full remote warrior match acceptance remains unverified.
+restart. Full remote warrior matches subsequently passed: 0W 1L / 984, then
+0W 2L / 969 with alive lobby recovery. Evidence is in
+`.logs/linode-domain-warrior.json` and `.logs/linode-domain-warrior-fixed.json`.
+The later worker follow-up corrects critical-health retreat and waits for bandage
+completion instead of restarting healing on a slip or a short tick timeout.
+Final deployed acceptance: 0W 3L / 954, both rounds completed (50s / 34s),
+all six external checks passed in `.logs/linode-domain-warrior-healing.json`.
+
 
 Domain acceptance evidence: `.logs/linode-domain-mage.json`. Source compilation
 passed with zero warnings/errors; deployment checker passed Ruff. The deployed

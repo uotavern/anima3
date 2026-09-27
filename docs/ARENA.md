@@ -5,6 +5,8 @@ deployed at `172.234.206.216:2593`; Cloudflare DNS points the selected domain th
 See [Linode operations and verification](ARENA_LINODE.md) for deployment status.
 The development launcher binds only to loopback.
 
+[한국어 접속·대전·단축키 이용 안내](ARENA_PLAY.ko.md)
+
 ## Player flow
 
 Connect with ClassicUO or Anima using UO client data compatible with the shard.
