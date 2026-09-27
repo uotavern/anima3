@@ -65,3 +65,17 @@ means there are no hosted opponent bots. It does not mean no participants exist.
 
 Participant setup: [ARENA.md](ARENA.md), [한국어 안내](ARENA_PLAY.ko.md).
 Live test and recovery evidence: [ARENA_LINODE.md](ARENA_LINODE.md).
+
+## Training and duel presets (2026-09-27)
+
+ServUO `af99ac932` adds Rowan (Felucca 5183,332,15), the guide sign,
+stat balls and 5/6/7GM skill balls, plus a targeted duel menu with invitation
+acceptance. Named presets: `mage5`, `mage7`, `standard7`, `dexxer7`, `open7`.
+Custom presets use canonical rule tokens. Existing mage/warrior Elo queues
+remain standardized 5x; practice queues preserve a <=6x player build. Direct
+5x/7x/custom challenges appear in generic duel history/standings rather than
+being folded into the existing mage/warrior arena Elo leaderboard.
+
+**Do not deploy older Scripts.dll over these saves:** the world now stores
+ArenaSkillBall, ArenaStatBall, ArenaSteward and ArenaTrainingSign. A rollback
+requires the matching pre-deployment world backup as well as binaries.

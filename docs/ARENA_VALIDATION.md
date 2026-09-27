@@ -99,3 +99,18 @@ the AI-failure result is `9fafde1115cb48b9a6535214c635340e`.
   Enable this on a dedicated arena shard. The feature defaults to disabled.
 - Long-duration public load, anti-abuse operation, seasonal rating calibration
   and external-client latency still require an operational deployment test.
+
+## Training NPC and duel preset acceptance — 2026-09-27
+
+- ServUO release build: zero warnings/errors; commit `af99ac932`.
+- `scripts/arena_training_smoke.py`: real UO protocol confirmed NPC/sign gumps,
+  both ball grants, bounded repeated grants, rejection of five selections for
+  a six-skill ball, six GM skills, stat sum rejection, ball consumption, stale
+  queue-dialog rejection, preservation during practice and active-match block.
+- `scripts/arena_rules_smoke.py`: local protocol acceptance for all five named
+  modes plus custom 6x; 5GM/7GM ball application; 7GM rejected by Mage 5x;
+  Paralyze and potion use rejected during a real Mage 5x duel. Saves succeeded.
+- Restart: saved 7GM ball restored with its correct selection count, exactly
+  one Rowan remained, and its periodic speech was observed by a nearby client.
+- Evidence: ignored `.logs/training-local.json` and `.logs/rules-local.json`.
+  These tests inspect client packets/gumps; they are not native visual QA.
