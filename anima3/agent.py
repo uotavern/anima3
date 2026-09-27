@@ -82,7 +82,7 @@ class Agent:
         self.deadline_s, self.pump_ms = deadline_s, pump_ms
         self.sync = (client.name == "scripted") if sync is None else sync
         self.log_path = Path(log_path) if log_path else None
-        self.memory: dict = {"economy": economy}
+        self.memory: dict = {"economy": economy, "pump_ms": pump_ms}
         self.tick_no = 0
         self.reports: list[TickReport] = []
         self._gen = 0
@@ -169,6 +169,8 @@ class Agent:
         if self._proc is not None:
             pid, gen, started = self._proc
             limit = self.proc_max_ticks * (8 if pid.startswith("goto:") else 1)  # a long walk is legitimate
+            if pid == "bandage":
+                limit = max(limit, 20000 // max(50, self.pump_ms) + 1)
             black = self.memory.get("target_blacklist", {})
             live = [m for m in f.hostiles if black.get(m.serial, -1) <= self.tick_no]   # the same threats the menu sees
             danger = bool(live and live[0].distance <= 3) and not pid.startswith(("attack:", "drop:", "bandage", "cast:", "meditate"))  # chasing, unburdening and binding wounds are what danger calls for

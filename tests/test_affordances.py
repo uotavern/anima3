@@ -1,3 +1,5 @@
+import pytest
+
 from anima3.affordances import enumerate_affordances
 from anima3.body import FakeBody
 from anima3.contract import BANDAGE_GRAPHIC, GOLD_GRAPHIC
@@ -21,6 +23,16 @@ def test_critical_hp_with_hostile_only_flee_or_bandage():
     w = FakeBody(); w.player.hits = 10; w.add_hostile(1, 0); w.add_pack_item(BANDAGE_GRAPHIC, 2)
     got = ids(w)
     assert got[0] == "flee" and "bandage" in got and not any(g.startswith("attack") for g in got)
+
+
+def test_critical_duel_warrior_heals_after_escaping_melee():
+    w = FakeBody(); w.player.hits = 10
+    opponent = w.add_hostile(5, 0)
+    w.add_pack_item(BANDAGE_GRAPHIC, 10)
+    memory = {"duel": True, "duel_opponent": opponent.serial}
+    assert ids(w, memory=memory)[0] == "bandage"
+    opponent.pos = type(opponent.pos)(w.player.pos.x + 1, w.player.pos.y, 0)
+    assert ids(w, memory=memory)[0] == "flee"
 
 
 def test_pacifist_is_never_offered_attack():
@@ -193,6 +205,41 @@ def test_bandage_is_a_procedure_that_waits_for_the_wrap_to_finish():
     ag.run(3)
     sent = [x for x in w.log if x["type"] == "BandageTarget"]
     assert len(sent) == 1 and any(v == "ok" for _, pid, v in ag.proc_log if pid == "bandage")
+
+
+@pytest.mark.parametrize("pump_ms", [50, 250])
+def test_bandage_waits_for_delayed_completion_even_after_slip(pump_ms):
+    from anima3.agent import Agent
+    from anima3.contract import Journal
+    from anima3.decision import Scripted
+
+    class SlowHealingBody(FakeBody):
+        healing_ms = None
+
+        def act(self, action):
+            if action["type"] == "BandageTarget":
+                self.log.append(action)
+                self.healing_ms = 0
+            else:
+                super().act(action)
+
+        def pump(self, ms):
+            super().pump(ms)
+            if self.healing_ms is not None:
+                self.healing_ms += ms
+                if self.healing_ms == 1000:
+                    self.journal.append(Journal(0, "", "Your fingers slip!", 0, 0, 500961))
+                if self.healing_ms >= 8000:
+                    self.player.hits = self.player.hits_max
+                    self.journal.append(Journal(0, "", "You finish applying the bandages.", 0, 0, 500969))
+                    self.healing_ms = None
+
+    w = SlowHealingBody(); w.player.hits = 10; w.add_pack_item(BANDAGE_GRAPHIC, 3)
+    ag = Agent(w, Persona(name="G"), Scripted(), pump_ms=pump_ms)
+    ag.run(9000 // pump_ms)
+    assert w.player.hits == w.player.hits_max
+    assert len([a for a in w.log if a["type"] == "BandageTarget"]) == 1
+    assert any(v == "ok" for _, pid, v in ag.proc_log if pid == "bandage")
 
 
 def test_critically_hurt_duel_mage_heals_rather_than_only_fleeing():

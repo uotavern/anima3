@@ -188,7 +188,7 @@ def _unburden_proc(item: Item, amount: int):
 
 
 BANDAGE_DONE = {500969, 500967, 500968, 500955}   # finished / barely helped / not damaged
-BANDAGE_SLIP = {500961, 500962, 500963, 500964}
+BANDAGE_FAILED = {500962, 500963, 500964}
 
 
 def _bandage_proc(bandage_serial: int, target_serial: int):
@@ -196,14 +196,17 @@ def _bandage_proc(bandage_serial: int, target_serial: int):
     previous one and nobody ever heals (the 199-bandage draws). The character keeps
     swinging meanwhile — the server's combatant is unchanged."""
     def proc(obs0, memory):
-        hp0 = obs0.player.hits
         obs = yield bandage_target(bandage_serial, target_serial)
-        for _ in range(24):                      # Healing 100 / Dex 100 finishes in ~3–5 s
+        # ServUO self healing takes 6s at Dex 100 (longer on pre-AOS).
+        # Allow completion latency at every supported worker pump interval.
+        ticks = 15000 // max(50, memory.get("pump_ms", 250)) + 1
+        for _ in range(ticks):
             cl = {j.cliloc for j in obs.new_journal}
-            if cl & BANDAGE_DONE or obs.player.hits > hp0 + 5:
+            if cl & BANDAGE_DONE:
                 return "ok"
-            if cl & BANDAGE_SLIP:
-                return "slipped"
+            if cl & BANDAGE_FAILED:
+                return "failed"
+            # 500961 (fingers slip) reduces healing; it does not end the timer.
             obs = yield None
         return "timeout"
     return proc
@@ -329,6 +332,12 @@ def enumerate_affordances(obs: Observation, f: Facts, persona: Persona, memory: 
             # left in, it was the model's commonest deviation from the rule (meditate -> hold).
             return out or [HOLD]
         if f.hp_pct < 0.35 or (being_hit and cannot_fight and threat.distance <= 2):
+            # A duel warrior who has already escaped melee should heal instead
+            # of repeatedly selecting flee until the round times out.
+            if duel is not None and threat.distance > 2 and f.bandages is not None:
+                add_bandage()
+                add_flee()
+                return out
             add_flee()
             add_bandage()
             return out or [HOLD]
