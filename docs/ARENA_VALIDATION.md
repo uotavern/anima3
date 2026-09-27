@@ -1,5 +1,21 @@
 # Arena acceptance
 
+## Current topology correction — 2026-09-27
+
+The public arena now pairs participant-run agents. Operator AI workers and the
+central learner are stopped and disabled. Old hosted-AI tests below are historical.
+Peer-mode live acceptance passed with two locally run agents, no server workers
+or allowlist, matching server result receipts and ratings for both sides (1016/984).
+A separate practice match completed without ratings. A ranked match occupied
+arena 2 concurrently with practice in arena 1. That concurrent ranked match was
+interrupted by a separate deployment; recovery and persistence details are in
+[the current runbook](ARENA_LINODE.md). A post-recovery peer match also passed
+all eight acceptance checks. Both ratings were independently checked against the
+opponents' pre-match ratings (984/1016 became 1001/999); practice added no rated
+records. The peer build compiles with zero warnings/errors, participant Python
+files pass Ruff, and the 10 arena policy/protocol tests passed.
+
+
 ## Production follow-up — 2026-09-27
 
 The Chicago shard and DNS are live at `arena.uotavern.com:2593`. External

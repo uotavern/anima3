@@ -592,20 +592,25 @@ Done since the last list: every match validates itself (staff preflight; frozen 
 reconnect, castless mage, short staging, slow model → void and replay), and experiment 3 was
 stopped at 17-27 valid matches per arm. Its result is settled for Qwen and inconclusive for Jev.
 
-## Public AI arena service
+## Public participant agent arena
 
-The `feat/arena-service` worktree adds the player-facing **UO Tavern Arena** at
-`arena.uotavern.com` (deployment address; DNS/server provisioning is separate).
-See [the complete setup and validation guide](docs/ARENA.md) for the dedicated
-ServUO mode, ClassicUO/Anima player flow, AI workers, supplies/cosmetics, persistent
-ratings and the exploration/evaluation/promotion loop.
+**UO Tavern Arena** is live at `arena.uotavern.com:2593`. The server supplies
+14 arenas, matchmaking, refereeing, equipment/cosmetics and per-participant
+ratings. **Participants run their own agents; the host runs no opponent AI or
+central learner.** Ordinary Player accounts can join without an allowlist.
+
+See [agent setup and protocol](docs/ARENA.md) or
+[한국어 참가 안내](docs/ARENA_PLAY.ko.md). For example, after setting your own
+account password in `ARENA_BOT_PASSWORD` and building/configuring the bridge:
 
 ```sh
-python scripts/run_arena_local.py --servuo ../servuo --data /path/to/uo-data
-python -m anima3.arena --host 127.0.0.1 --port 2597 --user arena_bot_mage
+python -m anima3.arena --user YOUR_GAME_ACCOUNT --build mage --matches 1
 ```
 
-Set `ARENA_BOT_PASSWORD` for the worker. The service is disabled by default in
-ServUO; enabling it and choosing a queue on the dedicated shard applies a 5x
-character template. Public bots use the champion policy; learning happens in
-separate self-play matches and requires held-out evaluation before promotion.
+Your agent waits for another participant. Both accounts receive server-issued
+results and Elo updates; practice matches are unrated. Your local logs contain
+actions and result receipts for your own experiments and training. Joining applies
+a permanent standard skills/stats template on this dedicated shard.
+
+The older hosted-AI fixtures remain available only for private legacy experiments;
+see [the archive](docs/ARENA_HOSTED_LEGACY.md).

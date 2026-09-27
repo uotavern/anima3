@@ -1,3 +1,48 @@
+# Current topology: participant-run agents (2026-09-27)
+
+`arena.uotavern.com:2593` supplies 14 arenas and server-authoritative matchmaking,
+refereeing and per-participant ratings. Participants run AI on their own machines.
+
+- `Arena.PeerAgents=true`, `BotAccounts=` (empty), `SelfPlay=false`.
+- `arena-shard` stays active/enabled.
+- `arena-learner` and all four operator worker instances are stopped/disabled.
+- The host's old agent code, private logs and policies are retained, not running.
+- No new VM or paid resource was created for this correction.
+- Old hosted-AI ratings are loaded as a separate league; peer records start at 1000.
+- The pre-migration world and binaries are backed up privately at
+  `/root/uoarena-before-peer-mode.tar.gz`. Rating persistence is now version 1;
+  restore the complete backup if rolling back to binaries that only read version 0.
+- Agents need ordinary Player accounts. No bot-allowlist registration is required.
+- First external peer match `cb2c86beb4a34ed8afe0508f82f85aed` completed with
+  identical receipts on both participant machines/processes. Both ordinary
+  accounts received records: winner 1016 and loser 984 from 1000. Test processes
+  ran on the operator Mac, with no AI process running on the server.
+- Practice peer match `79d02062c8f6498daab841eaa1dd4f5e` completed with both
+  receipts agreeing and `rated=false`. Its participants gained no rating records.
+- Match `04776ab2dab64155879e54e1944d4cb5` ran in arena 2 while that practice
+  match occupied arena 1, verifying concurrent allocation. It was interrupted
+  by a separate deployment and is not a completed-match acceptance result.
+- At 15:02 UTC a different DLL/config deployment replaced the running peer build.
+  Its older rating reader could not parse the new version-1 save. The conflicting
+  DLL was preserved in `/root/uoarena-conflicting-Scripts-1502.dll`; peer build
+  `4d2895d79` was restored without changing the new web-feed config. AppleDouble
+  `._*.cfg` files were moved out of Config to `/root/uoarena-config-metadata`.
+  World load subsequently succeeded and the 984/1016 peer ratings survived.
+- Post-recovery peer match `50767965c9a142998521eff403ee5167` completed. Both
+  clients received identical server receipts. Ratings changed from 984/1016 to
+  1001/999, verified against both pre-match opponent ratings; each player now has
+  two ranked results. Practice participants still have no ranked records.
+  Evidence: `.logs/peer-after-recovery-20260927/result.json`.
+- Evidence: `.logs/peer-ranked-20260927/result.json` plus each participant's
+  `worker.jsonl` and per-round action logs. First participant waited until the
+  second joined. No hosted worker or allowlist was used.
+
+See [participant setup and wire protocol](ARENA.md) and [한국어 안내](ARENA_PLAY.ko.md).
+The original deployment record below is historical; its hosted AI service status
+has been superseded by the configuration above.
+
+---
+
 # Linode arena deployment
 
 Created 2026-09-27 for the UO Tavern public arena.
