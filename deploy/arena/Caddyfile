@@ -6,7 +6,10 @@ arena.uotavern.com {
 
 	# The shard's read-only duel feed (ServUO DuelWeb, Duel.cfg).
 	handle /duel/* {
-		reverse_proxy 127.0.0.1:8095
+		# Mono's HttpListener only answers the host it is bound to.
+		reverse_proxy 127.0.0.1:8095 {
+			header_up Host 127.0.0.1:8095
+		}
 	}
 
 	# Everything else goes to the Tavern's duel page, which reads the feed above.
