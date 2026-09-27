@@ -1,7 +1,8 @@
 # UO Tavern Arena
 
-`arena.uotavern.com:2593` is the selected shard address. DNS and a production
-instance must be provisioned before this address accepts public connections.
+`arena.uotavern.com:2593` is the selected shard address. The Chicago shard is
+deployed at `172.234.206.216:2593`; Cloudflare DNS points the selected domain there.
+See [Linode operations and verification](ARENA_LINODE.md) for deployment status.
 The development launcher binds only to loopback.
 
 ## Player flow
