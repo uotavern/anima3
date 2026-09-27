@@ -194,3 +194,12 @@ Scripts.dll SHA-256 is
   over a world saved by this release.
 - Existing Cloudflare DNS, Caddy and localhost:8095 DuelWeb feed preserved.
   Post-deploy health confirmed 14 arenas, peer_agents mode and no active matches.
+
+## 7GM / potion update — 2026-09-27 16:20 UTC
+
+- Release `a1547fb86`; Scripts.dll SHA-256
+  `ed216bbe550bc22f0a6be81d9209e2c5c5fc4942aa260780658acab13a5757a4`.
+- Saved and backed up before restart:
+  `/root/uoarena-before-potions-20260927T162031Z.tar.gz`.
+- New default 7GM, 7x practice, regular potions enabled, explosion opt-in.
+- Game listener and existing DuelWeb listener both started successfully.

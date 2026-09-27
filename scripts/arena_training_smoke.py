@@ -92,22 +92,22 @@ try:
         "duplicate_supply_bounded",
         len([i for i in pump(b)["items"] if i["graphic"] == 0xE2D and i["hue"] in [53, 1153]]) == 2,
     )
-    ball, g = open_ball(b, 1153, "6GM SKILL BALL")
-    reply(b, g, switches=[16, 25, 26, 43, 46])
+    ball, g = open_ball(b, 1153, "7GM SKILL BALL")
+    reply(b, g, switches=[16, 25, 26, 43, 46, 1])
     check(
-        "five_skills_rejected_ball_kept",
+        "six_skills_rejected_ball_kept",
         any(i["serial"] == ball["serial"] for i in pump(b)["items"]),
     )
-    g = gump(b, "6GM SKILL BALL")
-    selected = [16, 25, 26, 43, 46, 1]
+    g = gump(b, "7GM SKILL BALL")
+    selected = [16, 25, 26, 43, 46, 1, 40]
     reply(b, g, switches=selected)
     b.act({"type": "SkillsRequest"})
     o = pump(b)
     check("skill_ball_consumed", not any(i["serial"] == ball["serial"] for i in o["items"]))
     skills = o["skills"]
     check(
-        "six_gm_applied",
-        sum(s["base"] for s in skills) == 600 and sum(s["base"] == 100 for s in skills) == 6,
+        "seven_gm_applied",
+        sum(s["base"] for s in skills) == 700 and sum(s["base"] == 100 for s in skills) == 7,
     )
     ball, g = open_ball(b, 53, "ARENA STATS")
     reply(b, g, entries=[[0, "100"], [1, "100"], [2, "100"]])
@@ -146,7 +146,7 @@ try:
     o = pump(b)
     check(
         "practice_preserves_build",
-        sum(s["base"] for s in o["skills"]) == 600
+        sum(s["base"] for s in o["skills"]) == 700
         and [o["player"][k] for k in ["strength", "dexterity", "intelligence"]] == [100, 50, 75],
     )
     b.act(use(ball["serial"]))

@@ -69,7 +69,7 @@ try:
     reply(a, gump(a, "DUEL MODES"), 1)
     a.act(target_object(pump(b)["player"]["serial"]))
     invite = gump(b, "DUEL INVITATION")
-    check("mage5_invitation", "mageonly" in str(invite) and "nopotions" in str(invite))
+    check("mage5_invitation", "mageonly" in str(invite) and "noexplosion" in str(invite))
     reply(b, invite)
     check(
         "mage5_started",
@@ -90,12 +90,12 @@ try:
     )
     a.act(use(pack["serial"]))
     o = pump(a)
-    potion = next(i for i in o["items"] if i["graphic"] == 0xF0C)
+    potion = next(i for i in o["items"] if i["graphic"] == 0xF0D)
     a.act(use(potion["serial"]))
     o = pump(a)
     check(
-        "potions_blocked",
-        any("Potions are not allowed" in j.get("text", "") for j in o["new_journal"]),
+        "explosion_potions_blocked",
+        any("Explosion potions require" in j.get("text", "") for j in o["new_journal"]),
     )
     staff.journal_after("[DuelReset 1", pumps=3)
     for p in [a, b]:
@@ -109,11 +109,11 @@ try:
         "standard7",
         "dexxer7",
         "open7",
-        "6x-classic-magic-nopot ions".replace(" ", ""),
+        "7x-classic-magic-nopot ions".replace(" ", ""),
     ]:
-        if preset.startswith("6x"):
+        if preset.startswith("7x"):
             for p in [a, b]:
-                train(p, 6)
+                train(p, 7)
         ga.journal_after(
             f"[Challenge 0x{pump(b)['player']['serial']:X} 3 {preset} arena:1", pumps=2
         )

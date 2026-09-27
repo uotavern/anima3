@@ -125,3 +125,13 @@ The immediate stat assertion read the old snapshot; a fresh independent login
 confirmed STR=100, DEX=50, INT=75 and no remaining stat ball. The remote smoke
 helper now opens the backpack explicitly and waits longer for replies. The
 first timing-failure artifact is retained as `.logs/training-public.json`.
+
+## 7GM and explosion option — 2026-09-27
+
+`arena_potions_smoke.py` passed all ten local protocol checks: default 7GM
+application to both fighters, explosion checkbox/invitation, ordinary potion
+restoring stamina, disabled explosion refusal, enabled throw targeting and
+actual opponent damage, followed by entry into a 7x practice match.
+The last check exposed a pre-existing direct-duel aggression cleanup omission;
+`a1547fb86` clears only the opponent's aggression when releasing a fighter.
+Final release build: zero warnings/errors. Evidence: `.logs/potions-local.json`.

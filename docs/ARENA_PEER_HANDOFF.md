@@ -79,3 +79,12 @@ being folded into the existing mage/warrior arena Elo leaderboard.
 **Do not deploy older Scripts.dll over these saves:** the world now stores
 ArenaSkillBall, ArenaStatBall, ArenaSteward and ArenaTrainingSign. A rollback
 requires the matching pre-deployment world backup as well as binaries.
+
+## 7GM / potions correction
+
+ServUO `a1547fb86` (including `8fb5c6f25`) is the new release. Default skill
+balls and saved 6GM balls now use 7GM; 5GM remains available. Practice cap is 7x.
+All presets and the existing mage/warrior queues permit regular potions by
+default. Explosion potions require the explicit `explosion` rules token; UI
+checkbox is off by default and applies to preset and custom buttons. The web
+feed carries `explosion` / `noexplosion` in the canonical rules string.

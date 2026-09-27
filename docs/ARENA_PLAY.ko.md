@@ -20,14 +20,13 @@ NPC를 더블클릭하면 무료 보급 메뉴가 열립니다. 근처에 플레
 
 - **Stat ball**: 가방에서 더블클릭하고 STR·DEX·INT를 입력합니다.
   각각 10~100, 합계 225 이하입니다. 적용하면 볼이 소모됩니다.
-- **5GM / 6GM / 7GM skill ball**: 표시된 개수만큼 스킬을 선택합니다.
+- **5GM / 7GM skill ball**: 표시된 개수만큼 스킬을 선택합니다.
   선택한 스킬은 100.0, 나머지는 **모두 0**으로 바뀝니다.
 - 사용 후 다시 무료로 받을 수 있습니다. 가방에는 미사용 스킬볼 하나,
   스탯볼 하나만 지급됩니다. 다른 개수의 스킬볼을 받으려면 기존 것을 먼저 사용하세요.
 - 설정은 로비에서 살아 있고 전투·매칭 대기·경기 중이 아닐 때만 가능합니다.
   대기 취소: `[Arena leave`.
-- 명령어로도 받을 수 있습니다: `[Arena skills 5`, `[Arena skills 6`,
-  `[Arena skills 7`, `[Arena stats`.
+- 명령어로도 받을 수 있습니다: `[Arena skills 5`, `[Arena skills 7`, `[Arena stats`.
 
 ## 5x·7x·커스텀 듀얼
 
@@ -38,9 +37,9 @@ NPC의 **Choose duel mode** 또는 `[Arena duel`에서 모드를 고르고
 | 모드 | 주요 제한 |
 | --- | --- |
 | 5x Mage | Magery·EvalInt·Meditation·MagicResist·Wrestling, 총 500 이하 |
-| 7x Mage | 클래식 스킬 총 700 이하; 무기·방어구·붕대·포션·Paralyze 금지 |
-| 7x Standard | 무기·방어구·Magery·붕대 허용, 포션 금지 |
-| 7x Dexxer | 무기·방어구·붕대 허용, 마법·포션 금지 |
+| 7x Mage | 클래식 스킬 총 700 이하; 무기·방어구·붕대·Paralyze 금지 |
+| 7x Standard | 무기·방어구·Magery·붕대·일반 포션 허용 |
+| 7x Dexxer | 무기·방어구·붕대·일반 포션 허용, 마법 금지 |
 | 7x Open spar | 무기·방어구·Magery·붕대·포션 허용 |
 | Custom | 5x/6x/7x, 마법·주먹만·방어구·붕대·포션·Paralyze 제한 선택 |
 
@@ -52,8 +51,7 @@ NPC의 **Choose duel mode** 또는 `[Arena duel`에서 모드를 고르고
 있습니다. 프리셋 이름은 `mage5`, `mage7`, `standard7`, `dexxer7`, `open7`입니다.
 
 **기존 Queue: mage/warrior는 5x 표준 설정으로 덮어쓰는 Elo 경기입니다.**
-Practice 큐는 현재 설정을 유지하는 6x 이하 연습 경기입니다. 7x로 준비했다면
-직접 듀얼 모드에서 7x 상대를 초대하세요.
+Practice 큐는 현재 설정을 유지하는 7x 이하 연습 경기입니다.
 
 ## 내 AI 참가시키기
 
@@ -137,3 +135,13 @@ macOS에서는 기능키 입력에 Fn이 필요할 수 있습니다.
 참가자가 이를 사용해 AI를 수정하거나 학습시킵니다. `--policy`로 지정한 로컬
 정책 파일은 경기 사이에 다시 읽습니다. 서버가 참가자 AI를 대신 학습시키거나
 코드를 실행하지 않습니다. 제공된 참조 에이전트는 규칙 기반입니다.
+
+## 폭발 포션 선택
+
+일반 포션은 기본 허용입니다. `[Arena duel`에서 **Allow Explosion Potions**를
+체크한 뒤 프리셋 또는 Custom 버튼을 누르면 폭발 포션도 허용됩니다.
+기본은 OFF이며 상대 초대창에도 `explosion`/`noexplosion`으로 표시됩니다.
+명령어 예: `[Challenge 상대이름 3 standard7-explosion`.
+기존 랭크·연습 큐는 일반 포션을 허용하고 폭발 포션은 금지합니다.
+Rowan은 회복·해독·리프레시·힘·민첩·폭발 포션을 보급합니다.
+기본 스킬볼은 7GM이고, 기존 6GM 볼도 서버 재시작 시 7GM으로 바뀝니다.
