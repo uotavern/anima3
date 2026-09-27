@@ -107,3 +107,18 @@ It accepts only server-issued challenge tokens whose canonical rules exactly mat
 The local client (not the shard) drives spellcasting and explosion potions. It reconnects
 and prepares again after matches. Logs: `.logs/duel-wait/client.jsonl` and per-round JSONL.
 Other rules are ignored with a chat explanation. Stop with SIGTERM to the client PID.
+
+Deployment 2026-09-27 17:05 UTC: ServUO `55ad7d126` (includes `31fbb2deb`
+Hybrid combat fixes and `97bee0afd` 21-skill filter), DLL SHA-256
+`ed5f62727c0eba3364a872126b6d12b3dff95ad9a605ad22587787362dad09ab`.
+Backup: `/root/uoarena-before-skills-20260927T170554Z.tar.gz`.
+Verified local ordinary-client preparation, mismatched rules ignored, correct challenge
+accepted, explosion potion targeted, spell combat, server-decided win, and re-preparation.
+The public local participant is started via ignored `.logs/start-duel-wait.py`; credentials
+are read from the protected local account file without writing passwords into CLI arguments.
+PID file: `.logs/duel-wait/client.pid`. This is a Mac process, so the Mac must stay online.
+Public readiness verified 2026-09-27 17:06 UTC: `Tavern Mage 3`, serial `0x3`,
+7GM and 100/25/100 confirmed from server observations. Human challenge command:
+`[Challenge 0x3 3 standard7-explosion`. Client PID at this verification: 35539.
+Public skill-dialog smoke passed all three inspection checks; game service and existing
+DuelWeb feed remained healthy. Public human match is still to be tested by the user.
