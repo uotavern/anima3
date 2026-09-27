@@ -145,3 +145,16 @@ macOS에서는 기능키 입력에 Fn이 필요할 수 있습니다.
 기존 랭크·연습 큐는 일반 포션을 허용하고 폭발 포션은 금지합니다.
 Rowan은 회복·해독·리프레시·힘·민첩·폭발 포션을 보급합니다.
 기본 스킬볼은 7GM이고, 기존 6GM 볼도 서버 재시작 시 7GM으로 바뀝니다.
+
+## 스킬볼의 pre-AOS 전투·보조 목록
+
+스킬볼은 다음 21개 중 5개 또는 7개를 선택합니다.
+
+- 무기·방어·회복: Swords, Fencing, Macing, Archery, Wrestling, Tactics,
+  Anatomy, Parry, Healing
+- 마법: Magery, EvalInt, MagicResist, Meditation
+- 특수·보조: Poisoning, Hiding, Stealth, DetectHidden, ArmsLore, Alchemy,
+  Inscribe, Lumberjacking
+
+Tracking, 순수 생산·생활, 바드·펫, AOS 이후 스킬은 제외됩니다.
+이는 스킬 선택 목록의 기준이며 서버 전투 엔진 전체의 시대 설정 변경은 아닙니다.

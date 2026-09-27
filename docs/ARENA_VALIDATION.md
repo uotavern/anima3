@@ -139,3 +139,11 @@ Final release build: zero warnings/errors. Evidence: `.logs/potions-local.json`.
 Public shard confirmation after deployment: default 7GM gump, regular potion
 stock, explosion potion stock and the explosion-option checkbox all verified
 through a fresh game login. Evidence: `.logs/potions-public.json`.
+
+## Pre-AOS skill selection — 2026-09-27
+
+Release `97bee0afd`: explicit 21-skill combat/support list, excluding Tracking.
+`arena_skill_selection_smoke.py` verified actual dialog IDs, retained Poisoning
+and ArmsLore/support skills, absent trade/post-AOS IDs, rejection of a forged
+Necromancy selection without consumption or changes, and successful seven-GM
+application/consumption. Build completed with zero warnings/errors.
