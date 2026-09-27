@@ -114,3 +114,14 @@ the AI-failure result is `9fafde1115cb48b9a6535214c635340e`.
   one Rowan remained, and its periodic speech was observed by a nearby client.
 - Evidence: ignored `.logs/training-local.json` and `.logs/rules-local.json`.
   These tests inspect client packets/gumps; they are not native visual QA.
+
+### Public shard follow-up
+
+Deployment hash matched the local build; arena-shard was active and the web
+feed returned 14 arenas in peer_agents mode. Live packet checks confirmed the
+sign, NPC menu, both grants, bounded re-grant, rejection of five skills for a
+6GM ball, six GM skills, ball consumption and invalid stat-total rejection.
+The immediate stat assertion read the old snapshot; a fresh independent login
+confirmed STR=100, DEX=50, INT=75 and no remaining stat ball. The remote smoke
+helper now opens the backpack explicitly and waits longer for replies. The
+first timing-failure artifact is retained as `.logs/training-public.json`.

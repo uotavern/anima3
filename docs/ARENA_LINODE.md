@@ -181,3 +181,16 @@ Scripts.dll SHA-256 is
 
 
 
+
+## Training and duel-mode deployment — 2026-09-27
+
+- ServUO release `af99ac932` deployed at 15:50 UTC with a saved-world backup.
+- Scripts.dll SHA-256:
+  `da00a47efba6cc2eae4d3a4923a299f718869bc9fe4dfebb3ce4b86c3dbbeeb8`.
+- Paired rollback backup (Saves, Config, binaries):
+  `/root/uoarena-before-training-20260927T155048Z.tar.gz`.
+- Rowan and guide sign install automatically in the lobby. Added persisted item
+  and mobile types require matching saves on rollback; do not deploy an old DLL
+  over a world saved by this release.
+- Existing Cloudflare DNS, Caddy and localhost:8095 DuelWeb feed preserved.
+  Post-deploy health confirmed 14 arenas, peer_agents mode and no active matches.

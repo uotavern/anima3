@@ -15,6 +15,9 @@ ap.add_argument("--host", default="127.0.0.1")
 ap.add_argument("--port", type=int, default=2599)
 ap.add_argument("--credentials", type=Path, required=True)
 ap.add_argument("--out", type=Path, required=True)
+ap.add_argument(
+    "--supplies-only", action="store_true", help="Verify supplies without entering a public queue"
+)
 a = ap.parse_args()
 c = json.loads(a.credentials.read_text())
 bodies = []
@@ -23,22 +26,35 @@ checks = {}
 
 def pump(b, n=4):
     for _ in range(n):
-        b.pump(150)
+        b.pump(250 if a.host != "127.0.0.1" else 150)
     return b.observe_raw()
 
 
 def gump(b, title):
-    o = pump(b)
-    return next(g for g in o["gumps"] if any(title in e.get("s", "") for e in g["elements"]))
+    for _ in range(8):
+        o = pump(b)
+        found = [g for g in o["gumps"] if any(title in e.get("s", "") for e in g["elements"])]
+        if found:
+            return found[0]
+    raise AssertionError("Gump not received: " + title)
 
 
 def reply(b, g, button=1, **kw):
     b.act(dict(type="GumpResponse", serial=g["serial"], gump_id=g["gump_id"], button=button, **kw))
-    return pump(b)
+    return pump(b, 16 if a.host != "127.0.0.1" else 4)
+
+
+def open_pack(b):
+    o = pump(b)
+    pack = next(
+        i for i in o["items"] if i.get("layer") == 21 and i["container"] == o["player"]["serial"]
+    )
+    b.act(use(pack["serial"]))
+    return pump(b, 8)
 
 
 def open_ball(b, hue, title):
-    o = pump(b)
+    o = open_pack(b)
     ball = next(i for i in o["items"] if i["graphic"] == 0xE2D and i["hue"] == hue)
     b.act(use(ball["serial"]))
     return ball, gump(b, title)
@@ -53,11 +69,11 @@ def check(name, value):
 try:
     b = BridgeBody.spawn(a.host, a.port, "arena_train_a", c["arena_train_a"])
     bodies.append(b)
-    pump(b, 12)
+    pump(b, 40)
     gm = Gm(b)
     gm.journal_after("[Arena leave", pumps=3)
     gm.journal_after("[Arena enter", pumps=4)
-    o = pump(b)
+    o = open_pack(b)
     npc = next(m for m in o["mobiles"] if m["pos"]["x"] == 5183 and m["pos"]["y"] == 332)
     sign = next(i for i in o["items"] if i["graphic"] == 0xBD2 and i["pos"]["x"] == 5184)
     b.act(use(sign["serial"]))
@@ -106,6 +122,8 @@ try:
         [o["player"][k] for k in ["strength", "dexterity", "intelligence"]] == [100, 50, 75],
     )
     check("stat_ball_consumed", not any(i["serial"] == ball["serial"] for i in o["items"]))
+    if a.supplies_only:
+        raise SystemExit(0)
     gm.journal_after("[Arena stats", pumps=2)
     ball, g = open_ball(b, 53, "ARENA STATS")
     gm.journal_after("[Arena join mage practice", pumps=3)
@@ -117,7 +135,7 @@ try:
     )
     other = BridgeBody.spawn(a.host, a.port, "arena_train_b", c["arena_train_b"])
     bodies.append(other)
-    pump(other, 12)
+    pump(other, 40)
     Gm(other).journal_after("[Arena enter", pumps=2)
     Gm(other).journal_after("[Arena join mage practice", pumps=3)
     state = gm.journal_after("[ArenaState", pumps=3)
