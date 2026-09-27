@@ -1,0 +1,248 @@
+"""Ordinary participant client: prepare 7GM and accept Standard 7x + explosion challenges."""
+
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import signal
+import time
+from pathlib import Path
+
+from .agent import Agent
+from .arena import MATCH_ID, ObservedBody, append_event
+from .body import BridgeBody
+from .contract import say, use
+from .decision import build_client
+from .persona import Persona
+
+RULES = "7x-magic-explosion-classic"
+SKILLS = [25, 16, 46, 26, 43, 1, 0]
+
+
+def server_state(obs):
+    result = None
+    for j in obs.new_journal:
+        if j.serial not in (0, -1, 0xFFFFFFFF) or not j.text.startswith("[DuelState] "):
+            continue
+        try:
+            s = json.loads(j.text[12:])
+            if not isinstance(s, dict):
+                continue
+
+            def valid(v):
+                return (
+                    isinstance(v, dict)
+                    and MATCH_ID.fullmatch(str(v.get("id", "")))
+                    and type(v.get("opponent")) is int
+                    and v["opponent"] > 0
+                    and isinstance(v.get("rules"), str)
+                )
+
+            if s.get("phase") == "Idle":
+                c = s.get("challenge")
+                if c is None or (
+                    valid(c) and type(c.get("rounds")) is int and 1 <= c["rounds"] <= 15
+                ):
+                    result = s
+            elif (
+                s.get("phase") in ("Countdown", "Fighting", "RoundOver")
+                and valid(s)
+                and type(s.get("round")) is int
+                and 1 <= s["round"] <= 15
+            ):
+                result = s
+        except (ValueError, TypeError):
+            pass
+    return result
+
+
+def pump(body, seconds=2):
+    until = time.monotonic() + seconds
+    while time.monotonic() < until:
+        body.pump(250)
+    return body.observe_raw()
+
+
+def prepare(body):
+    """Use the same public commands and consumable dialogs as a human player."""
+    for command in (
+        "[Arena leave",
+        "[Arena enter",
+        "[Arena skills",
+        "[Arena stats",
+        "[Arena supplies",
+    ):
+        body.act(say(command))
+        pump(body)
+    o = body.observe_raw()
+    pack = next(
+        i for i in o["items"] if i.get("layer") == 21 and i["container"] == o["player"]["serial"]
+    )
+    body.act(use(pack["serial"]))
+    o = pump(body)
+    for hue, title, values in (
+        (1153, "7GM SKILL BALL", {"switches": SKILLS}),
+        (53, "ARENA STATS", {"entries": [[0, "100"], [1, "25"], [2, "100"]]}),
+    ):
+        ball = next(
+            i
+            for i in o["items"]
+            if i["graphic"] == 0xE2D and i["hue"] == hue and i["container"] == pack["serial"]
+        )
+        body.act(use(ball["serial"]))
+        g = None
+        for _ in range(8):
+            o = pump(body, 0.5)
+            g = next((g for g in o["gumps"] if title in str(g)), None)
+            if g:
+                break
+        if g is None:
+            raise RuntimeError("Preparation dialog missing: " + title)
+        body.act(
+            dict(type="GumpResponse", serial=g["serial"], gump_id=g["gump_id"], button=1, **values)
+        )
+        o = pump(body, 3)
+    body.act({"type": "SkillsRequest"})
+    o = pump(body, 3)
+    bases = {s.get("id", n): s["base"] for n, s in enumerate(o["skills"])}
+    if any(bases.get(n) != 100 for n in SKILLS) or sum(bases.values()) != 700:
+        raise RuntimeError("Server has not confirmed requested seven GM skills")
+    if [o["player"][k] for k in ("strength", "dexterity", "intelligence")] != [100, 25, 100]:
+        raise RuntimeError("Server has not confirmed 100/25/100 stats")
+    return o["player"]
+
+
+def serve(args, stopped):
+    log = Path(args.log_dir)
+    life = log / "client.jsonl"
+    body = BridgeBody.spawn(
+        args.host,
+        args.port,
+        args.user,
+        os.environ[args.password_env],
+        binary=args.bridge,
+        data_dir=args.data_dir,
+    )
+    view = ObservedBody(body)
+    state, state_at, ping_at, key, agent = {}, 0, 0, None, None
+    prepared, last_match, last_invite = False, None, None
+    started = time.monotonic()
+    try:
+        pump(body, 7)
+        while not stopped():
+            obs = body.observe()
+            now = time.monotonic()
+            update = server_state(obs)
+            if update is not None:
+                state, state_at = update, now
+            if now - ping_at > 1:
+                body.act(say("[DuelState"))
+                ping_at = now
+            if now - max(state_at, started) > 20:
+                raise RuntimeError("No trusted DuelState handshake from server")
+            phase = state.get("phase") if now - state_at < 5 else None
+            if phase == "Idle":
+                if last_match:
+                    append_event(life, {"event": "match_released", "id": last_match})
+                    prepared, last_match, key, agent = False, None, None, None
+                if not prepared:
+                    player = prepare(body)
+                    prepared = True
+                    event = {
+                        "event": "ready",
+                        "name": player["name"],
+                        "serial": player["serial"],
+                        "rules": RULES,
+                        "skills": SKILLS,
+                    }
+                    append_event(life, event)
+                    print(json.dumps(event), flush=True)
+                    state_at = time.monotonic()
+                    continue
+                invite = state.get("challenge")
+                if invite and invite["id"] != last_invite:
+                    last_invite = invite["id"]
+                    accepted = invite["rules"] == RULES
+                    append_event(life, {"event": "challenge", "accepted": accepted, **invite})
+                    if accepted:
+                        body.act(say("[DuelAccept " + invite["id"]))
+                    else:
+                        body.act(
+                            say(
+                                "I accept Standard 7x with Explosion potions. Use standard7-explosion."
+                            )
+                        )
+            elif phase in ("Countdown", "Fighting", "RoundOver"):
+                last_match = state["id"]
+            if phase == "Fighting" and state.get("rules") == RULES:
+                newkey = (state["id"], state["round"])
+                if key != newkey or agent is None:
+                    key = newkey
+                    agent = Agent(
+                        view,
+                        Persona.load("mage_a"),
+                        build_client("scripted"),
+                        pump_ms=250,
+                        reflect_every=0,
+                        log_path=log / state["id"] / f"round-{state['round']}.jsonl",
+                    )
+                    agent.memory.update(
+                        duel=True,
+                        mage=True,
+                        explosion_potions=True,
+                        duel_opponent=state["opponent"],
+                        duel_round=state["round"],
+                        playbook="standard",
+                    )
+                    append_event(life, {"event": "round_start", **state})
+                view.pending = obs
+                agent.tick()
+                del agent.reports[:-2000]
+                del agent.proc_log[:-2000]
+            else:
+                if agent:
+                    agent, key = None, None
+                    body.act({"type": "WarMode", "on": False})
+                body.pump(250)
+    finally:
+        body.close()
+
+
+def main():
+    ap = argparse.ArgumentParser(description=__doc__)
+    ap.add_argument("--host", default="arena.uotavern.com")
+    ap.add_argument("--port", type=int, default=2593)
+    ap.add_argument("--user", required=True)
+    ap.add_argument("--password-env", default="ARENA_BOT_PASSWORD")
+    ap.add_argument("--bridge")
+    ap.add_argument("--data-dir")
+    ap.add_argument("--log-dir", default=".logs/duel-wait")
+    ap.add_argument("--once", action="store_true")
+    args = ap.parse_args()
+    if not os.environ.get(args.password_env):
+        ap.error("Set " + args.password_env)
+    stopping = False
+
+    def stop(*_):
+        nonlocal stopping
+        stopping = True
+
+    signal.signal(signal.SIGINT, stop)
+    signal.signal(signal.SIGTERM, stop)
+    while not stopping:
+        try:
+            serve(args, lambda: stopping)
+        except Exception as e:
+            append_event(Path(args.log_dir) / "client.jsonl", {"event": "error", "error": str(e)})
+            if args.once:
+                raise
+            for _ in range(20):
+                if stopping:
+                    break
+                time.sleep(0.25)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

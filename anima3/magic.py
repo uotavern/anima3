@@ -168,6 +168,21 @@ def spell_order(playbook: str, hp: float, poisoned: bool, opp_paralyzed: bool, o
     return [k for k in order if not (k in seen or seen.add(k))]
 
 
+def explosion_potion_proc(serial: int, opponent: int):
+    """Own the cursor until this potion has been thrown or the request times out."""
+    from .contract import use
+    def proc(obs0, memory):
+        memory["potion_after"] = memory.get("tick", 0) + 40
+        obs = yield use(serial)
+        for _ in range(12):
+            if obs.pending_target:
+                yield target_object(opponent)
+                return "thrown"
+            obs = yield None
+        return "no potion cursor"
+    return proc
+
+
 def mage_verbs(obs: Observation, f, memory: dict, threat) -> list:
     """The mage's closed menu in a duel, rule-ordered by the current playbook (`memory["playbook"]`,
     `standard` when none is set): heal when low, cure when poisoned, attacks in the playbook's
@@ -187,6 +202,13 @@ def mage_verbs(obs: Observation, f, memory: dict, threat) -> list:
     if memory.get("tick", 0) < memory.get("recover_until", 0):
         return [Affordance("recover", "Catch your breath for a moment; the last spell still echoes.")]
     hp = f.hp_pct
+    if (memory.get("explosion_potions") and not obs.pending_target and hp >= 0.5
+            and 2 <= threat.distance <= 10
+            and memory.get("tick", 0) >= memory.get("potion_after", 0)):
+        potion = next((i for i in obs.own_pack() if i.graphic == 0xF0D), None)
+        if potion:
+            out.append(Affordance("potion:explosion", "Throw an explosion potion at the duel opponent.",
+                                  procedure=explosion_potion_proc(potion.serial, threat.serial)))
     playbook = memory.get("playbook", "standard")
     reflect_due = memory.get("tick", 0) - memory.get("reflect_at", -999) > 60
     why = {"greater_heal": " You are below half." if hp < 0.5 else "", "cure": " You are poisoned."}

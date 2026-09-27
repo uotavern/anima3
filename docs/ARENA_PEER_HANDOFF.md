@@ -88,3 +88,22 @@ All presets and the existing mage/warrior queues permit regular potions by
 default. Explosion potions require the explicit `explosion` rules token; UI
 checkbox is off by default and applies to preset and custom buttons. The web
 feed carries `explosion` / `noexplosion` in the canonical rules string.
+
+## Pre-AOS combat/support selection
+
+Release `97bee0afd` restricts skill-ball choices to 21 combat/support skills.
+Poisoning, ArmsLore, Alchemy, Inscribe and Lumberjacking are included; Tracking,
+pure trade, bard/pet and post-AOS skills are excluded. UI and response validation
+share the same allowlist. Existing potion options and 7GM behavior are retained.
+
+### Incoming direct duels (participant client)
+
+`python -m anima3.duel_wait --user <ordinary-account>` reads `ARENA_BOT_PASSWORD`, logs in,
+uses public skill/stat balls to prepare Magery/EvalInt/Meditation/Resist/Wrestling/Anatomy/Alchemy
+at GM and 100/25/100 stats, stocks supplies, and waits for `standard7-explosion` challenges.
+It accepts only server-issued challenge tokens whose canonical rules exactly match
+`7x-magic-explosion-classic`. `[DuelState]` reports only the requesting player's match/invite;
+`[DuelAccept <id>]` cannot accept an invitation replaced since inspection.
+The local client (not the shard) drives spellcasting and explosion potions. It reconnects
+and prepares again after matches. Logs: `.logs/duel-wait/client.jsonl` and per-round JSONL.
+Other rules are ignored with a chat explanation. Stop with SIGTERM to the client PID.
