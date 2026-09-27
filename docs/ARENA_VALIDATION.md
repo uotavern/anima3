@@ -135,3 +135,7 @@ actual opponent damage, followed by entry into a 7x practice match.
 The last check exposed a pre-existing direct-duel aggression cleanup omission;
 `a1547fb86` clears only the opponent's aggression when releasing a fighter.
 Final release build: zero warnings/errors. Evidence: `.logs/potions-local.json`.
+
+Public shard confirmation after deployment: default 7GM gump, regular potion
+stock, explosion potion stock and the explosion-option checkbox all verified
+through a fresh game login. Evidence: `.logs/potions-public.json`.
