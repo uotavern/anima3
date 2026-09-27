@@ -1,3 +1,4 @@
+# Legacy private hosted-AI learner only. Public participants own their training.
 [Unit]
 Description=UO Tavern Arena policy training and evaluation
 After=arena-shard.service

@@ -26,7 +26,7 @@ credentials = json.loads(args.credentials.read_text())
 bot_user = "arena_bot_" + args.build
 env = dict(os.environ, ARENA_BOT_PASSWORD=credentials[bot_user])
 log_dir = Path(".logs") / ("arena-smoke-" + args.build + "-" + str(time.time_ns()))
-worker = subprocess.Popen([sys.executable, "-m", "anima3.arena", "--host", "127.0.0.1", "--port", str(args.port), "--user", bot_user, "--build", args.build, "--log-dir", str(log_dir), "--once"], env=env, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, text=True)
+worker = subprocess.Popen([sys.executable, "-m", "anima3.arena", "--hosted-worker", "--host", "127.0.0.1", "--port", str(args.port), "--user", bot_user, "--build", args.build, "--log-dir", str(log_dir), "--once"], env=env, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, text=True)
 body = None
 report = {"host": "127.0.0.1:" + str(args.port), "build": args.build, "practice": args.practice, "journal": [], "checks": {}}
 try:

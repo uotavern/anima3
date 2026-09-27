@@ -1,4 +1,4 @@
-"""Player-level AI worker for the server-owned Arena service.
+"""Participant-run AI agent for the shared Arena service.
 
 No GM credentials, invented outcomes or client-side ratings. The shard leases a
 worker only while it is online and announcing readiness. Policies change between
@@ -124,6 +124,7 @@ def serve(args, stopped) -> None:
     last_match = None
     agent = None
     opened_pack = False
+    completed = 0
     try:
         while not stopped():
             obs = body.observe()
@@ -135,11 +136,17 @@ def serve(args, stopped) -> None:
                 body.act(use(obs.backpack_serial()))
                 opened_pack = True
             if not state and now - connected_at > 20:
-                raise RuntimeError("no Arena handshake: enable the service and allowlist this Player account")
+                raise RuntimeError("no Arena handshake: check server mode, account access and readiness arguments")
             phase = state.get("phase") if now - state_at < 5.0 else None
             if phase == "Idle" or not state:
                 if last_match is not None:
                     append_event(life_log, {"event": "match_released", "id": last_match})
+                    result = state.get("result")
+                    if isinstance(result, dict) and result.get("id") == last_match:
+                        append_event(life_log, {"event": "server_result", "result": result})
+                    completed += 1
+                    if args.matches and completed >= args.matches:
+                        return
                     last_match = None
                     round_key = None
                     agent = None
@@ -163,7 +170,7 @@ def serve(args, stopped) -> None:
                             round_key = ("ready", policy)
                         else:
                             policy = round_key[1]
-                    mode = "training" if args.training else "public"
+                    mode = ("training" if args.training else "public") if args.hosted_worker else ("practice" if args.practice else "ranked")
                     body.act(say(f"[ArenaReady {args.build} {policy['version']} {policy['playbook']} {mode}"))
                     ready_at = now
             elif state.get("id"):
@@ -207,7 +214,10 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--password-env", default="ARENA_BOT_PASSWORD")
     ap.add_argument("--build", choices=["mage", "warrior"], default="mage")
     ap.add_argument("--policy", help="champion/candidate JSON, reread only between matches")
-    ap.add_argument("--training", action="store_true")
+    ap.add_argument("--hosted-worker", action="store_true", help="legacy operator-owned AI shard only")
+    ap.add_argument("--practice", action="store_true", help="participant practice queue; no rating")
+    ap.add_argument("--matches", type=int, default=0, help="stop after N matches; 0 keeps queueing")
+    ap.add_argument("--training", action="store_true", help="legacy private training shard only")
     ap.add_argument("--explore", action="store_true", help="training mage: random playbook per match")
     ap.add_argument("--curriculum", help="policy directory: automatically switch exploration and candidate evaluation")
     ap.add_argument("--seed", type=int)
@@ -217,6 +227,12 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--pump-ms", type=int, default=250)
     ap.add_argument("--once", action="store_true", help="exit on disconnect instead of reconnecting")
     args = ap.parse_args(argv)
+    if args.matches < 0:
+        ap.error("--matches must be nonnegative")
+    if args.training and not args.hosted_worker:
+        ap.error("--training requires --hosted-worker; use --practice for participant matches")
+    if args.practice and args.hosted_worker:
+        ap.error("--practice is for participant mode")
     if (args.explore or args.curriculum) and (not args.training or args.build != "mage"):
         ap.error("--explore/--curriculum requires --training --build mage")
     if not 50 <= args.pump_ms <= 1000:
@@ -235,6 +251,8 @@ def main(argv: list[str] | None = None) -> int:
     while not stopping:
         try:
             serve(args, lambda: stopping)
+            if args.matches:
+                break
         except Exception as e:
             append_event(Path(args.log_dir) / "worker.jsonl", {"event": "worker_error", "error": str(e)})
             if args.once:

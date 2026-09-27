@@ -1,3 +1,4 @@
+# Legacy private hosted-AI fixture only. Do not enable on the public peer arena.
 [Unit]
 Description=UO Tavern Arena AI worker %i
 After=network-online.target arena-shard.service
@@ -11,7 +12,7 @@ WorkingDirectory=/opt/uoarena/anima3
 # Each file defines ARENA_USER, ARENA_BOT_PASSWORD, and ARENA_WORKER_ARGS.
 # Keep mode 0600, root-owned. The bridge monitor is not exposed.
 EnvironmentFile=/etc/uoarena/%i.env
-ExecStart=/opt/uoarena/anima3/.venv/bin/python -m anima3.arena --host 127.0.0.1 --user ${ARENA_USER} --bridge /opt/uoarena/anima-client/target/release/anima-bridge --data-dir /opt/uoarena/data --log-dir /var/lib/uoarena/agent-logs/%i $ARENA_WORKER_ARGS
+ExecStart=/opt/uoarena/anima3/.venv/bin/python -m anima3.arena --hosted-worker --host 127.0.0.1 --user ${ARENA_USER} --bridge /opt/uoarena/anima-client/target/release/anima-bridge --data-dir /opt/uoarena/data --log-dir /var/lib/uoarena/agent-logs/%i $ARENA_WORKER_ARGS
 Restart=on-failure
 RestartSec=5
 TimeoutStopSec=15

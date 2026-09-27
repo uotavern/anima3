@@ -40,7 +40,7 @@ config = runtime / "Config"
 (config / "Server.cfg").write_text(f"Name=UO Tavern Arena Local\nListen=127.0.0.1\nAddress=127.0.0.1\nPort={args.port}\nMaxAddressesPerIP=30\n")
 (config / "Accounts.cfg").write_text("AccountsPerIp=30\nAutoCreateAccounts=True\nProtectPasswords=NewSecureCrypt\n")
 (config / "AutoSave.cfg").write_text("Enabled=True\nFrequency=00:00:01:00\nWarningTime=00:00:00:00\nArchivesEnabled=False\n")
-(config / "Arena.cfg").write_text("Enabled=true\nWelcomeOnLogin=true\nDomain=arena.uotavern.com\nBotAccounts=arena_bot_mage,arena_bot_warrior,arena_train_a,arena_train_b\nSelfPlay=true\n")
+(config / "Arena.cfg").write_text("Enabled=true\nPeerAgents=false\nWelcomeOnLogin=true\nDomain=arena.uotavern.com\nBotAccounts=arena_bot_mage,arena_bot_warrior,arena_train_a,arena_train_b\nSelfPlay=true\n")
 credentials = runtime / "test-accounts.json"
 if not credentials.exists():
     accounts = {name: secrets.token_hex(14) for name in ("arena_admin", "arena_playtest", "arena_bot_mage", "arena_bot_warrior", "arena_train_a", "arena_train_b")}

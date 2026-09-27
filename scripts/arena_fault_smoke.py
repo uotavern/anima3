@@ -40,7 +40,7 @@ try:
     first = reagents(body.observe())
     body.act(say("[Arena supplies")); body.pump(500)
     proof["refill_is_bounded"] = reagents(body.observe()) == first and min(first.values()) == 100
-    worker = subprocess.Popen([sys.executable, "-m", "anima3.arena", "--host", "127.0.0.1", "--port", str(args.port), "--user", "arena_bot_mage", "--log-dir", ".logs/arena-fault-bot", "--once"],
+    worker = subprocess.Popen([sys.executable, "-m", "anima3.arena", "--hosted-worker", "--host", "127.0.0.1", "--port", str(args.port), "--user", "arena_bot_mage", "--log-dir", ".logs/arena-fault-bot", "--once"],
                               env=dict(os.environ, ARENA_BOT_PASSWORD=creds["arena_bot_mage"]), stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     body.act(say("[Arena join mage"))
     until = time.monotonic() + 120

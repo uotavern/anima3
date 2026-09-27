@@ -24,7 +24,7 @@ try:
         log_path = Path(".logs") / (name + ".log")
         log_path.parent.mkdir(parents=True, exist_ok=True)
         with log_path.open("w") as log:
-            workers.append(subprocess.Popen([sys.executable, "-m", "anima3.arena", "--host", "127.0.0.1", "--port", str(args.port), "--user", name,
+            workers.append(subprocess.Popen([sys.executable, "-m", "anima3.arena", "--hosted-worker", "--host", "127.0.0.1", "--port", str(args.port), "--user", name,
                                               "--training", "--log-dir", ".logs/" + name, "--once", *extra], env=env, stdout=log, stderr=log))
     until = time.monotonic() + args.seconds
     while time.monotonic() < until:
