@@ -9,6 +9,7 @@ choice. `gate()` turns a Decision into an admitted choice or a fallback.
 from __future__ import annotations
 
 import os
+import math
 import string
 import time
 from dataclasses import dataclass, field
@@ -177,6 +178,8 @@ def gate(decision: Decision | None, options: dict[str, str], threshold: float) -
         return Admitted(first, False, f"error: {decision.error}")
     if decision.choice not in options:
         return Admitted(first, False, "choice outside menu")
+    if not math.isfinite(decision.confidence) or not 0 <= decision.confidence <= 1:
+        return Admitted(first, False, "invalid confidence")
     if decision.confidence < threshold:
         return Admitted(first, False, f"confidence {decision.confidence:.2f} < {threshold:.2f}")
     return Admitted(decision.choice, True, "admitted")

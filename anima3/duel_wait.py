@@ -13,7 +13,8 @@ from .agent import Agent
 from .arena import MATCH_ID, ObservedBody, append_event
 from .body import BridgeBody
 from .contract import say, use
-from .decision import build_client
+from .arena_policy import LABEL, load_policy
+from .magic import PLAYBOOKS
 from .persona import Persona
 
 RULES = "7x-magic-explosion-classic"
@@ -116,6 +117,12 @@ def prepare(body):
 def serve(args, stopped):
     log = Path(args.log_dir)
     life = log / "client.jsonl"
+    decision_client = load_policy(getattr(args,"backend","scripted"),getattr(args,"decision_factory",None))
+    version=getattr(args,"version","baseline-v1")
+    policy=getattr(args,"policy","standard")
+    model=getattr(args,"model_label",None) or ("custom" if getattr(args,"decision_factory",None) else getattr(args,"backend","scripted"))
+    ranked=getattr(args,"ranked",False)
+    listed_at=0
     body = BridgeBody.spawn(
         args.host,
         args.port,
@@ -148,22 +155,28 @@ def serve(args, stopped):
                     prepared, last_match, key, agent = False, None, None, None
                 if not prepared:
                     player = prepare(body)
+                    body.act(say(f"[ArenaAgent {model} {version} {policy}"))
                     prepared = True
+                    listed_at=0
                     event = {
                         "event": "ready",
                         "name": player["name"],
                         "serial": player["serial"],
                         "rules": RULES,
                         "skills": SKILLS,
+                        "model":model,"version":version,"policy":policy,"ranked":ranked,
                     }
                     append_event(life, event)
                     print(json.dumps(event), flush=True)
                     state_at = time.monotonic()
                     continue
+                if not getattr(args,"no_list",False) and now-listed_at>300 and not state.get("challenge"):
+                    body.act(say("[Arena list 7"+(" ranked" if ranked else "")))
+                    listed_at=now
                 invite = state.get("challenge")
                 if invite and invite["id"] != last_invite:
                     last_invite = invite["id"]
-                    accepted = invite["rules"] == RULES
+                    accepted = invite["rules"] == RULES and (invite.get("ranked") is True)==ranked
                     append_event(life, {"event": "challenge", "accepted": accepted, **invite})
                     if accepted:
                         body.act(say("[DuelAccept " + invite["id"]))
@@ -182,7 +195,8 @@ def serve(args, stopped):
                     agent = Agent(
                         view,
                         Persona.load("mage_a"),
-                        build_client("scripted"),
+                        decision_client,
+                        sync=getattr(args,"backend","scripted")=="scripted" and not getattr(args,"decision_factory",None),
                         pump_ms=250,
                         reflect_every=0,
                         log_path=log / state["id"] / f"round-{state['round']}.jsonl",
@@ -193,7 +207,7 @@ def serve(args, stopped):
                         explosion_potions=True,
                         duel_opponent=state["opponent"],
                         duel_round=state["round"],
-                        playbook="standard",
+                        playbook=policy,
                     )
                     append_event(life, {"event": "round_start", **state})
                 agent.memory["showdown"] = state.get("showdown") is True
@@ -220,7 +234,16 @@ def main():
     ap.add_argument("--data-dir")
     ap.add_argument("--log-dir", default=".logs/duel-wait")
     ap.add_argument("--once", action="store_true")
+    ap.add_argument("--backend", choices=["scripted","qwen","jev","jeff"], default="scripted")
+    ap.add_argument("--decision-factory", help="your local module:function returning a DecisionClient")
+    ap.add_argument("--model-label", help="public self-reported model label")
+    ap.add_argument("--version", default="baseline-v1", help="public agent version")
+    ap.add_argument("--policy", choices=list(PLAYBOOKS), default="standard")
+    ap.add_argument("--ranked", action="store_true", help="list for and accept ranked matches instead of friendly")
+    ap.add_argument("--no-list", action="store_true", help="accept direct invitations without a public waiting entry")
     args = ap.parse_args()
+    for label in (args.version,args.model_label or args.backend,args.policy):
+        if not LABEL.fullmatch(label):ap.error("Public labels allow 1–48 letters, digits, . _ + -")
     if not os.environ.get(args.password_env):
         ap.error("Set " + args.password_env)
     stopping = False

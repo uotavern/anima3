@@ -204,6 +204,8 @@ def main(argv=None):
             chosen = [trial, champion] if completed % 2 == 0 else [champion, trial]
             with ThreadPoolExecutor(max_workers=2) as pool:
                 players = list(pool.map(prepare, bodies))
+            for body,policy in zip(bodies,chosen):
+                body.act(say(f"[ArenaAgent scripted {policy['version']} {policy['playbook']}"))
             ids = [p["serial"] for p in players]
             # Swap challenger (arena side A) each match as well as the candidate account.
             # Keeping these independent preserves arena-side balance in evaluation.
@@ -252,6 +254,7 @@ def main(argv=None):
                 "playbook_a": chosen[order[0]]["playbook"],
                 "playbook_b": chosen[order[1]]["playbook"],
                 "source": "verified-server-replay",
+                "stage":stage,
                 "sha256": meta["sha256"],
             }
             append_event(events, row)
