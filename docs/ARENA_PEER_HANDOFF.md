@@ -191,3 +191,12 @@ The same website branch also installs anonymous persistent likes: Python stdlib
 `/replay-social/likes/<id>` are proxied by Caddy. Match cards show counts and a
 reversible Like button; the identity is a signed browser cookie, not a user account.
 Server/shard restart is not needed for this service.
+
+Important deployment correction: the live Caddyfile was missing `/replay/*` when
+this follow-up started (replay links returned HTTP 404). Restored its static-first
+renderer handler and verified HTTP 200. The arena website branch carries BOTH
+replay handlers in `arena/Caddyfile`; merge that branch before using an older
+`arena/deploy.sh` checkout, which replaces the entire live Caddyfile.
+Verified new archive `1745e622495949cdb451403af58f1a55`: complete, 10 speech rows,
+43 paralyzed state frames. Public speech fixture `25ed74fe40714b20830864af25617f1d`
+contains both participants' ordinary speech; it was excluded from learning evidence.
