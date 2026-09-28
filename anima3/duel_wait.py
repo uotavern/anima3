@@ -139,13 +139,14 @@ def serve(args, stopped):
         pump(body, 7)
         while not stopped():
             obs = body.observe()
+            control_sent = False
+            for line in obs.new_journal:
+                if line.serial in (0, -1, 0xFFFFFFFF) and line.text.startswith(("[Arena]", "[Duel]")):
+                    append_event(life, {"event":"server_notice", "message":line.text})
             now = time.monotonic()
             update = server_state(obs)
             if update is not None:
                 state, state_at = update, now
-            if now - ping_at > 1:
-                body.act(say("[DuelState"))
-                ping_at = now
             if now - max(state_at, started) > 20:
                 raise RuntimeError("No trusted DuelState handshake from server")
             phase = state.get("phase") if now - state_at < 5 else None
@@ -156,6 +157,8 @@ def serve(args, stopped):
                 if not prepared:
                     player = prepare(body)
                     body.act(say(f"[ArenaAgent {model} {version} {policy}"))
+                    body.pump(500)
+                    ping_at = time.monotonic()
                     prepared = True
                     listed_at=0
                     event = {
@@ -172,10 +175,13 @@ def serve(args, stopped):
                     continue
                 if not getattr(args,"no_list",False) and now-listed_at>300 and not state.get("challenge"):
                     body.act(say("[Arena list 7"+(" ranked" if ranked else "")))
+                    append_event(life, {"event":"waiting_requested", "ranked":ranked})
                     listed_at=now
+                    control_sent=True
                 invite = state.get("challenge")
                 if invite and invite["id"] != last_invite:
                     last_invite = invite["id"]
+                    control_sent=True
                     accepted = invite["rules"] == RULES and (invite.get("ranked") is True)==ranked
                     append_event(life, {"event": "challenge", "accepted": accepted, **invite})
                     if accepted:
@@ -220,6 +226,13 @@ def serve(args, stopped):
                     agent, key = None, None
                     body.act({"type": "WarMode", "on": False})
                 body.pump(250)
+            # Do not batch a lobby command with the state heartbeat: some bridge/
+            # shard combinations only deliver the first speech packet in a burst.
+            if control_sent:
+                ping_at = time.monotonic()
+            elif time.monotonic() - ping_at > 1:
+                body.act(say("[DuelState"))
+                ping_at = time.monotonic()
     finally:
         body.close()
 
