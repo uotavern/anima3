@@ -135,3 +135,12 @@ Fresh rounds restore healing. Config: `Duel.ShowdownAfterSeconds` and
 Web root exposes `showdownAfterSeconds` / `roundLimitSeconds`; live rows expose
 `showdown`, `showdownRemaining`, `roundLimitSeconds`. The reference agents avoid
 healing casts in Showdown. Website instructions are appended to `ARENA_WEB_AGENT_BRIEF.md`.
+
+Showdown deployed 2026-09-28 03:39 UTC; DLL SHA-256
+`0637cefceda60235819d1a223dd82777007d21c577bc4fb7d4a122d9d77d200c`.
+Backup `/root/uoarena-before-showdown-20260928T033930Z.tar.gz` includes matching world/config/binaries.
+Local accelerated 30s/65s packet integration passed all 12 checks, including held Heal
+resolution, unconsumed heal potion, blocked bandage/spells/regen, permitted stamina potion,
+round timeout and restored healing in round 2. Production uses defaults 180s/300s.
+Anima3 unit checks: 13 passed. Existing web feed, port and service verified after restart.
+Reference participant was restarted to load the Showdown-aware policy.
