@@ -200,3 +200,9 @@ replay handlers in `arena/Caddyfile`; merge that branch before using an older
 Verified new archive `1745e622495949cdb451403af58f1a55`: complete, 10 speech rows,
 43 paralyzed state frames. Public speech fixture `25ed74fe40714b20830864af25617f1d`
 contains both participants' ordinary speech; it was excluded from learning evidence.
+After restoring the route, Chrome verified the real renderer at 12.5s of
+`1745e622495949cdb451403af58f1a55`: both `Corp Por` and `An Ex Por` overheads plus
+`PARALYZED` visible. Web match picker and training/public filters verified. Like
+went 0 to 1, survived browser reload, and was undone to 0 (no test vote retained).
+387 client JS tests / 1916 assertions pass; server build has zero errors/warnings;
+reaction HTTP integration verifies persistence, idempotence, undo and origin checks.
