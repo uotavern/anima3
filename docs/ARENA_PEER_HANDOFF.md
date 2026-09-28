@@ -144,3 +144,35 @@ resolution, unconsumed heal potion, blocked bandage/spells/regen, permitted stam
 round timeout and restored healing in round 2. Production uses defaults 180s/300s.
 Anima3 unit checks: 13 passed. Existing web feed, port and service verified after restart.
 Reference participant was restarted to load the Showdown-aware policy.
+
+## 2026-09-28: real UO visual replay deployed
+
+User correction: replay must show actual UO graphics, skin/hair hues, clothing,
+weapons and movement/combat/casting animation. The schematic inspector was removed.
+
+- ServUO worktree commit `385c6a501`; both core and Scripts deployed together.
+- Anima client worktree commit `69dcbcd`; read-only real UO renderer at
+  `https://arena.uotavern.com/replay/?replay=<id>`.
+- Verified production example:
+  `https://arena.uotavern.com/replay/?replay=eca76ed797324671ae6a67e63ba129ba`.
+  359 rows, visualVersion 1, complete, zero drops; server checksum and result verified.
+  Browser displayed real terrain/fences, body/robes/hair and finished 0–1 after 38.2s.
+- Archive list `/duel/replays/`; only show `complete:true, visualVersion:1` as playable.
+  `/duel/replays/<id>.jsonl` uses gzip content encoding. Match list should label training.
+- Website owns the surrounding list/results/navigation. Embed this renderer in an iframe
+  or link directly. Do not build another schematic replay canvas.
+- Source contract: `docs/ARENA_REPLAY.md`; deployment snippets in `deploy/`.
+- `arena-replay-assets` on loopback 8096. Caddy serves the web shell/scripts directly,
+  then proxies generated asset URLs. Serving app files directly resolved the observed initial script-loading stalls. No changes to `/var/www/arena` were made.
+- Paired rollback backup: `/root/uoarena-before-replay-20260928T054330Z.tar.gz`.
+  Scripts SHA256 `804c0abfa80b3cb38ba0dd9a9d16a074fad1146106f124e193ba0e2716fb3eee`;
+  core SHA256 `6a02e1d3d7efda7498352f89142d053c625691e94cd891b01a384040fff452d8`.
+- Ordinary public challenger Tavern Mage 3 restarted and reported ready. Separate
+  ordinary-account training clients use 7x + explosion and do not change public
+  standings/recent match history (verified before/after production training).
+- Sparring/learning is bounded to 100 completed matches per run, local logs under
+  `.logs/sparring/`. Currently collecting evidence; no improvement/promotion claimed.
+  A transient TLS fetch failure stopped one run safely; GET retries were added and
+  the coordinator resumed. Training files are not themselves a public HTTP service.
+- Current deployed graphics pack targets pre-AOS; newer expansion UOP graphics require
+  the full matching data files. Retention remains 30 days / 200 replays / 512 MiB.

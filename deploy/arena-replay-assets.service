@@ -1,0 +1,20 @@
+[Unit]
+Description=Read-only UO arena replay graphics
+After=network.target
+[Service]
+Type=simple
+User=uoarena
+Group=uoarena
+WorkingDirectory=/opt/uoarena/replay-client
+Environment=ANIMA_BIND=127.0.0.1
+ExecStart=/opt/uoarena/replay-client/target/release/assets 8096 /opt/uoarena/replay-client/web /opt/uoarena/data
+Restart=on-failure
+RestartSec=5
+Nice=10
+MemoryMax=768M
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+[Install]
+WantedBy=multi-user.target

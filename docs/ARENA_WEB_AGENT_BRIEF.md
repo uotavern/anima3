@@ -125,3 +125,24 @@ NPC Rowan / 안내 표지에서 스킬볼·스탯볼·보급품 안내를 확인
 `phase`는 계속 fighting이며 Showdown을 새 phase로 가정하지 마세요.
 이 필드가 없는 구버전 피드에는 '정상/쇼다운 아님'을 추정하지 말고 해당 표시를 생략하세요.
 배포 완료 여부는 `ARENA_PEER_HANDOFF.md`의 후속 기록으로 확인합니다.
+
+## 2026-09-28 추가: 실제 경기 리플레이와 스파링
+
+`docs/ARENA_REPLAY.md`에 서버 API/NDJSON 스키마/보관 정책/학습 상태 표시 계약을 작성했습니다.
+UO 화면 재생기는 anima-client의 `?replay=<id>` 모드입니다.
+`/duel/replays/` 목록에서 `visualVersion:1`인 완료 경기를 `/replay/?replay=<id>`로
+연결해주세요. 경기 목록·설명은 기존 웹사이트 디자인을 따르고, 경기 화면은 이 UO 렌더러를 사용하세요.
+훈련 경기는 Training 표시, 일반 경기 성적과 분리. 시전 시도와 실제 피해를 혼동하지 마세요.
+사용자가 승인한 스파링/학습 기능의 local `status.json`은 아직 공개 HTTP 피드가 아니므로
+데이터 연결 없이 가짜 학습 화면이나 자동 개선 문구를 만들지 마세요.
+
+## Required replay presentation (user correction, 2026-09-28)
+
+Use **actual UO graphics**, reusing anima-client's read-only `?replay=<id>` mode.
+Skin hue, hair/beard, dyed clothes, held weapons, walk/attack/cast motions and spell
+effects must be visible. No schematic dots/grid and no video capture.
+Embed `/replay/?replay=<id>` in an iframe or open it as a full page; the isolated
+anima-client worktree owns the renderer and asset endpoints. The public replay
+index remains `/duel/replays/`; filter `visualVersion == 1` and `complete == true`.
+The branded page can supply match title/results/navigation around that renderer.
+See ARENA_REPLAY.md for the current event/data contract.

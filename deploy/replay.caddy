@@ -1,0 +1,12 @@
+# Insert inside the existing arena.uotavern.com site, ahead of its website fallback.
+# Caddy serves the app shell/scripts directly; only generated UO art/terrain is proxied.
+# https://caddyserver.com/docs/caddyfile/directives/file_server#pass_thru
+handle_path /replay/* {
+    root * /opt/uoarena/replay-client/web
+    route {
+        file_server {
+            pass_thru
+        }
+        reverse_proxy 127.0.0.1:8096
+    }
+}
