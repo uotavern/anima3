@@ -206,3 +206,15 @@ After restoring the route, Chrome verified the real renderer at 12.5s of
 went 0 to 1, survived browser reload, and was undone to 0 (no test vote retained).
 387 client JS tests / 1916 assertions pass; server build has zero errors/warnings;
 reaction HTTP integration verifies persistence, idempotence, undo and origin checks.
+
+### Combat replay follow-up / deployment coordination
+
+Actual production fixture `30b949fac8ec472faff4bd9e153760e7` verifies Energy Bolt,
+lightning, potion flight/countdown/explosion, and two-player HP/Mana/Stamina gauges.
+The live Caddyfile was overwritten again at 2026-09-28 15:57:33 UTC during the
+website binary-download update. Latest website main 09b8039 was merged into the
+replay website worktree, then local main was fast-forwarded to da95557. Its
+`arena/deploy.sh` now preserves Caddy by default; `ARENA_INSTALL_CADDY=1` is reserved
+for deliberate routing changes. The deployed website preserves the new prebuilt
+bridge download instructions together with match replay selection and likes.
+No user draft was entered/submitted in the Claude Code pane.

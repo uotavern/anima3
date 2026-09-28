@@ -163,3 +163,27 @@ crossed during playback. Pause, mute and seek stop active/pending sounds; seekin
 not play skipped history. Click Play to unlock browser audio; Sound on/off controls it.
 Sound assets require soundLegacyMUL.uop and Sound.def; font assets use fonts.mul and
 unifont*.mul. No local file picker: users select a match at the arena site's /#replays.
+
+## Combat effects and resource gauges
+
+Replay now preloads/pins the effect texture frames before playback, so short
+projectiles and lightning flashes cannot finish before their graphics arrive.
+Moving effects are projected above the terrain at hand/chest height; lightning
+uses the correctly decoded 150x540 gump strip. The pre-AOS asset builder writes
+legacy gump index dimensions as width in low 16 bits and height in high 16 bits.
+For an existing pack built with the reversed dimensions, regenerate gumpidx.mul
+(or swap dimensions for entries 20000–20009 once) and restart the asset service.
+
+New server recordings add `potion_state` rows: item serial, actor, graphic/hue,
+phase (`prime`, `tick`, `throw`, `land`, `explode`), countdown, holder, flight flag,
+position and throwing position. The player reconstructs bottle movement and a
+single 3/2/1 marker at its carrier/flight/ground position. Old archives retain
+previously recorded effects but cannot acquire missing potion fuse observations.
+Both fighters have HP, Mana and Stamina bars with current/max numbers, updated
+from recorded frames on playback and seek.
+
+Production verification: `30b949fac8ec472faff4bd9e153760e7`, ordinary-client training
+fixture (excluded from learner evidence). Energy Bolt at 9623ms, lightning at
+14019ms, potion prime 17244ms, tick 3 at 18011ms, throw 18517ms, tick 2 at 19011ms,
+land 19527ms, tick 1 at 20041ms, detonation 21049ms. Chrome visually verified the
+flying bolt, full lightning, bottle with 3 then 2/1, explosion and resource gauges.
