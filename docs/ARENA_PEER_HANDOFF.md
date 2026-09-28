@@ -176,3 +176,18 @@ weapons and movement/combat/casting animation. The schematic inspector was remov
   the coordinator resumed. Training files are not themselves a public HTTP service.
 - Current deployed graphics pack targets pre-AOS; newer expansion UOP graphics require
   the full matching data files. Retention remains 30 days / 200 replays / 512 MiB.
+
+### Replay follow-up
+
+Public speech/spell mantras are now server-recorded; player shows overhead words,
+paralysis/poison status, and sound toggle. Local file upload removed per user request.
+Website worktree `/Users/dkkang/dev/uo/arena-worktrees/uotavern-replay`, branch
+`feat/arena-replay-web`, adds /#replays with match choices, training/public filter,
+and direct Watch replay links. Preserve Caddy's /replay/* handler when deploying.
+
+The same website branch also installs anonymous persistent likes: Python stdlib
+`services/replay_likes.py`, systemd `arena-replay-social`, loopback 8098, SQLite state
+`/var/lib/uoarena-replay-social/`. Routes `/replay-social/likes` and
+`/replay-social/likes/<id>` are proxied by Caddy. Match cards show counts and a
+reversible Like button; the identity is a signed browser cookie, not a user account.
+Server/shard restart is not needed for this service.

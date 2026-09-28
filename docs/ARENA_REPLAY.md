@@ -147,3 +147,19 @@ human 5x/7x arena wardrobe and weapons; newer expansion-only UOP animations
 and art require the full matching UO data installation. Do not claim arbitrary
 expansion assets are included in this deployment. The pack builder reads an
 existing local UO installation; generated assets are not committed to Git.
+
+## Speech, status and audio (2026-09-28)
+
+New archives include `speech` rows with `actor`, `messageType`, `hue`, and `text`.
+The server records actual public fighter speech after command/blocked-speech handling,
+and actual public spell mantras, rather than reconstructing words from spell names.
+Types: regular 0, emote 2, yell 9, spell 10. Text is bounded to 512 characters.
+Whispers, party/guild/private/system messages and other characters are excluded.
+Old archives remain playable; missing dialogue is not synthesized.
+
+The renderer reconstructs overhead text at the replay clock (including paused seeks),
+and labels recorded paralysis/poison while active. Sound cues (0x54) play only when
+crossed during playback. Pause, mute and seek stop active/pending sounds; seeking does
+not play skipped history. Click Play to unlock browser audio; Sound on/off controls it.
+Sound assets require soundLegacyMUL.uop and Sound.def; font assets use fonts.mul and
+unifont*.mul. No local file picker: users select a match at the arena site's /#replays.
