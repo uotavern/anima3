@@ -8,8 +8,8 @@ choice. `gate()` turns a Decision into an admitted choice or a fallback.
 
 from __future__ import annotations
 
-import os
 import math
+import os
 import string
 import time
 from dataclasses import dataclass, field
@@ -128,10 +128,12 @@ class JeffChoice:
     probe and 3/3 on numeric state, where the open imitations scored 6/14 and 1/3);
     `cloud=False` is the self-hosted `jeff`/GLiFormer at TYPESAFE_BASE_URL."""
 
-    def __init__(self, api_key: str | None = None, base_url: str | None = None, cloud: bool = False) -> None:
-        from typesafe_sdk import TypeSafeClient
+    def __init__(self, api_key: str | None = None, base_url: str | None = None, cloud: bool = False, model: str | None = None) -> None:
+        from typesafe_sdk import RetryPolicy, TypeSafeClient
         self.name = "jev" if cloud else "jeff"
-        kw = {}
+        kw = {"timeout": 1.2, "retry": RetryPolicy(max_retries=0)}
+        if model:
+            kw["model"] = model
         key = _typesafe_key(api_key)
         if key:
             kw["api_key"] = key
@@ -146,19 +148,22 @@ class JeffChoice:
         from typesafe_sdk import Choice
         t0 = time.perf_counter()
         a = self._client.system_one(state=scene, questions={"pick": Choice(instructions=question, criteria=options)}).answers["pick"]
-        return _finish({k: float(v) for k, v in a.probabilities.items()}, t0, self.name, jev_confidence=a.confidence)
+        probs = {k: float(v) for k, v in a.probabilities.items()}
+        if set(probs) != set(options) or any(not math.isfinite(v) or not 0 <= v <= 1 for v in probs.values()) or not math.isclose(sum(probs.values()), 1, abs_tol=0.02):
+            raise ValueError("invalid provider probability distribution")
+        return _finish(probs, t0, self.name, jev_confidence=a.confidence)
 
 
-def build_client(kind: str) -> DecisionClient:
+def build_client(kind: str, *, model: str | None = None) -> DecisionClient:
     kind = kind.lower()
     if kind in ("scripted", "rule", "none"):
         return Scripted()
     if kind in ("qwen", "mlx", "local"):
         return QwenLogprob()
     if kind in ("jev", "typesafe", "cloud"):
-        return JeffChoice(cloud=True)
+        return JeffChoice(cloud=True, model=model)
     if kind == "jeff":
-        return JeffChoice()
+        return JeffChoice(model=model)
     raise ValueError(f"unknown decision backend {kind!r}")
 
 

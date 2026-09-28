@@ -17,11 +17,12 @@ from pathlib import Path
 from . import replay
 from .agent import Agent
 from .arena import ObservedBody, append_event, read_policy
-from .arena_learning import BASELINE, atomic_json, cycle
+from .arena_learning import BASELINE, atomic_json, matches
+from .arena_policy import load_policy
 from .body import BridgeBody
 from .contract import say
-from .decision import build_client
 from .duel_wait import RULES, prepare, pump, server_state
+from .learning_run import experiment, update, verify_receipts
 from .magic import PLAYBOOKS
 from .persona import Persona
 
@@ -56,7 +57,8 @@ def policies(directory, game, minimum, sample):
     )
 
 
-def fight(bodies, policies_by_side, log, stop):
+def fight(bodies, policies_by_side, log, stop, clients=None):
+    clients = clients or [load_policy(), load_policy()]
     states = [{}, {}]
     agents = [None, None]
     views = [ObservedBody(b) for b in bodies]
@@ -93,7 +95,8 @@ def fight(bodies, policies_by_side, log, stop):
                     agents[i] = Agent(
                         views[i],
                         Persona.load("mage_a"),
-                        build_client("scripted"),
+                        clients[i],
+                        sync=clients[i].name == "scripted",
                         pump_ms=100,
                         reflect_every=0,
                         log_path=log / assigned_id / f"player-{i}-round-{state['round']}.jsonl",
@@ -148,6 +151,13 @@ def main(argv=None):
     ap.add_argument("--user-b", required=True)
     ap.add_argument("--password-a-env", default="SPAR_PASSWORD_A")
     ap.add_argument("--password-b-env", default="SPAR_PASSWORD_B")
+    ap.add_argument("--backend", choices=["scripted", "jev", "jeff", "qwen"], default="scripted")
+    ap.add_argument(
+        "--model", default="jev-1.13.0", help="Pinned Jev model for reproducible experiments"
+    )
+    ap.add_argument(
+        "--max-model-calls", type=int, default=500, help="Provider calls per client per run"
+    )
     ap.add_argument("--bridge")
     ap.add_argument("--data-dir")
     ap.add_argument("--matches", type=int, default=100, help="bounded run, including resumed games")
@@ -157,7 +167,7 @@ def main(argv=None):
     args = ap.parse_args(argv)
     if args.user_a == args.user_b:
         ap.error("use two different dedicated accounts")
-    if args.matches < 1 or args.minimum < 10 or args.sample < 40:
+    if args.matches < 1 or args.minimum < 10 or args.sample < 40 or args.max_model_calls < 1:
         ap.error("matches>=1, minimum>=10, sample>=40")
     if not all(os.environ.get(k) for k in (args.password_a_env, args.password_b_env)):
         ap.error("set both password environment variables")
@@ -168,13 +178,26 @@ def main(argv=None):
 
     lock = (log / "run.lock").open("w")
     fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    experiment(log, args)
+    clients = [
+        load_policy(args.backend, model=args.model, max_calls=args.max_model_calls)
+        for _ in range(2)
+    ]
     policy_dir = log / "policies"
     policy_dir.mkdir(exist_ok=True)
     if not (policy_dir / "champion.json").exists():
-        atomic_json(policy_dir / "champion.json", BASELINE)
+        atomic_json(
+            policy_dir / "champion.json",
+            {
+                **BASELINE,
+                "backend": args.backend,
+                "model": args.model if args.backend == "jev" else args.backend,
+            },
+        )
     events = log / "learning.jsonl"
     events.touch(exist_ok=True)
-    old = [json.loads(line) for line in events.read_text().splitlines()]
+    old = matches(events)
+    verify_receipts(log, old)
     completed = len(old)
     stopping = False
 
@@ -200,18 +223,27 @@ def main(argv=None):
         if any(poll(b)["phase"] != "Idle" for b in bodies):
             raise RuntimeError("account already in a duel; wait for it to finish")
         while completed < args.matches and not stopping:
+            if any(c.max_calls is not None and c.calls >= c.max_calls for c in clients):
+                atomic_json(
+                    log / "status.json", {"stage": "model_budget_exhausted", "completed": completed}
+                )
+                break
             trial, champion, stage = policies(policy_dir, completed, args.minimum, args.sample)
             chosen = [trial, champion] if completed % 2 == 0 else [champion, trial]
             with ThreadPoolExecutor(max_workers=2) as pool:
                 players = list(pool.map(prepare, bodies))
-            for body,policy in zip(bodies,chosen):
-                body.act(say(f"[ArenaAgent scripted {policy['version']} {policy['playbook']}"))
+            for body, policy in zip(bodies, chosen):
+                body.act(
+                    say(f"[ArenaAgent {args.backend} {policy['version']} {policy['playbook']}")
+                )
+                pump(body, 0.6)
             ids = [p["serial"] for p in players]
             # Swap challenger (arena side A) each match as well as the candidate account.
             # Keeping these independent preserves arena-side balance in evaluation.
             order = [0, 1] if (completed // 2) % 2 == 0 else [1, 0]
             challenger, receiver = [bodies[i] for i in order]
             challenger.act(say(f"[Challenge 0x{ids[order[1]]:X} 1 standard7-explosion-training"))
+            pump(challenger, 0.6)
             invite = None
             for _ in range(20):
                 invite = poll(receiver).get("challenge")
@@ -225,6 +257,7 @@ def main(argv=None):
             ):
                 raise RuntimeError("training invitation was not the requested peer/rules")
             receiver.act(say("[DuelAccept " + invite["id"]))
+            pump(receiver, 0.6)
             status = {
                 "stage": stage,
                 "game": completed + 1,
@@ -236,7 +269,7 @@ def main(argv=None):
             }
             atomic_json(log / "status.json", status)
             append_event(log / "progress.jsonl", status)
-            match_id = fight(bodies, chosen, log, lambda: stopping)
+            match_id = fight(bodies, chosen, log, lambda: stopping, clients)
             meta, rows = receipt(args.web, match_id, [ids[i] for i in order], log)
             row = {
                 "schema": 1,
@@ -254,12 +287,17 @@ def main(argv=None):
                 "playbook_a": chosen[order[0]]["playbook"],
                 "playbook_b": chosen[order[1]]["playbook"],
                 "source": "verified-server-replay",
-                "stage":stage,
+                "modelBudgetExhausted": any(c.exhausted for c in clients),
+                "providerCalls": [c.calls for c in clients],
+                "providerErrors": [c.errors for c in clients],
+                "stage": stage,
+                "backend": args.backend,
+                "model": args.model if args.backend == "jev" else args.backend,
                 "sha256": meta["sha256"],
             }
             append_event(events, row)
             completed += 1
-            verdict = cycle(events, policy_dir, args.minimum, args.sample, promote=True)
+            verdict = update(log, args.minimum, args.sample, clients)
             status.update(
                 stage=verdict["status"],
                 completed=completed,

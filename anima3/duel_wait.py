@@ -10,10 +10,10 @@ import time
 from pathlib import Path
 
 from .agent import Agent
-from .arena import MATCH_ID, ObservedBody, append_event
+from .arena import MATCH_ID, ObservedBody, append_event, read_policy
+from .arena_policy import LABEL, load_policy
 from .body import BridgeBody
 from .contract import say, use
-from .arena_policy import LABEL, load_policy
 from .magic import PLAYBOOKS
 from .persona import Persona
 
@@ -114,15 +114,24 @@ def prepare(body):
     return o["player"]
 
 
-def serve(args, stopped):
+def serve(args, stopped, decision_client=None):
     log = Path(args.log_dir)
     life = log / "client.jsonl"
-    decision_client = load_policy(getattr(args,"backend","scripted"),getattr(args,"decision_factory",None))
-    version=getattr(args,"version","baseline-v1")
-    policy=getattr(args,"policy","standard")
-    model=getattr(args,"model_label",None) or ("custom" if getattr(args,"decision_factory",None) else getattr(args,"backend","scripted"))
-    ranked=getattr(args,"ranked",False)
-    listed_at=0
+    decision_client = decision_client or load_policy(
+        getattr(args, "backend", "scripted"),
+        getattr(args, "decision_factory", None),
+        model=getattr(args, "model", None),
+        max_calls=getattr(args, "max_model_calls", None),
+    )
+    version = getattr(args, "version", "baseline-v1")
+    policy = getattr(args, "policy", "standard")
+    model = getattr(args, "model_label", None) or (
+        "custom"
+        if getattr(args, "decision_factory", None)
+        else getattr(args, "backend", "scripted")
+    )
+    ranked = getattr(args, "ranked", False)
+    listed_at = 0
     body = BridgeBody.spawn(
         args.host,
         args.port,
@@ -141,8 +150,10 @@ def serve(args, stopped):
             obs = body.observe()
             control_sent = False
             for line in obs.new_journal:
-                if line.serial in (0, -1, 0xFFFFFFFF) and line.text.startswith(("[Arena]", "[Duel]")):
-                    append_event(life, {"event":"server_notice", "message":line.text})
+                if line.serial in (0, -1, 0xFFFFFFFF) and line.text.startswith(
+                    ("[Arena]", "[Duel]")
+                ):
+                    append_event(life, {"event": "server_notice", "message": line.text})
             now = time.monotonic()
             update = server_state(obs)
             if update is not None:
@@ -155,34 +166,53 @@ def serve(args, stopped):
                     append_event(life, {"event": "match_released", "id": last_match})
                     prepared, last_match, key, agent = False, None, None, None
                 if not prepared:
+                    if getattr(args, "policy_file", None):
+                        learned = read_policy(Path(args.policy_file))
+                        if learned.get("backend", args.backend) != args.backend or (
+                            args.backend == "jev" and learned.get("model", args.model) != args.model
+                        ):
+                            raise ValueError(
+                                "Learned policy backend/model does not match this agent"
+                            )
+                        version, policy = learned["version"], learned["playbook"]
+                        append_event(
+                            life, {"event": "policy_loaded", "version": version, "playbook": policy}
+                        )
                     player = prepare(body)
                     body.act(say(f"[ArenaAgent {model} {version} {policy}"))
                     body.pump(500)
                     ping_at = time.monotonic()
                     prepared = True
-                    listed_at=0
+                    listed_at = 0
                     event = {
                         "event": "ready",
                         "name": player["name"],
                         "serial": player["serial"],
                         "rules": RULES,
                         "skills": SKILLS,
-                        "model":model,"version":version,"policy":policy,"ranked":ranked,
+                        "model": model,
+                        "version": version,
+                        "policy": policy,
+                        "ranked": ranked,
                     }
                     append_event(life, event)
                     print(json.dumps(event), flush=True)
                     state_at = time.monotonic()
                     continue
-                if not getattr(args,"no_list",False) and now-listed_at>300 and not state.get("challenge"):
-                    body.act(say("[Arena list 7"+(" ranked" if ranked else "")))
-                    append_event(life, {"event":"waiting_requested", "ranked":ranked})
-                    listed_at=now
-                    control_sent=True
+                if (
+                    not getattr(args, "no_list", False)
+                    and now - listed_at > 300
+                    and not state.get("challenge")
+                ):
+                    body.act(say("[Arena list 7" + (" ranked" if ranked else "")))
+                    append_event(life, {"event": "waiting_requested", "ranked": ranked})
+                    listed_at = now
+                    control_sent = True
                 invite = state.get("challenge")
                 if invite and invite["id"] != last_invite:
                     last_invite = invite["id"]
-                    control_sent=True
-                    accepted = invite["rules"] == RULES and (invite.get("ranked") is True)==ranked
+                    control_sent = True
+                    accepted = invite["rules"] == RULES and (invite.get("ranked") is True) == ranked
                     append_event(life, {"event": "challenge", "accepted": accepted, **invite})
                     if accepted:
                         body.act(say("[DuelAccept " + invite["id"]))
@@ -202,7 +232,8 @@ def serve(args, stopped):
                         view,
                         Persona.load("mage_a"),
                         decision_client,
-                        sync=getattr(args,"backend","scripted")=="scripted" and not getattr(args,"decision_factory",None),
+                        sync=getattr(args, "backend", "scripted") == "scripted"
+                        and not getattr(args, "decision_factory", None),
                         pump_ms=250,
                         reflect_every=0,
                         log_path=log / state["id"] / f"round-{state['round']}.jsonl",
@@ -247,16 +278,34 @@ def main():
     ap.add_argument("--data-dir")
     ap.add_argument("--log-dir", default=".logs/duel-wait")
     ap.add_argument("--once", action="store_true")
-    ap.add_argument("--backend", choices=["scripted","qwen","jev","jeff"], default="scripted")
-    ap.add_argument("--decision-factory", help="your local module:function returning a DecisionClient")
+    ap.add_argument("--backend", choices=["scripted", "qwen", "jev", "jeff"], default="scripted")
+    ap.add_argument(
+        "--policy-file", type=Path, help="Reload promoted champion only between matches"
+    )
+    ap.add_argument("--model", default="jev-1.13.0")
+    ap.add_argument("--max-model-calls", type=int, default=1000)
+    ap.add_argument(
+        "--decision-factory", help="your local module:function returning a DecisionClient"
+    )
     ap.add_argument("--model-label", help="public self-reported model label")
     ap.add_argument("--version", default="baseline-v1", help="public agent version")
     ap.add_argument("--policy", choices=list(PLAYBOOKS), default="standard")
-    ap.add_argument("--ranked", action="store_true", help="list for and accept ranked matches instead of friendly")
-    ap.add_argument("--no-list", action="store_true", help="accept direct invitations without a public waiting entry")
+    ap.add_argument(
+        "--ranked",
+        action="store_true",
+        help="list for and accept ranked matches instead of friendly",
+    )
+    ap.add_argument(
+        "--no-list",
+        action="store_true",
+        help="accept direct invitations without a public waiting entry",
+    )
     args = ap.parse_args()
-    for label in (args.version,args.model_label or args.backend,args.policy):
-        if not LABEL.fullmatch(label):ap.error("Public labels allow 1–48 letters, digits, . _ + -")
+    if args.max_model_calls < 1:
+        ap.error("max-model-calls must be positive")
+    for label in (args.version, args.model_label or args.backend, args.policy):
+        if not LABEL.fullmatch(label):
+            ap.error("Public labels allow 1–48 letters, digits, . _ + -")
     if not os.environ.get(args.password_env):
         ap.error("Set " + args.password_env)
     stopping = False
@@ -267,9 +316,12 @@ def main():
 
     signal.signal(signal.SIGINT, stop)
     signal.signal(signal.SIGTERM, stop)
+    decision_client = load_policy(
+        args.backend, args.decision_factory, model=args.model, max_calls=args.max_model_calls
+    )
     while not stopping:
         try:
-            serve(args, lambda: stopping)
+            serve(args, lambda: stopping, decision_client)
         except Exception as e:
             append_event(Path(args.log_dir) / "client.jsonl", {"event": "error", "error": str(e)})
             if args.once:

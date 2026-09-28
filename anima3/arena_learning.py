@@ -60,6 +60,7 @@ def matches(path: Path) -> list[dict]:
 
 def eligible(row: dict) -> bool:
     return (row.get("valid") is True and row.get("aborted") is False
+            and not row.get("modelBudgetExhausted", False)
             and row.get("training") is True and row.get("build") == "mage"
             and type(row.get("a")) is int and type(row.get("b")) is int and row["a"] != row["b"]
             and row.get("winner") in (row["a"], row["b"], None))
@@ -92,6 +93,7 @@ def train(rows: list[dict], champion: dict, minimum: int = 20) -> dict | None:
     digest = hashlib.sha256(json.dumps([champion["version"], book, evidence]).encode()).hexdigest()[:16]
     return {"schema": 1, "build": "mage", "version": "candidate-" + digest, "playbook": book,
             "parent": champion["version"], "training_ids": evidence,
+            **{k: champion[k] for k in ("backend", "model") if k in champion},
             "training": {b: {k: v for k, v in a.items() if k != "ids"} for b, a in arms.items()}}
 
 

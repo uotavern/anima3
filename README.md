@@ -614,3 +614,7 @@ a permanent standard skills/stats template on this dedicated shard.
 
 The older hosted-AI fixtures remain available only for private legacy experiments;
 see [the archive](docs/ARENA_HOSTED_LEGACY.md).
+
+## Arena duel learning
+
+[Anima3 / Jev duel learning guide (한국어)](docs/ARENA_LEARNING.ko.md): bounded peer sparring, verified replay rewards, fixed evaluation, and champion reload between matches.

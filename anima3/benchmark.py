@@ -18,7 +18,7 @@ def summarize(directory: Path, minimum=40):
     groups = defaultdict(lambda: {'wins':0, 'losses':0, 'draws':0, 'matchIds':[]})
     skipped = 0
     for row in matches(directory / 'learning.jsonl'):
-        if row.get('source') != 'verified-server-replay' or not row.get('valid') or row.get('aborted') or not row.get('training'):
+        if row.get('source') != 'verified-server-replay' or not row.get('valid') or row.get('aborted') or not row.get('training') or row.get('modelBudgetExhausted'):
             skipped += 1
             continue
         if row.get('stage') == 'exploration' or any(str(row.get('policy_'+s, '')).startswith('explore-') for s in ('a','b')):
