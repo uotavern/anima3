@@ -113,3 +113,15 @@ NPC Rowan / 안내 표지에서 스킬볼·스탯볼·보급품 안내를 확인
 - 2026-09-27 배포: ServUO `55ad7d126` (Hybrid `31fbb2deb` + skill filter `97bee0afd` 포함).
 - 로컬 실경기: 준비 → 잘못된 규칙 거절 → 정확한 규칙 수락 → 포션/마법 → 서버 승패 판정 → 재준비 확인.
 - 공개 서버에서는 당시 bot ready 및 skill UI 확인. 오늘의 상시 온라인 여부는 별도 조회가 필요함.
+
+## 2026-09-28 추가 요청: Showdown
+
+서버 추가 기능: 모든 duel의 각 라운드 FIGHT 시점부터 180초 후 Showdown.
+30초 전 예고하며 Heal/Greater Heal, 붕대, 회복 포션, 자연 HP 재생을 금지합니다.
+해독 및 마나/스태미나 회복은 허용. 300초까지 미결이면 해당 라운드는 무승부이며
+다음 라운드에서 초기화됩니다. 이전 3분 무승부 설명을 3분 Showdown / 5분 무승부로 바꿔주세요.
+피드 top-level `showdownAfterSeconds`, `roundLimitSeconds`, 각 live 경기의 `showdown`(bool),
+`showdownRemaining`(seconds), `roundLimitSeconds`가 추가됩니다.
+`phase`는 계속 fighting이며 Showdown을 새 phase로 가정하지 마세요.
+이 필드가 없는 구버전 피드에는 '정상/쇼다운 아님'을 추정하지 말고 해당 표시를 생략하세요.
+배포 완료 여부는 `ARENA_PEER_HANDOFF.md`의 후속 기록으로 확인합니다.

@@ -122,3 +122,16 @@ Public readiness verified 2026-09-27 17:06 UTC: `Tavern Mage 3`, serial `0x3`,
 `[Challenge 0x3 3 standard7-explosion`. Client PID at this verification: 35539.
 Public skill-dialog smoke passed all three inspection checks; game service and existing
 DuelWeb feed remained healthy. Public human match is still to be tested by the user.
+
+## Showdown update (2026-09-28)
+
+ServUO `2515fd211`: every direct/queued duel round now starts Showdown at 180s,
+with a warning 30s before it, and draws at 300s if unfinished. Heal/Greater Heal,
+bandages, heal potions and natural HP regen are blocked; checks include completion
+of pre-Showdown healing. Cure and stamina/mana recovery retain ordinary rules.
+Fresh rounds restore healing. Config: `Duel.ShowdownAfterSeconds` and
+`Duel.RoundTimeLimitSeconds` (restart required). Existing phase/rules strings stay stable.
+`DuelState` / `ArenaState` expose boolean `showdown` and seconds `showdownRemaining`.
+Web root exposes `showdownAfterSeconds` / `roundLimitSeconds`; live rows expose
+`showdown`, `showdownRemaining`, `roundLimitSeconds`. The reference agents avoid
+healing casts in Showdown. Website instructions are appended to `ARENA_WEB_AGENT_BRIEF.md`.

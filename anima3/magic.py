@@ -195,6 +195,8 @@ def mage_verbs(obs: Observation, f, memory: dict, threat) -> list:
 
     def cast(key: str, why: str = "") -> None:
         s = SPELLS[key]
+        if memory.get("showdown") and s.kind == "heal":
+            return
         if mana >= s.mana and has_reagents(obs, s) and not any(a.id == f"cast:{key}" for a in out):
             tgt = p.serial if s.kind in SELF_TARGET else threat.serial
             out.append(Affordance(f"cast:{key}", s.blurb + why, procedure=cast_proc(s, tgt)))

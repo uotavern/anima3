@@ -191,6 +191,7 @@ def serve(args, stopped) -> None:
                     agent.memory.update(duel=True, mage=args.build == "mage", duel_opponent=state["opponent"],
                                         duel_round=state["round"], playbook=book)
                     append_event(life_log, {"event": "round_start", **state})
+                agent.memory["showdown"] = state.get("showdown") is True
                 view.pending = obs
                 agent.tick()
                 # The journal already has a bounded window; bound long-running diagnostics too.

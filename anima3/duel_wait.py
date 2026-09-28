@@ -196,6 +196,7 @@ def serve(args, stopped):
                         playbook="standard",
                     )
                     append_event(life, {"event": "round_start", **state})
+                agent.memory["showdown"] = state.get("showdown") is True
                 view.pending = obs
                 agent.tick()
                 del agent.reports[:-2000]
