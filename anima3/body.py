@@ -1,7 +1,8 @@
 """Bodies: the thing that turns actions into packets and packets into Observations.
 
-`BridgeBody` drives anima-client's `anima-agent` NDJSON bridge (built here as
-`anima-bridge` to dodge the bin-name collision with the in-process runner).
+`BridgeBody` drives anima-client's NDJSON bridge: the headless `anima-bridge`
+(`anima-session`, no UI linked) by default, or `anima-agent` (`anima-net`, the same
+bridge plus a read-only web spectator) when a monitor port is asked for.
 `FakeBody` is a tiny deterministic world for offline runs and tests — enough
 physics to exercise perception, movement, combat and pickup; not a UO simulator.
 """
@@ -52,6 +53,9 @@ class Body(Protocol):
 DEFAULT_HOST = os.environ.get("ANIMA3_HOST", "uo.hulryung.com")
 DEFAULT_PORT = int(os.environ.get("ANIMA3_PORT", "2593"))
 DEFAULT_BRIDGE = Path.home() / "dev" / "uo" / "anima-client" / "target" / "release" / "anima-bridge"
+#: The spectator build, used when `monitor_port` is set and no binary is named.
+DEFAULT_MONITOR_BRIDGE = DEFAULT_BRIDGE.with_name("anima-agent")
+_BUILD = {"anima-bridge": "cargo build --release -p anima-session", "anima-agent": "cargo build --release -p anima-net"}
 DEFAULT_DATA_DIR = Path.home() / "dev" / "uo" / "uo-resource"
 _MONITOR_RE = re.compile(r"monitor on (http://[^\s]+)")
 
@@ -74,9 +78,11 @@ class BridgeBody:
         binary: str | os.PathLike | None = None, data_dir: str | os.PathLike | None = None,
         monitor_port: int | None = None, terrain_radius: int = 12,
     ) -> BridgeBody:
-        exe = Path(binary or DEFAULT_BRIDGE)
+        # The headless bridge has no spectator: a monitor needs the anima-net build.
+        exe = Path(binary or (DEFAULT_MONITOR_BRIDGE if monitor_port is not None else DEFAULT_BRIDGE))
         if not exe.exists():
-            raise BodyError(f"bridge not built: {exe} — run `cargo build --release -p anima-net` in anima-client")
+            how = _BUILD.get(exe.name, "cargo build --release -p anima-session -p anima-net")
+            raise BodyError(f"bridge not built: {exe} — run `{how}` in anima-client")
         env = dict(os.environ)
         if monitor_port is not None:
             env["ANIMA_MONITOR_PORT"] = str(monitor_port)

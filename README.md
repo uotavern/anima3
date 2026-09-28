@@ -12,7 +12,7 @@ the menu. Every pick carries a probability distribution; a low-confidence pick
 falls back to the rule's own first verb. Every decision is logged as JSONL.
 
 ```
- anima-agent bridge (Rust, NDJSON)  ──observe──▶  scene.py   ──▶  affordances.py  ──▶  decision.py  ──▶  agent.py
+ anima-bridge (Rust, NDJSON)        ──observe──▶  scene.py   ──▶  affordances.py  ──▶  decision.py  ──▶  agent.py
  login · world · A* · packets       ◀───act─────  text scene       closed verb menu      logprob pick      gate · plan · log
                                     ◀───pump────                   + hard limits         (Qwen / jeff)     two-rate loop
 ```
@@ -50,7 +50,7 @@ uv run python -m anima3 --offline town    --backend scripted        # the rule a
 
 # live: the hosted shard uo.hulryung.com:2593 by default (ANIMA3_HOST=127.0.0.1 for a local ServUO);
 # staff commands need the `anima3` account, the only one with staff access there; the bridge is built in ../anima-client
-( cd ../anima-client && cargo build --release -p anima-net && cp target/release/anima-agent target/release/anima-bridge )
+( cd ../anima-client && cargo build --release -p anima-session -p anima-net )   # anima-bridge (headless) + anima-agent (--monitor)
 uv run python -m anima3.gm --createworld            # once, as the owner account
 uv run python -m anima3.gm --spawn Mongbat --dx 4   # something to meet
 uv run python -m anima3 --backend qwen --persona adventurer --ticks 120 --monitor 8801
