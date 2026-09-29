@@ -30,6 +30,8 @@ def experiment(directory, args):
         spec.update(
             brain="hybrid-v1", llm_model=args.llm_model, promotion="disabled-adaptive-experience"
         )
+    if getattr(args, "opponent", "same") != "same":
+        spec["opponent"] = args.opponent
     path = directory / "experiment.json"
     if path.exists():
         if json.loads(path.read_text()) != spec:

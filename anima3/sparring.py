@@ -36,12 +36,18 @@ def connect_training(args, user, password, log, stop):
         if stop():
             raise RuntimeError("sparring stopped during login")
         try:
-            return BridgeBody.spawn(args.host, args.port, user, password,
-                                    binary=args.bridge, data_dir=args.data_dir)
+            return BridgeBody.spawn(
+                args.host, args.port, user, password, binary=args.bridge, data_dir=args.data_dir
+            )
         except BodyError:
-            append_event(log / "progress.jsonl", {
-                "stage": "login_retry", "attempt": attempt + 1, "account": user,
-            })
+            append_event(
+                log / "progress.jsonl",
+                {
+                    "stage": "login_retry",
+                    "attempt": attempt + 1,
+                    "account": user,
+                },
+            )
             if attempt == 2:
                 raise RuntimeError("training login failed after 3 attempts") from None
             time.sleep(3 * (attempt + 1))
@@ -59,6 +65,32 @@ def poll(body):
         if state is not None:
             return state
     raise RuntimeError("no trusted DuelState")
+
+
+def wait_training_idle(bodies, log, stop):
+    """Wait out only this pair's previous training match, never take over another duel."""
+    ids = [body.observe().player.serial for body in bodies]
+    states, fresh, ping = [None, None], [0, 0], [0, 0]
+    deadline = time.monotonic() + 360
+    while not stop() and time.monotonic() < deadline:
+        for i, body in enumerate(bodies):
+            now = time.monotonic()
+            if now - ping[i] >= 2:
+                body.act(say("[DuelState"))
+                ping[i] = now
+            body.pump(100)
+            state = server_state(body.observe())
+            if state:
+                states[i], fresh[i] = state, time.monotonic()
+                if state["phase"] != "Idle" and (
+                    state.get("rules") != TRAINING_RULES or state.get("opponent") != ids[1 - i]
+                ):
+                    raise RuntimeError("account is in an unrelated duel; refusing takeover")
+        if all(s and s["phase"] == "Idle" for s in states) and all(
+            time.monotonic() - t < 5 for t in fresh
+        ):
+            return
+    raise RuntimeError("training accounts did not become idle within 360 seconds")
 
 
 def policies(directory, game, minimum, sample):
@@ -98,7 +130,7 @@ def fight(bodies, policies_by_side, log, stop, clients=None, strategies=None):
             if update is not None:
                 states[i], fresh[i] = update, now
             state = states[i]
-            if now - fresh[i] > 15:
+            if now - fresh[i] > 45:
                 raise RuntimeError("lost server match state")
             if now - ping[i] >= 0.8:
                 body.act(say("[DuelState"))
@@ -186,6 +218,7 @@ def receipt_while_pumping(base, match_id, ids, log, bodies):
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__)
     add_arguments(ap)
+    ap.add_argument("--opponent", choices=["same", "fixed-scripted"], default="same")
     ap.add_argument("--host", default="arena.uotavern.com")
     ap.add_argument("--port", type=int, default=2593)
     ap.add_argument("--web", default="https://arena.uotavern.com")
@@ -207,6 +240,8 @@ def main(argv=None):
     ap.add_argument("--sample", type=int, default=40, help="fixed evaluation games, minimum 40")
     ap.add_argument("--log-dir", type=Path, default=Path(".logs/sparring"))
     args = ap.parse_args(argv)
+    if args.opponent == "fixed-scripted" and args.brain != "hybrid":
+        ap.error("fixed-scripted opponent requires --brain hybrid")
     if args.user_a == args.user_b:
         ap.error("use two different dedicated accounts")
     if args.matches < 1 or args.minimum < 10 or args.sample < 40 or args.max_model_calls < 1:
@@ -222,10 +257,19 @@ def main(argv=None):
     fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
     experiment(log, args)
     clients = [
-        load_policy(args.backend, model=args.model, max_calls=args.max_model_calls)
-        for _ in range(2)
+        load_policy(
+            "scripted" if i == 1 and args.opponent == "fixed-scripted" else args.backend,
+            model=args.model,
+            max_calls=args.max_model_calls,
+        )
+        for i in range(2)
     ]
-    strategies = [build_session(args, c, log / f"brain-{i}") for i, c in enumerate(clients)]
+    strategies = [
+        None
+        if i == 1 and args.opponent == "fixed-scripted"
+        else build_session(args, c, log / f"brain-{i}")
+        for i, c in enumerate(clients)
+    ]
     policy_dir = log / "policies"
     policy_dir.mkdir(exist_ok=True)
     if not (policy_dir / "champion.json").exists():
@@ -253,14 +297,19 @@ def main(argv=None):
     bodies = []
     try:
         for user, key in [(args.user_a, args.password_a_env), (args.user_b, args.password_b_env)]:
-            atomic_json(log / "status.json", {
-                "stage": "connecting", "completed": completed, "account": user,
-            })
+            atomic_json(
+                log / "status.json",
+                {
+                    "stage": "connecting",
+                    "completed": completed,
+                    "account": user,
+                },
+            )
             body = connect_training(args, user, os.environ[key], log, lambda: stopping)
             bodies.append(body)
             pump(body, 5)
-        if any(poll(b)["phase"] != "Idle" for b in bodies):
-            raise RuntimeError("account already in a duel; wait for it to finish")
+        atomic_json(log / "status.json", {"stage": "waiting_for_idle", "completed": completed})
+        wait_training_idle(bodies, log, lambda: stopping)
         while completed < args.matches and not stopping:
             if any(c.max_calls is not None and c.calls >= c.max_calls for c in clients):
                 atomic_json(
@@ -272,19 +321,22 @@ def main(argv=None):
                 trial = champion
                 stage = "adaptive"
             chosen = [trial, champion] if completed % 2 == 0 else [champion, trial]
+            if args.opponent == "fixed-scripted":
+                chosen = [champion, {**BASELINE, "version": "fixed-scripted-v1"}]
             with ThreadPoolExecutor(max_workers=2) as pool:
                 players = list(pool.map(prepare, bodies))
-            for body, policy in zip(bodies, chosen):
+            for i, (body, policy) in enumerate(zip(bodies, chosen)):
                 body.act(
                     say(
-                        f"[ArenaAgent {'jev+llm' if args.brain == 'hybrid' else args.backend} {policy['version']} {policy['playbook']}"
+                        f"[ArenaAgent {'jev+llm' if strategies[i] else clients[i].name} {policy['version']} {policy['playbook']}"
                     )
                 )
                 pump(body, 0.6)
             ids = [p["serial"] for p in players]
             # Swap challenger (arena side A) each match as well as the candidate account.
             # Keeping these independent preserves arena-side balance in evaluation.
-            order = [0, 1] if (completed // 2) % 2 == 0 else [1, 0]
+            side = completed if args.opponent == "fixed-scripted" else completed // 2
+            order = [0, 1] if side % 2 == 0 else [1, 0]
             challenger, receiver = [bodies[i] for i in order]
             challenger.act(say(f"[Challenge 0x{ids[order[1]]:X} 1 standard7-explosion-training"))
             pump(challenger, 0.6)
@@ -341,12 +393,15 @@ def main(argv=None):
                 "backend": args.backend,
                 "model": args.model if args.backend == "jev" else args.backend,
                 "sha256": meta["sha256"],
+                "learner": ids[0] if args.opponent == "fixed-scripted" else None,
+                "opponent": args.opponent,
             }
             append_event(events, row)
             completed += 1
             if args.brain == "hybrid":
                 for session, serial in zip(strategies, ids):
-                    session.remember(meta, rows, serial)
+                    if session is not None:
+                        session.remember(meta, rows, serial)
                 verdict = {"status": "adaptive_experience", "automaticPromotion": False}
             else:
                 verdict = update(log, args.minimum, args.sample, clients)
