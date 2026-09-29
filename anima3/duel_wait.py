@@ -81,7 +81,9 @@ def wait_prepared_stats(body, observation, timeout=125):
     deadline = time.monotonic() + timeout
     while [observation["player"].get(k) for k in ("strength", "dexterity", "intelligence")] != [100, 25, 100]:
         if time.monotonic() >= deadline:
-            raise RuntimeError("Server has not confirmed 100/25/100 stats after debuff recovery")
+            stats = [observation["player"].get(k) for k in ("strength", "dexterity", "intelligence")]
+            raise RuntimeError(f"Server has not confirmed 100/25/100 stats after debuff recovery: {stats}")
+        body.act({"type": "StatusRequest", "serial": observation["player"]["serial"]})
         observation = pump(body, 1)
     return observation
 

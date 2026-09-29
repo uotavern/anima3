@@ -327,6 +327,7 @@ def main(argv=None):
             chosen = [trial, champion] if completed % 2 == 0 else [champion, trial]
             if args.opponent == "fixed-scripted":
                 chosen = [champion, {**BASELINE, "version": "fixed-scripted-v1"}]
+            atomic_json(log / "status.json", {"stage": "preparing", "completed": completed, "game": completed + 1})
             with ThreadPoolExecutor(max_workers=2) as pool:
                 players = list(pool.map(lambda body, configured=completed > 0: prepare(body, previously_configured=configured), bodies))
             for i, (body, policy) in enumerate(zip(bodies, chosen)):
