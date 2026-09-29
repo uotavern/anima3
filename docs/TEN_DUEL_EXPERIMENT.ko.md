@@ -23,7 +23,7 @@
 # SPAR_PASSWORD_A, SPAR_PASSWORD_B, TYPESAFE_API_KEY
 python -m anima3.ten_duels \
   --user-a MY_TRAIN_A --user-b MY_TRAIN_B \
-  --log-dir .logs/ten-live
+  --burst-combo --log-dir .logs/ten-debuff-burst
 ```
 
 기본 한도: 검증된 완료 경기 10개, 총 60분, 프로세스 시작 6회,
@@ -53,7 +53,7 @@ Jev 요청 600회, 로컬 LLM 계획 요청 100회. 재시작 시 이미 요청�
 보고서는 각 실행 종료 시 갱신됩니다. 진행 중 수동 갱신:
 
 ```sh
-python -c 'from pathlib import Path; from anima3.ten_duels import report; report(Path(".logs/ten-live"))'
+python -c 'from pathlib import Path; from anima3.ten_duels import report; report(Path(".logs/ten-debuff-burst"))'
 ```
 
 확인 기준은 세 가지를 분리합니다:
@@ -61,3 +61,22 @@ python -c 'from pathlib import Path; from anima3.ten_duels import report; report
 - **실행**: 10경기의 서버 결과를 검증했는가?
 - **적응**: 이전 결과를 계획에 사용했고 채택된 전략이 실제로 바뀌었는가?
 - **성능**: 피해 차이·회복·승패 등에 어떤 변화가 있었는가? 10경기만으로 우월성은 미확정.
+
+## 선제 디버프와 폭발 연계
+
+기본 오프닝은 사거리 접근 후 Weaken → Clumsy입니다. `--opening none`으로
+해제할 수 있습니다. 체력이 낮거나 중독되면 회복 판단을 우선합니다.
+`--burst-combo`는 두 참가자 모두에게 다음 실행 절차를 제공합니다.
+
+1. Explosion을 시전하고 시전 중반에 explosion potion을 준비합니다.
+2. 해로운 주문 타깃을 확인해 Explosion을 먼저 지정합니다.
+3. 같은 포션을 다시 사용해 포션 타깃을 열고 상대에게 투척합니다.
+4. 생존·마나 조건이 맞으면 Energy Bolt, control 전술에서는 충분한 마나가 있을 때 Flamestrike를 시전합니다.
+
+주문 타깃과 포션 타깃을 구분하며, 회복이 급하면 후속 공격을 포기합니다.
+시전 대기는 실제 경과 시간으로 제한합니다. 경기 후에는 남은 디버프가
+사라져 100/25/100 스탯이 확인될 때까지 최대 125초 기다립니다.
+실제 네트워크 지연 때문에 세 타격의 완전한 동시 적중을 보장하지 않습니다.
+보고서의 `burstMetrics`에 1초 최대 피해와 포션 준비/투척/폭발 시간을 남깁니다.
+개별 damage 이벤트에는 주문명이 없으므로 피해를 특정 주문으로 단정하지 않습니다.
+이 요약은 다음 경기의 검증된 경험에도 전달됩니다.

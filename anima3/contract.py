@@ -280,6 +280,9 @@ class Observation:
     items: list[Item] = field(default_factory=list)
     new_journal: list[Journal] = field(default_factory=list)
     pending_target: bool = False
+    target_cursor_id: int | None = None
+    target_cursor_flag: int | None = None
+    target_cursor_type: int | None = None
     war: bool = False
     terrain: Terrain | None = None
     gumps: list[Gump] = field(default_factory=list)
@@ -298,6 +301,9 @@ class Observation:
             items=[Item.from_json(i) for i in d.get("items") or []],
             new_journal=[Journal.from_json(j) for j in d.get("new_journal") or []],
             pending_target=bool(d.get("pending_target")),
+            target_cursor_id=(d["pending_target"].get("cursor_id") if isinstance(d.get("pending_target"), dict) else None),
+            target_cursor_flag=(d["pending_target"].get("cursor_flag") if isinstance(d.get("pending_target"), dict) else None),
+            target_cursor_type=(d["pending_target"].get("target_type") if isinstance(d.get("pending_target"), dict) else None),
             war=bool(d.get("war", False)),
             terrain=Terrain.from_json(d.get("terrain")),
             gumps=[Gump.from_json(g) for g in d.get("gumps") or []],

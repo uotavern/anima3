@@ -46,3 +46,21 @@ def test_configured_requires_exact_server_skill_and_stat_confirmation():
     assert not configured(
         {**observation, "player": {"strength": 100, "dexterity": 100, "intelligence": 25}}
     )
+
+
+def test_wait_stats_accepts_recovered_server_values_and_bounds_bad_configuration(monkeypatch):
+    import pytest
+
+    from anima3 import duel_wait
+    clock = [0.0]
+    monkeypatch.setattr(duel_wait.time, "monotonic", lambda: clock[0])
+    debuffed = {"player": {"strength": 89, "dexterity": 14, "intelligence": 100}}
+    restored = {"player": {"strength": 100, "dexterity": 25, "intelligence": 100}}
+    def pump(body, seconds):
+        clock[0] += seconds
+        return restored if clock[0] >= 2 else debuffed
+    monkeypatch.setattr(duel_wait, "pump", pump)
+    assert duel_wait.wait_prepared_stats(None, debuffed) == restored
+    clock[0] = 0
+    with pytest.raises(RuntimeError, match="debuff recovery"):
+        duel_wait.wait_prepared_stats(None, debuffed, timeout=1)

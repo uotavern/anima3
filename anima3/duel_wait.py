@@ -76,6 +76,16 @@ def configured(o):
     )
 
 
+def wait_prepared_stats(body, observation, timeout=125):
+    """A previous pre-AOS Weaken/Clumsy can outlive the match by up to 120s."""
+    deadline = time.monotonic() + timeout
+    while [observation["player"].get(k) for k in ("strength", "dexterity", "intelligence")] != [100, 25, 100]:
+        if time.monotonic() >= deadline:
+            raise RuntimeError("Server has not confirmed 100/25/100 stats after debuff recovery")
+        observation = pump(body, 1)
+    return observation
+
+
 def prepare(body):
     """Use the same public commands and consumable dialogs as a human player."""
     for command in (
@@ -129,8 +139,7 @@ def prepare(body):
     bases = {s.get("id", n): s["base"] for n, s in enumerate(o["skills"])}
     if any(bases.get(n) != 100 for n in SKILLS) or sum(bases.values()) != 700:
         raise RuntimeError("Server has not confirmed requested seven GM skills")
-    if [o["player"][k] for k in ("strength", "dexterity", "intelligence")] != [100, 25, 100]:
-        raise RuntimeError("Server has not confirmed 100/25/100 stats")
+    o = wait_prepared_stats(body, o)
     return o["player"]
 
 

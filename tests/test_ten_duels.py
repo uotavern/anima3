@@ -175,7 +175,7 @@ def test_fixed_opponent_never_receives_learning_session(monkeypatch, tmp_path):
         lambda *a: SimpleNamespace(remember=lambda *r: calls.append("remember")),
     )
 
-    def fight(bodies, chosen, log, stop, clients, strategies):
+    def fight(bodies, chosen, log, stop, clients, strategies, opening, burst_combo):
         assert clients[1].name == "scripted" and strategies[1] is None
         assert chosen[1]["version"] == "fixed-scripted-v1"
         return "a" * 32

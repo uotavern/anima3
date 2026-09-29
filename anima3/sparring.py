@@ -110,7 +110,7 @@ def policies(directory, game, minimum, sample):
     )
 
 
-def fight(bodies, policies_by_side, log, stop, clients=None, strategies=None):
+def fight(bodies, policies_by_side, log, stop, clients=None, strategies=None, opening="none", burst_combo=False):
     strategies = strategies or [None, None]
     clients = clients or [load_policy(), load_policy()]
     states = [{}, {}]
@@ -162,6 +162,8 @@ def fight(bodies, policies_by_side, log, stop, clients=None, strategies=None):
                         duel=True,
                         mage=True,
                         explosion_potions=True,
+                        opening=opening,
+                        burst_combo=burst_combo,
                         duel_opponent=state["opponent"],
                         duel_round=state["round"],
                         duel_rules=state["rules"],
@@ -218,6 +220,8 @@ def receipt_while_pumping(base, match_id, ids, log, bodies):
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__)
     add_arguments(ap)
+    ap.add_argument("--burst-combo", action="store_true")
+    ap.add_argument("--opening", choices=["none", "weaken-clumsy"], default="none")
     ap.add_argument("--opponent", choices=["same", "fixed-scripted"], default="same")
     ap.add_argument("--host", default="arena.uotavern.com")
     ap.add_argument("--port", type=int, default=2593)
@@ -365,7 +369,9 @@ def main(argv=None):
             }
             atomic_json(log / "status.json", status)
             append_event(log / "progress.jsonl", status)
-            match_id = fight(bodies, chosen, log, lambda: stopping, clients, strategies)
+            match_id = fight(
+                bodies, chosen, log, lambda: stopping, clients, strategies, args.opening, args.burst_combo
+            )
             meta, rows = receipt_while_pumping(
                 args.web, match_id, [ids[i] for i in order], log, bodies
             )
@@ -395,6 +401,8 @@ def main(argv=None):
                 "sha256": meta["sha256"],
                 "learner": ids[0] if args.opponent == "fixed-scripted" else None,
                 "opponent": args.opponent,
+                "opening": args.opening,
+                "burstCombo": args.burst_combo,
             }
             append_event(events, row)
             completed += 1

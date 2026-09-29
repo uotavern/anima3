@@ -191,6 +191,7 @@ class StrategySession:
             if meta["winner"] == serial
             else "loss",
             "metrics": replay.metrics(rows),
+            "burst": {k: {"peakOneSecondDamage": v["peakOneSecondDamage"], "firstSpells": v["firstSpells"]} for k, v in replay.burst_metrics(rows).items()},
             "sha256": meta["sha256"],
         }
         if any(r["id"] == result["id"] for r in self.history):

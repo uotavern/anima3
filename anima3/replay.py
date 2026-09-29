@@ -6,9 +6,9 @@ import gzip
 import hashlib
 import json
 import re
-import urllib.request
-import urllib.error
 import time
+import urllib.error
+import urllib.request
 
 MAX_BYTES = 34 * 1024 * 1024
 
@@ -98,3 +98,23 @@ def metrics(rows):
         if player is not None and key:
             player[key] += max(0, row.get("amount", 0)) if key in ("damage", "healing") else 1
     return out
+
+
+def burst_metrics(rows):
+    """Observed damage clustering; does not infer which unnamed hit came from a spell."""
+    result = {}
+    for player in rows[0]['players']:
+        serial = player['serial']
+        hits = [r for r in rows if r['type'] == 'damage' and r.get('actor') == serial]
+        peak = max((sum(max(0, h.get('amount', 0)) for h in hits if r['t'] <= h['t'] <= r['t'] + 1000)
+                    for r in hits), default=0)
+        potions = [r for r in rows if r['type'] == 'potion_state' and r.get('actor') == serial]
+        result[str(serial)] = {
+            'peakOneSecondDamage': peak,
+            'firstSpells': [r.get('name') for r in rows if r['type'] == 'cast' and r.get('actor') == serial][:4],
+            'potionCycles': [{'item': r['item'], 'primeMs': r['t'],
+                              'throwMs': next((p['t'] for p in potions if p['item'] == r['item'] and p['phase'] == 'throw' and p['t'] >= r['t']), None),
+                              'explodeMs': next((p['t'] for p in potions if p['item'] == r['item'] and p['phase'] == 'explode' and p['t'] >= r['t']), None)}
+                             for r in potions if r['phase'] == 'prime'],
+        }
+    return result

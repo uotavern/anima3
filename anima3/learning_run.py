@@ -32,6 +32,10 @@ def experiment(directory, args):
         )
     if getattr(args, "opponent", "same") != "same":
         spec["opponent"] = args.opponent
+    if getattr(args, "opening", "none") != "none":
+        spec["opening"] = args.opening
+    if getattr(args, "burst_combo", False):
+        spec["burstCombo"] = True
     path = directory / "experiment.json"
     if path.exists():
         if json.loads(path.read_text()) != spec:

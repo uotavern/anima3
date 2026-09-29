@@ -68,6 +68,18 @@ def report(root):
                 "durationMs": meta["durationMs"],
                 "verifiedHistory": sorted(history),
                 "plans": plans,
+                "opening": record.get("opening", "none"),
+                "learner": learner,
+                "burstCombo": record.get("burstCombo", False),
+                "burstMetrics": replay.burst_metrics(rows),
+                "openingCasts": {
+                    str(serial): [
+                        r.get("name")
+                        for r in rows
+                        if r["type"] == "cast" and r.get("actor") == serial
+                    ][:4]
+                    for serial in (learner, opponent)
+                },
                 "strategyChanged": changed,
                 "tactics": dict(
                     collections.Counter(
@@ -119,6 +131,10 @@ def report(root):
         lines.append(
             f"| {g['number']} | {g['result']} | {len(g['verifiedHistory'])} | {primary} | {g['self']['damage']} / {g['opponent']['damage']} | [보기](https://arena.uotavern.com/replay/?replay={g['id']}) |"
         )
+    lines += ["", "## 오프닝과 순간 피해", ""]
+    for g in games:
+        burst = g["burstMetrics"][str(g["learner"])]
+        lines.append(f"- 경기 {g['number']}: {' → '.join(burst['firstSpells'])} · 1초 최대 피해 {burst['peakOneSecondDamage']}")
     lines += ["", "## 계획의 이유", ""]
     for g in games:
         lines.append(
@@ -137,8 +153,10 @@ def report(root):
 
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__)
+    ap.add_argument("--burst-combo", action="store_true")
     ap.add_argument("--user-a", required=True)
     ap.add_argument("--user-b", required=True)
+    ap.add_argument("--opening", choices=["none", "weaken-clumsy"], default="weaken-clumsy")
     ap.add_argument("--host", default="arena.uotavern.com")
     ap.add_argument("--web", default="https://arena.uotavern.com")
     ap.add_argument("--llm-model", default=DEFAULT_MODEL)
@@ -211,6 +229,8 @@ def main(argv=None):
                 "hybrid",
                 "--opponent",
                 "fixed-scripted",
+                "--opening",
+                args.opening,
                 "--matches",
                 "10",
                 "--max-model-calls",
@@ -222,6 +242,8 @@ def main(argv=None):
                 "--log-dir",
                 str(root),
             ]
+            if args.burst_combo:
+                command.append("--burst-combo")
             with (root / "console.log").open("a") as output:
                 child = subprocess.Popen(command, stdout=output, stderr=output)
             while child.poll() is None and not stopping and time.time() < deadline:
