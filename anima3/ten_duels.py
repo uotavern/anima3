@@ -135,7 +135,7 @@ def report(root):
     for g in games:
         burst = g["burstMetrics"][str(g["learner"])]
         lines.append(f"- 경기 {g['number']}: {' → '.join(burst['firstSpells'])} · 1초 최대 피해 {burst['peakOneSecondDamage']}")
-    lines += ["", "## 계획의 이유", ""]
+    lines += ["", "## 계획의 이유", "", "아래는 모델이 생성한 설명입니다. 관측 사실의 검증 결과가 아니며, 알려지지 않은 상대 마나 등에 대한 잘못된 추론이 포함될 수 있습니다.", ""]
     for g in games:
         lines.append(
             f"- 경기 {g['number']}: "

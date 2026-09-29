@@ -1,0 +1,946 @@
+{
+  "target": 10,
+  "completed": 10,
+  "games": [
+    {
+      "number": 1,
+      "id": "6735710ff78e41749ca887c01a1b1b1b",
+      "result": "loss",
+      "arena": 6,
+      "learnerSide": "a",
+      "durationMs": 19955,
+      "verifiedHistory": [],
+      "plans": [
+        {
+          "primary": "control",
+          "responses": {
+            "critical": "sustain",
+            "poisoned": "poison",
+            "low_mana": "sustain",
+            "opponent_casting": "interrupt",
+            "showdown": "sustain"
+          },
+          "reason": "Opponent is paralyzed, so control playbook's paralysis counter is effective. Opponent casting requires interrupt, and low mana or poison triggers sustain for healing and resource management."
+        }
+      ],
+      "opening": "weaken-clumsy",
+      "learner": 57,
+      "burstCombo": true,
+      "burstMetrics": {
+        "57": {
+          "peakOneSecondDamage": 53,
+          "firstSpells": [],
+          "potionCycles": [
+            {
+              "item": 1073747092,
+              "primeMs": 14141,
+              "throwMs": 17306,
+              "explodeMs": 17919
+            }
+          ]
+        },
+        "58": {
+          "peakOneSecondDamage": 68,
+          "firstSpells": [],
+          "potionCycles": [
+            {
+              "item": 1073747125,
+              "primeMs": 12709,
+              "throwMs": 15544,
+              "explodeMs": 16522
+            }
+          ]
+        }
+      },
+      "openingCasts": {
+        "57": [
+          "WeakenSpell",
+          "ClumsySpell",
+          "ExplosionSpell",
+          "GreaterHealSpell"
+        ],
+        "58": [
+          "WeakenSpell",
+          "ClumsySpell",
+          "ExplosionSpell",
+          "EnergyBoltSpell"
+        ]
+      },
+      "strategyChanged": false,
+      "tactics": {
+        "control": 1
+      },
+      "self": {
+        "damage": 53,
+        "self_damage": 0,
+        "healing": 0,
+        "casts": 4,
+        "fizzles": 0,
+        "potion_throws": 1
+      },
+      "opponent": {
+        "damage": 98,
+        "self_damage": 0,
+        "healing": 0,
+        "casts": 4,
+        "fizzles": 0,
+        "potion_throws": 1
+      }
+    },
+    {
+      "number": 2,
+      "id": "b107af4d7e2040919e8da5666bb4fa64",
+      "result": "loss",
+      "arena": 8,
+      "learnerSide": "b",
+      "durationMs": 29666,
+      "verifiedHistory": [
+        "6735710ff78e41749ca887c01a1b1b1b"
+      ],
+      "plans": [
+        {
+          "primary": "standard",
+          "responses": {
+            "critical": "sustain",
+            "poisoned": "poison",
+            "low_mana": "control",
+            "opponent_casting": "interrupt",
+            "showdown": "control"
+          },
+          "reason": "Opponent has high damage output and low mana, so prioritize healing and resource management. Use sustain for healing and offense, control for healing and paralysis, and interrupt for countering casting."
+        }
+      ],
+      "opening": "weaken-clumsy",
+      "learner": 57,
+      "burstCombo": true,
+      "burstMetrics": {
+        "58": {
+          "peakOneSecondDamage": 60,
+          "firstSpells": [],
+          "potionCycles": [
+            {
+              "item": 1073747042,
+              "primeMs": 14818,
+              "throwMs": 17455,
+              "explodeMs": 18654
+            }
+          ]
+        },
+        "57": {
+          "peakOneSecondDamage": 68,
+          "firstSpells": [],
+          "potionCycles": [
+            {
+              "item": 1073747139,
+              "primeMs": 13978,
+              "throwMs": 16547,
+              "explodeMs": 17803
+            }
+          ]
+        }
+      },
+      "openingCasts": {
+        "57": [
+          "WeakenSpell",
+          "ClumsySpell",
+          "ExplosionSpell",
+          "EnergyBoltSpell"
+        ],
+        "58": [
+          "WeakenSpell",
+          "ClumsySpell",
+          "ExplosionSpell",
+          "EnergyBoltSpell"
+        ]
+      },
+      "strategyChanged": true,
+      "tactics": {
+        "control": 1,
+        "sustain": 1
+      },
+      "self": {
+        "damage": 68,
+        "self_damage": 0,
+        "healing": 0,
+        "casts": 5,
+        "fizzles": 0,
+        "potion_throws": 1
+      },
+      "opponent": {
+        "damage": 90,
+        "self_damage": 0,
+        "healing": 48,
+        "casts": 6,
+        "fizzles": 0,
+        "potion_throws": 1
+      }
+    },
+    {
+      "number": 3,
+      "id": "bad01a3435b94d39b2bc66023d35a82a",
+      "result": "loss",
+      "arena": 8,
+      "learnerSide": "a",
+      "durationMs": 31202,
+      "verifiedHistory": [
+        "6735710ff78e41749ca887c01a1b1b1b",
+        "b107af4d7e2040919e8da5666bb4fa64"
+      ],
+      "plans": [
+        {
+          "primary": "control",
+          "responses": {
+            "critical": "sustain",
+            "poisoned": "poison",
+            "low_mana": "sustain",
+            "opponent_casting": "control",
+            "showdown": "sustain"
+          },
+          "reason": "Opponent is casting, prioritize control to manage healing and countercasting. Sustain is used for healing and resource management, while control ensures proactive mitigation and counterattacks."
+        }
+      ],
+      "opening": "weaken-clumsy",
+      "learner": 57,
+      "burstCombo": true,
+      "burstMetrics": {
+        "57": {
+          "peakOneSecondDamage": 68,
+          "firstSpells": [],
+          "potionCycles": [
+            {
+              "item": 1073747093,
+              "primeMs": 25362,
+              "throwMs": 27758,
+              "explodeMs": 29151
+            }
+          ]
+        },
+        "58": {
+          "peakOneSecondDamage": 73,
+          "firstSpells": [],
+          "potionCycles": [
+            {
+              "item": 1073747161,
+              "primeMs": 24092,
+              "throwMs": 26919,
+              "explodeMs": 27906
+            }
+          ]
+        }
+      },
+      "openingCasts": {
+        "57": [
+          "WeakenSpell",
+          "ClumsySpell",
+          "ExplosionSpell",
+          "FlameStrikeSpell"
+        ],
+        "58": [
+          "WeakenSpell",
+          "ClumsySpell",
+          "ExplosionSpell",
+          "EnergyBoltSpell"
+        ]
+      },
+      "strategyChanged": true,
+      "tactics": {
+        "control": 1
+      },
+      "self": {
+        "damage": 68,
+        "self_damage": 0,
+        "healing": 0,
+        "casts": 4,
+        "fizzles": 0,
+        "potion_throws": 1
+      },
+      "opponent": {
+        "damage": 110,
+        "self_damage": 0,
+        "healing": 0,
+        "casts": 4,
+        "fizzles": 0,
+        "potion_throws": 1
+      }
+    },
+    {
+      "number": 4,
+      "id": "73dfb8ef6ff641958dc5b241833c42a1",
+      "result": "loss",
+      "arena": 10,
+      "learnerSide": "b",
+      "durationMs": 39316,
+      "verifiedHistory": [
+        "6735710ff78e41749ca887c01a1b1b1b",
+        "b107af4d7e2040919e8da5666bb4fa64",
+        "bad01a3435b94d39b2bc66023d35a82a"
+      ],
+      "plans": [
+        {
+          "primary": "standard",
+          "responses": {
+            "critical": "control",
+            "poisoned": "poison",
+            "low_mana": "sustain",
+            "opponent_casting": "interrupt",
+            "showdown": "sustain"
+          },
+          "reason": "Opponent has high damage output and low healing, so use control to manage paralysis and counterattacks, poison to handle poison states, sustain to maintain mana, and interrupt to respond to opponent casting."
+        },
+        {
+          "primary": "control",
+          "responses": {
+            "critical": "control",
+            "poisoned": "control",
+            "low_mana": "sustain",
+            "opponent_casting": "control",
+            "showdown": "control"
+          },
+          "reason": "Opponent is paralyzed, so control playbook's paralysis counter is effective. Low mana and opponent casting align with sustain's resource management and control."
+        }
+      ],
+      "opening": "weaken-clumsy",
+      "learner": 57,
+      "burstCombo": true,
+      "burstMetrics": {
+        "58": {
+          "peakOneSecondDamage": 41,
+          "firstSpells": [],
+          "potionCycles": []
+        },
+        "57": {
+          "peakOneSecondDamage": 36,
+          "firstSpells": [],
+          "potionCycles": [
+            {
+              "item": 1073747123,
+              "primeMs": 15053,
+              "throwMs": 18500,
+              "explodeMs": 18888
+            }
+          ]
+        }
+      },
+      "openingCasts": {
+        "57": [
+          "WeakenSpell",
+          "ClumsySpell",
+          "ExplosionSpell",
+          "MagicArrowSpell"
+        ],
+        "58": [
+          "WeakenSpell",
+          "ClumsySpell",
+          "ExplosionSpell",
+          "EnergyBoltSpell"
+        ]
+      },
+      "strategyChanged": true,
+      "tactics": {
+        "interrupt": 2,
+        "control": 1
+      },
+      "self": {
+        "damage": 47,
+        "self_damage": 0,
+        "healing": 0,
+        "casts": 7,
+        "fizzles": 0,
+        "potion_throws": 1
+      },
+      "opponent": {
+        "damage": 113,
+        "self_damage": 0,
+        "healing": 0,
+        "casts": 5,
+        "fizzles": 0,
+        "potion_throws": 0
+      }
+    },
+    {
+      "number": 5,
+      "id": "7bb2c7ff485d41aeb7dff5ee27872e37",
+      "result": "loss",
+      "arena": 9,
+      "learnerSide": "a",
+      "durationMs": 21013,
+      "verifiedHistory": [
+        "6735710ff78e41749ca887c01a1b1b1b",
+        "73dfb8ef6ff641958dc5b241833c42a1",
+        "b107af4d7e2040919e8da5666bb4fa64",
+        "bad01a3435b94d39b2bc66023d35a82a"
+      ],
+      "plans": [
+        {
+          "primary": "standard",
+          "responses": {
+            "critical": "sustain",
+            "poisoned": "poison",
+            "low_mana": "control",
+            "opponent_casting": "interrupt",
+            "showdown": "control"
+          },
+          "reason": "Opponent has high damage output and low healing, so use sustain to maintain health, switch to control when mana is low, and interrupt to countercasting."
+        }
+      ],
+      "opening": "weaken-clumsy",
+      "learner": 57,
+      "burstCombo": true,
+      "burstMetrics": {
+        "57": {
+          "peakOneSecondDamage": 0,
+          "firstSpells": [],
+          "potionCycles": [
+            {
+              "item": 1073747199,
+              "primeMs": 13506,
+              "throwMs": null,
+              "explodeMs": 17299
+            }
+          ]
+        },
+        "58": {
+          "peakOneSecondDamage": 74,
+          "firstSpells": [],
+          "potionCycles": [
+            {
+              "item": 1073747103,
+              "primeMs": 15558,
+              "throwMs": 19305,
+              "explodeMs": 19341
+            }
+          ]
+        }
+      },
+      "openingCasts": {
+        "57": [
+          "WeakenSpell",
+          "ClumsySpell",
+          "ExplosionSpell"
+        ],
+        "58": [
+          "WeakenSpell",
+          "ClumsySpell",
+          "ExplosionSpell",
+          "EnergyBoltSpell"
+        ]
+      },
+      "strategyChanged": true,
+      "tactics": {
+        "standard": 2,
+        "control": 1,
+        "sustain": 1
+      },
+      "self": {
+        "damage": 0,
+        "self_damage": 39,
+        "healing": 0,
+        "casts": 3,
+        "fizzles": 0,
+        "potion_throws": 0
+      },
+      "opponent": {
+        "damage": 74,
+        "self_damage": 0,
+        "healing": 0,
+        "casts": 4,
+        "fizzles": 0,
+        "potion_throws": 1
+      }
+    },
+    {
+      "number": 6,
+      "id": "48fea62fcb2b4d908b2c67a432cc4f26",
+      "result": "loss",
+      "arena": 4,
+      "learnerSide": "b",
+      "durationMs": 45324,
+      "verifiedHistory": [
+        "73dfb8ef6ff641958dc5b241833c42a1",
+        "7bb2c7ff485d41aeb7dff5ee27872e37",
+        "b107af4d7e2040919e8da5666bb4fa64",
+        "bad01a3435b94d39b2bc66023d35a82a"
+      ],
+      "plans": [
+        {
+          "primary": "control",
+          "responses": {
+            "critical": "sustain",
+            "poisoned": "poison",
+            "low_mana": "sustain",
+            "opponent_casting": "interrupt",
+            "showdown": "sustain"
+          },
+          "reason": "Opponent is casting, so interrupt is needed. Low mana and poison conditions align with sustain. Control is primary for managing opponent's casting and healing."
+        },
+        {
+          "primary": "sustain",
+          "responses": {
+            "critical": "control",
+            "poisoned": "sustain",
+            "low_mana": "sustain",
+            "opponent_casting": "sustain",
+            "showdown": "sustain"
+          },
+          "reason": "Opponent is paralyzed, so control playbook is prioritized for managing paralysis and maintaining damage output. Sustain is used for healing and resource management, while critical and opponent casting are handled by control."
+        }
+      ],
+      "opening": "weaken-clumsy",
+      "learner": 57,
+      "burstCombo": true,
+      "burstMetrics": {
+        "58": {
+          "peakOneSecondDamage": 56,
+          "firstSpells": [],
+          "potionCycles": [
+            {
+              "item": 1073747104,
+              "primeMs": 13471,
+              "throwMs": 15705,
+              "explodeMs": 17300
+            },
+            {
+              "item": 1073747186,
+              "primeMs": 35995,
+              "throwMs": 38591,
+              "explodeMs": 39785
+            }
+          ]
+        },
+        "57": {
+          "peakOneSecondDamage": 6,
+          "firstSpells": [],
+          "potionCycles": [
+            {
+              "item": 1073747167,
+              "primeMs": 40544,
+              "throwMs": null,
+              "explodeMs": 44316
+            }
+          ]
+        }
+      },
+      "openingCasts": {
+        "57": [
+          "WeakenSpell",
+          "ClumsySpell",
+          "ExplosionSpell",
+          "GreaterHealSpell"
+        ],
+        "58": [
+          "WeakenSpell",
+          "ClumsySpell",
+          "ExplosionSpell",
+          "EnergyBoltSpell"
+        ]
+      },
+      "strategyChanged": true,
+      "tactics": {
+        "standard": 1,
+        "interrupt": 6,
+        "control": 1
+      },
+      "self": {
+        "damage": 19,
+        "self_damage": 32,
+        "healing": 49,
+        "casts": 11,
+        "fizzles": 0,
+        "potion_throws": 0
+      },
+      "opponent": {
+        "damage": 135,
+        "self_damage": 0,
+        "healing": 0,
+        "casts": 8,
+        "fizzles": 0,
+        "potion_throws": 2
+      }
+    },
+    {
+      "number": 7,
+      "id": "83901e51d1d64d5783bdfb269e2f516d",
+      "result": "loss",
+      "arena": 9,
+      "learnerSide": "a",
+      "durationMs": 20904,
+      "verifiedHistory": [
+        "48fea62fcb2b4d908b2c67a432cc4f26",
+        "73dfb8ef6ff641958dc5b241833c42a1",
+        "7bb2c7ff485d41aeb7dff5ee27872e37",
+        "bad01a3435b94d39b2bc66023d35a82a"
+      ],
+      "plans": [
+        {
+          "primary": "standard",
+          "responses": {
+            "critical": "standard",
+            "poisoned": "standard",
+            "low_mana": "sustain",
+            "opponent_casting": "control",
+            "showdown": "standard"
+          },
+          "reason": "The opponent has low health and the player is using a standard playbook with healing and offensive spells. Sustain is used for mana management, and control is used when the opponent is casting."
+        }
+      ],
+      "opening": "weaken-clumsy",
+      "learner": 57,
+      "burstCombo": true,
+      "burstMetrics": {
+        "57": {
+          "peakOneSecondDamage": 38,
+          "firstSpells": [],
+          "potionCycles": [
+            {
+              "item": 1073747124,
+              "primeMs": 15943,
+              "throwMs": 18579,
+              "explodeMs": 19758
+            }
+          ]
+        },
+        "58": {
+          "peakOneSecondDamage": 66,
+          "firstSpells": [],
+          "potionCycles": [
+            {
+              "item": 1073747102,
+              "primeMs": 14471,
+              "throwMs": 16425,
+              "explodeMs": 18306
+            }
+          ]
+        }
+      },
+      "openingCasts": {
+        "57": [
+          "WeakenSpell",
+          "ClumsySpell",
+          "ExplosionSpell",
+          "GreaterHealSpell"
+        ],
+        "58": [
+          "WeakenSpell",
+          "ClumsySpell",
+          "ExplosionSpell",
+          "EnergyBoltSpell"
+        ]
+      },
+      "strategyChanged": true,
+      "tactics": {
+        "standard": 2
+      },
+      "self": {
+        "damage": 38,
+        "self_damage": 0,
+        "healing": 0,
+        "casts": 4,
+        "fizzles": 0,
+        "potion_throws": 1
+      },
+      "opponent": {
+        "damage": 101,
+        "self_damage": 0,
+        "healing": 0,
+        "casts": 4,
+        "fizzles": 0,
+        "potion_throws": 1
+      }
+    },
+    {
+      "number": 8,
+      "id": "e7506a7d8fdb4c9da06ae868ea72a66c",
+      "result": "loss",
+      "arena": 3,
+      "learnerSide": "b",
+      "durationMs": 22538,
+      "verifiedHistory": [
+        "48fea62fcb2b4d908b2c67a432cc4f26",
+        "73dfb8ef6ff641958dc5b241833c42a1",
+        "7bb2c7ff485d41aeb7dff5ee27872e37",
+        "83901e51d1d64d5783bdfb269e2f516d"
+      ],
+      "plans": [
+        {
+          "primary": "standard",
+          "responses": {
+            "critical": "standard",
+            "poisoned": "poison",
+            "low_mana": "sustain",
+            "opponent_casting": "control",
+            "showdown": "sustain"
+          },
+          "reason": "The opponent has low health and the player should focus on damage while maintaining healing and resource management."
+        }
+      ],
+      "opening": "weaken-clumsy",
+      "learner": 57,
+      "burstCombo": true,
+      "burstMetrics": {
+        "58": {
+          "peakOneSecondDamage": 65,
+          "firstSpells": [],
+          "potionCycles": [
+            {
+              "item": 1073747219,
+              "primeMs": 15333,
+              "throwMs": 18338,
+              "explodeMs": 19165
+            }
+          ]
+        },
+        "57": {
+          "peakOneSecondDamage": 35,
+          "firstSpells": [],
+          "potionCycles": [
+            {
+              "item": 1073747089,
+              "primeMs": 14515,
+              "throwMs": 18184,
+              "explodeMs": 18324
+            }
+          ]
+        }
+      },
+      "openingCasts": {
+        "57": [
+          "WeakenSpell",
+          "ClumsySpell",
+          "ExplosionSpell",
+          "ParalyzeSpell"
+        ],
+        "58": [
+          "WeakenSpell",
+          "ClumsySpell",
+          "ExplosionSpell",
+          "EnergyBoltSpell"
+        ]
+      },
+      "strategyChanged": true,
+      "tactics": {
+        "control": 1
+      },
+      "self": {
+        "damage": 35,
+        "self_damage": 0,
+        "healing": 0,
+        "casts": 4,
+        "fizzles": 0,
+        "potion_throws": 1
+      },
+      "opponent": {
+        "damage": 91,
+        "self_damage": 0,
+        "healing": 0,
+        "casts": 4,
+        "fizzles": 0,
+        "potion_throws": 1
+      }
+    },
+    {
+      "number": 9,
+      "id": "83677dd6f7c84070b92e2e3bc103a52b",
+      "result": "loss",
+      "arena": 1,
+      "learnerSide": "a",
+      "durationMs": 39428,
+      "verifiedHistory": [
+        "48fea62fcb2b4d908b2c67a432cc4f26",
+        "7bb2c7ff485d41aeb7dff5ee27872e37",
+        "83901e51d1d64d5783bdfb269e2f516d",
+        "e7506a7d8fdb4c9da06ae868ea72a66c"
+      ],
+      "plans": [
+        {
+          "primary": "standard",
+          "responses": {
+            "critical": "control",
+            "poisoned": "poison",
+            "low_mana": "sustain",
+            "opponent_casting": "interrupt",
+            "showdown": "sustain"
+          },
+          "reason": "Opponent has low health and is not poisoned, so standard attack rhythm is optimal. Control is used for critical hits, poison for healing, sustain for mana management, and interrupt for opponent casting."
+        }
+      ],
+      "opening": "weaken-clumsy",
+      "learner": 57,
+      "burstCombo": true,
+      "burstMetrics": {
+        "57": {
+          "peakOneSecondDamage": 61,
+          "firstSpells": [],
+          "potionCycles": [
+            {
+              "item": 1073747273,
+              "primeMs": 13987,
+              "throwMs": 17291,
+              "explodeMs": 17821
+            }
+          ]
+        },
+        "58": {
+          "peakOneSecondDamage": 72,
+          "firstSpells": [],
+          "potionCycles": [
+            {
+              "item": 1073747269,
+              "primeMs": 14147,
+              "throwMs": 17127,
+              "explodeMs": 17942
+            },
+            {
+              "item": 1073747145,
+              "primeMs": 34624,
+              "throwMs": 35306,
+              "explodeMs": 38421
+            }
+          ]
+        }
+      },
+      "openingCasts": {
+        "57": [
+          "WeakenSpell",
+          "ClumsySpell",
+          "ExplosionSpell",
+          "EnergyBoltSpell"
+        ],
+        "58": [
+          "WeakenSpell",
+          "ClumsySpell",
+          "ExplosionSpell",
+          "EnergyBoltSpell"
+        ]
+      },
+      "strategyChanged": true,
+      "tactics": {
+        "control": 1
+      },
+      "self": {
+        "damage": 94,
+        "self_damage": 0,
+        "healing": 42,
+        "casts": 6,
+        "fizzles": 0,
+        "potion_throws": 1
+      },
+      "opponent": {
+        "damage": 161,
+        "self_damage": 0,
+        "healing": 47,
+        "casts": 8,
+        "fizzles": 0,
+        "potion_throws": 2
+      }
+    },
+    {
+      "number": 10,
+      "id": "27f2c5c652ec44148b1f17296dc4053f",
+      "result": "loss",
+      "arena": 2,
+      "learnerSide": "b",
+      "durationMs": 23552,
+      "verifiedHistory": [
+        "48fea62fcb2b4d908b2c67a432cc4f26",
+        "83677dd6f7c84070b92e2e3bc103a52b",
+        "83901e51d1d64d5783bdfb269e2f516d",
+        "e7506a7d8fdb4c9da06ae868ea72a66c"
+      ],
+      "plans": [
+        {
+          "primary": "standard",
+          "responses": {
+            "critical": "control",
+            "poisoned": "poison",
+            "low_mana": "sustain",
+            "opponent_casting": "interrupt",
+            "showdown": "sustain"
+          },
+          "reason": "Opponent has low health and is not poisoned, so standard playbook is optimal. Control is used for critical hits, poison for healing, sustain for mana management, and interrupt for opponent casting."
+        }
+      ],
+      "opening": "weaken-clumsy",
+      "learner": 57,
+      "burstCombo": true,
+      "burstMetrics": {
+        "58": {
+          "peakOneSecondDamage": 73,
+          "firstSpells": [],
+          "potionCycles": [
+            {
+              "item": 1073747287,
+              "primeMs": 16301,
+              "throwMs": 19316,
+              "explodeMs": 20082
+            }
+          ]
+        },
+        "57": {
+          "peakOneSecondDamage": 0,
+          "firstSpells": [],
+          "potionCycles": [
+            {
+              "item": 1073747180,
+              "primeMs": 21182,
+              "throwMs": 22184,
+              "explodeMs": null
+            }
+          ]
+        }
+      },
+      "openingCasts": {
+        "57": [
+          "WeakenSpell",
+          "ClumsySpell",
+          "ClumsySpell",
+          "GreaterHealSpell"
+        ],
+        "58": [
+          "WeakenSpell",
+          "ClumsySpell",
+          "ExplosionSpell",
+          "EnergyBoltSpell"
+        ]
+      },
+      "strategyChanged": false,
+      "tactics": {
+        "standard": 1,
+        "interrupt": 1,
+        "control": 1
+      },
+      "self": {
+        "damage": 0,
+        "self_damage": 0,
+        "healing": 0,
+        "casts": 4,
+        "fizzles": 0,
+        "potion_throws": 1
+      },
+      "opponent": {
+        "damage": 111,
+        "self_damage": 0,
+        "healing": 0,
+        "casts": 4,
+        "fizzles": 0,
+        "potion_throws": 1
+      }
+    }
+  ],
+  "experienceUsedMatches": 9,
+  "strategyChangedMatches": 8,
+  "firstFive": {
+    "games": 5,
+    "wins": 0,
+    "draws": 0,
+    "meanDamageDifference": -49.8
+  },
+  "lastFive": {
+    "games": 5,
+    "wins": 0,
+    "draws": 0,
+    "meanDamageDifference": -82.6
+  },
+  "performanceImprovement": "not-established",
+  "automaticPromotion": false,
+  "limitation": "Ten adaptive games are a feasibility pilot, not a held-out causal win-rate evaluation. Arenas can differ."
+}

@@ -620,3 +620,7 @@ see [the archive](docs/ARENA_HOSTED_LEGACY.md).
 [Anima3 / Jev duel learning guide (한국어)](docs/ARENA_LEARNING.ko.md): bounded peer sparring, verified replay rewards, fixed evaluation, and champion reload between matches.
 
 [Hybrid Jev + local LLM strategy guide (한국어)](docs/ARENA_STRATEGY.ko.md): asynchronous planning, reactive tactics, and verified opponent memory.
+
+[Ten-duel strategy experiment (한국어)](docs/TEN_DUEL_EXPERIMENT.ko.md): fixed-opponent trials, Weaken/Clumsy opening, timed Explosion/potion bursts, and replay-backed adaptation reports.
+
+[Self-play development roadmap (한국어)](docs/SELF_PLAY_ROADMAP.ko.md): lessons from Pluto, real-time execution, trainable combat environments, and independent policy evaluation. This is a development plan, not a completed neural RL trainer.
