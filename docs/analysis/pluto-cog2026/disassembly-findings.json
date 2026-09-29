@@ -1,0 +1,41 @@
+{
+  "method": "static PE disassembly cross-referenced with file strings; image virtual addresses, not runtime addresses",
+  "engineSharedMemory": {
+    "binary": "pluto/pluto_infer.exe",
+    "validationVa": "0x140151cb2",
+    "magicCompareVa": "0x140151cc4",
+    "magicLE": "PLSM",
+    "version": 3,
+    "protocolMaxUnits": 1024,
+    "modelMaxUnits": 768,
+    "failureMessageReferenceVa": "0x140151d0d",
+    "expectedStructureBytes": 548736
+  },
+  "dllExpectedActionLatency": {
+    "binary": "pluto.dll",
+    "compareVa": "0x63f8c5b0",
+    "expectedFrames": 4,
+    "mismatchDiagnosticReferenceVa": "0x63f8c5cf",
+    "okDiagnosticReferenceVa": "0x63f8d392"
+  },
+  "dllThompsonDiagnostic": {
+    "binary": "pluto.dll",
+    "diagnosticReferenceVa": "0x63f89b9e",
+    "drawCountConstantVa": "0x63f89b86",
+    "diagnosticDrawCount": 10000,
+    "limitation": "This is the printed probability estimation sample count; not proof of online selection implementation or training sample count."
+  },
+  "engineSIMD": {
+    "binary": "pluto/pluto_infer.exe",
+    "instructionVa": "0x14000d1d6",
+    "instruction": "vpdpbusd"
+  },
+  "retainedObservationGuard": {
+    "binary": "pluto.dll",
+    "guardVa": "0x63f8d6a8",
+    "missingObservationDiagnosticReferenceVa": "0x63f8d6b5"
+  },
+  "executionPerformed": false,
+  "weightsValidationLocation": "remote temporary analysis workspace; archive and all three member hashes verified; metadata copied locally",
+  "localExecutableValidation": "both complete PE files independently hashed locally against official release"
+}

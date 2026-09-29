@@ -1,0 +1,45 @@
+{
+  "release": "cog2026-2578600",
+  "archiveSha256": "d4e2225446f5048e131065357173952f0286586da77ebb8bddf7fc766c3844a5",
+  "members": [
+    {
+      "name": "README.txt",
+      "bytes": 5296,
+      "compressedBytes": 2580
+    },
+    {
+      "name": "pluto.dll",
+      "bytes": 465934,
+      "compressedBytes": 206729
+    },
+    {
+      "name": "pluto/",
+      "bytes": 0,
+      "compressedBytes": 0
+    },
+    {
+      "name": "pluto/pluto_weights.bin",
+      "bytes": 320491920,
+      "compressedBytes": 284663028
+    },
+    {
+      "name": "pluto/pluto_infer.exe",
+      "bytes": 1638912,
+      "compressedBytes": 676497
+    }
+  ],
+  "verifiedFiles": {
+    "pluto.dll": {
+      "bytes": 465934,
+      "sha256": "7e360b643c8c0156c03fe0cad9972a3058138ccfe22f921c5b4e0cd0aaf0abef"
+    },
+    "pluto/pluto_infer.exe": {
+      "bytes": 1638912,
+      "sha256": "ad880d8be52a6ef03893fa20644b6627e04fcd55e030178c6d52486b82340f2b"
+    },
+    "pluto/pluto_weights.bin": {
+      "bytes": 320491920,
+      "sha256": "00b400eace6e4782202ebdcb3c30db76054aaa6a08c6a7dcb59575abc2d0a26e"
+    }
+  }
+}
