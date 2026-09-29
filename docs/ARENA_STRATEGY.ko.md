@@ -67,3 +67,20 @@ uv run --extra jeff --extra qwen python -m anima3.sparring \
 
 Jev 공식 SDK: https://github.com/typesafe-ai/typesafe-sdk-python
 MLX 공식 사용법: https://github.com/ml-explore/mlx-lm
+
+## 스파링 실행 안정성 및 점검
+
+- 최초 로그인은 최대 3회만 재시도하고, 준비 단계의 DuelState 응답은 최대 30초 기다립니다.
+- 전투 상태가 3초 이상 갱신되지 않으면 행동을 멈춥니다. 잠깐 지연됐다는 이유로
+  같은 라운드의 에이전트·시전 절차·전술 기억을 재생성하지 않습니다.
+- 15초 넘게 전투 상태가 없으면 실행을 중단합니다. 통신 장애로 끝난 실행은
+  임의로 승패를 만들거나 학습 결과에 추가하지 않습니다.
+- 실행 현황은 `status.json`, 완료된 경기와 모델 판단은 다음 명령으로 확인합니다.
+
+```sh
+python -m scripts.review_sparring .logs/improve-live
+```
+
+`review.json`에는 SHA256 검증된 경기의 피해·회복·시전·실패·포션 기록,
+라운드 내 에이전트 초기화 횟수, 모델 오류·지연 횟수가 저장됩니다.
+자기대련 몇 경기의 승패만으로 성능 향상을 확정하지 않습니다.

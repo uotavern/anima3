@@ -19,7 +19,7 @@ from .agent import Agent
 from .arena import ObservedBody, append_event, read_policy
 from .arena_learning import BASELINE, atomic_json, matches
 from .arena_policy import load_policy
-from .body import BridgeBody
+from .body import BodyError, BridgeBody
 from .contract import say
 from .duel_wait import RULES, prepare, pump, server_state
 from .learning_run import experiment, update, verify_receipts
@@ -30,8 +30,25 @@ from .strategy import add_arguments, build_session
 TRAINING_RULES = RULES + "-training"
 
 
+def connect_training(args, user, password, log, stop):
+    """Retry only initial login; never reissue an in-match action after reconnect."""
+    for attempt in range(3):
+        if stop():
+            raise RuntimeError("sparring stopped during login")
+        try:
+            return BridgeBody.spawn(args.host, args.port, user, password,
+                                    binary=args.bridge, data_dir=args.data_dir)
+        except BodyError:
+            append_event(log / "progress.jsonl", {
+                "stage": "login_retry", "attempt": attempt + 1, "account": user,
+            })
+            if attempt == 2:
+                raise RuntimeError("training login failed after 3 attempts") from None
+            time.sleep(3 * (attempt + 1))
+
+
 def poll(body):
-    until = time.monotonic() + 10
+    until = time.monotonic() + 30
     next_request = 0
     while time.monotonic() < until:
         if time.monotonic() >= next_request:
@@ -124,7 +141,11 @@ def fight(bodies, policies_by_side, log, stop, clients=None, strategies=None):
                 del agents[i].reports[:-1000]
                 del agents[i].proc_log[:-1000]
             else:
-                agents[i], keys[i] = None, None
+                # A brief stale state pauses actions, not the round's memory,
+                # spell procedure or model context. Reset only on a confirmed
+                # non-fighting phase; otherwise each delay restarts the brain.
+                if state.get("phase") != "Fighting":
+                    agents[i], keys[i] = None, None
                 body.pump(100)
         if all(seen) and all(s.get("phase") == "Idle" for s in states):
             return assigned_id
@@ -221,14 +242,10 @@ def main(argv=None):
     bodies = []
     try:
         for user, key in [(args.user_a, args.password_a_env), (args.user_b, args.password_b_env)]:
-            body = BridgeBody.spawn(
-                args.host,
-                args.port,
-                user,
-                os.environ[key],
-                binary=args.bridge,
-                data_dir=args.data_dir,
-            )
+            atomic_json(log / "status.json", {
+                "stage": "connecting", "completed": completed, "account": user,
+            })
+            body = connect_training(args, user, os.environ[key], log, lambda: stopping)
             bodies.append(body)
             pump(body, 5)
         if any(poll(b)["phase"] != "Idle" for b in bodies):
