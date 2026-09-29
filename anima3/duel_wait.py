@@ -66,13 +66,21 @@ def pump(body, seconds=2):
     return body.observe_raw()
 
 
+def configured(o):
+    bases = {s.get("id", n): s["base"] for n, s in enumerate(o.get("skills", []))}
+    return (
+        all(bases.get(n) == 100 for n in SKILLS)
+        and sum(bases.values()) == 700
+        and [o["player"].get(k) for k in ("strength", "dexterity", "intelligence")]
+        == [100, 25, 100]
+    )
+
+
 def prepare(body):
     """Use the same public commands and consumable dialogs as a human player."""
     for command in (
         "[Arena leave",
         "[Arena enter",
-        "[Arena skills",
-        "[Arena stats",
         "[Arena supplies",
     ):
         body.act(say(command))
@@ -81,6 +89,15 @@ def prepare(body):
     pack = next(
         i for i in o["items"] if i.get("layer") == 21 and i["container"] == o["player"]["serial"]
     )
+    body.act(use(pack["serial"]))
+    o = pump(body)
+    body.act({"type": "SkillsRequest"})
+    o = pump(body, 1)
+    if configured(o):
+        return o["player"]
+    for command in ("[Arena skills", "[Arena stats"):
+        body.act(say(command))
+        o = pump(body)
     body.act(use(pack["serial"]))
     o = pump(body)
     for hue, title, values in (
@@ -94,7 +111,9 @@ def prepare(body):
         )
         body.act(use(ball["serial"]))
         g = None
-        for _ in range(8):
+        for attempt in range(16):
+            if attempt == 8:
+                body.act(use(ball["serial"]))
             o = pump(body, 0.5)
             g = next((g for g in o["gumps"] if title in str(g)), None)
             if g:

@@ -29,3 +29,20 @@ def test_match_state_requires_server_opponent_and_round():
     assert server_state(Observation(new_journal=[message(state)])) == state
     for patch in ({"round": 0}, {"opponent": True}, {"opponent": -1}, {"phase": "Finished"}):
         assert server_state(Observation(new_journal=[message({**state, **patch})])) is None
+
+
+def test_configured_requires_exact_server_skill_and_stat_confirmation():
+    from anima3.duel_wait import configured, SKILLS
+
+    observation = {
+        "player": {"strength": 100, "dexterity": 25, "intelligence": 100},
+        "skills": [{"id": i, "base": 100} for i in SKILLS],
+    }
+    assert configured(observation)
+    assert not configured({**observation, "skills": []})
+    assert not configured(
+        {**observation, "skills": observation["skills"] + [{"id": 10, "base": 10}]}
+    )
+    assert not configured(
+        {**observation, "player": {"strength": 100, "dexterity": 100, "intelligence": 25}}
+    )
