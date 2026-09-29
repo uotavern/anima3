@@ -618,3 +618,5 @@ see [the archive](docs/ARENA_HOSTED_LEGACY.md).
 ## Arena duel learning
 
 [Anima3 / Jev duel learning guide (한국어)](docs/ARENA_LEARNING.ko.md): bounded peer sparring, verified replay rewards, fixed evaluation, and champion reload between matches.
+
+[Hybrid Jev + local LLM strategy guide (한국어)](docs/ARENA_STRATEGY.ko.md): asynchronous planning, reactive tactics, and verified opponent memory.

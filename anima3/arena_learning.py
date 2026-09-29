@@ -61,6 +61,7 @@ def matches(path: Path) -> list[dict]:
 def eligible(row: dict) -> bool:
     return (row.get("valid") is True and row.get("aborted") is False
             and not row.get("modelBudgetExhausted", False)
+            and row.get("brain", "direct") == "direct"
             and row.get("training") is True and row.get("build") == "mage"
             and type(row.get("a")) is int and type(row.get("b")) is int and row["a"] != row["b"]
             and row.get("winner") in (row["a"], row["b"], None))

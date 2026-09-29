@@ -16,6 +16,7 @@ from .body import BridgeBody
 from .contract import say, use
 from .magic import PLAYBOOKS
 from .persona import Persona
+from .strategy import add_arguments, build_session
 
 RULES = "7x-magic-explosion-classic"
 SKILLS = [25, 16, 46, 26, 43, 1, 0]
@@ -114,7 +115,7 @@ def prepare(body):
     return o["player"]
 
 
-def serve(args, stopped, decision_client=None):
+def serve(args, stopped, decision_client=None, strategy=None):
     log = Path(args.log_dir)
     life = log / "client.jsonl"
     decision_client = decision_client or load_policy(
@@ -130,6 +131,8 @@ def serve(args, stopped, decision_client=None):
         if getattr(args, "decision_factory", None)
         else getattr(args, "backend", "scripted")
     )
+    if strategy and not getattr(args, "model_label", None):
+        model = "jev+llm"
     ranked = getattr(args, "ranked", False)
     listed_at = 0
     body = BridgeBody.spawn(
@@ -143,10 +146,13 @@ def serve(args, stopped, decision_client=None):
     view = ObservedBody(body)
     state, state_at, ping_at, key, agent = {}, 0, 0, None, None
     prepared, last_match, last_invite = False, None, None
+    last_opponent = None
     started = time.monotonic()
     try:
         pump(body, 7)
         while not stopped():
+            if strategy:
+                strategy.poll()
             obs = body.observe()
             control_sent = False
             for line in obs.new_journal:
@@ -163,6 +169,8 @@ def serve(args, stopped, decision_client=None):
             phase = state.get("phase") if now - state_at < 5 else None
             if phase == "Idle":
                 if last_match:
+                    if strategy:
+                        strategy.review_match(last_match, obs.player.serial, last_opponent)
                     append_event(life, {"event": "match_released", "id": last_match})
                     prepared, last_match, key, agent = False, None, None, None
                 if not prepared:
@@ -224,6 +232,7 @@ def serve(args, stopped, decision_client=None):
                         )
             elif phase in ("Countdown", "Fighting", "RoundOver"):
                 last_match = state["id"]
+                last_opponent = state["opponent"]
             if phase == "Fighting" and state.get("rules") == RULES:
                 newkey = (state["id"], state["round"])
                 if key != newkey or agent is None:
@@ -231,8 +240,12 @@ def serve(args, stopped, decision_client=None):
                     agent = Agent(
                         view,
                         Persona.load("mage_a"),
-                        decision_client,
-                        sync=getattr(args, "backend", "scripted") == "scripted"
+                        strategy.reflex if strategy else decision_client,
+                        tactician=strategy.director(state["id"], state["round"])
+                        if strategy
+                        else None,
+                        sync=bool(strategy)
+                        or getattr(args, "backend", "scripted") == "scripted"
                         and not getattr(args, "decision_factory", None),
                         pump_ms=250,
                         reflect_every=0,
@@ -244,6 +257,7 @@ def serve(args, stopped, decision_client=None):
                         explosion_potions=True,
                         duel_opponent=state["opponent"],
                         duel_round=state["round"],
+                        duel_rules=state["rules"],
                         playbook=policy,
                     )
                     append_event(life, {"event": "round_start", **state})
@@ -270,6 +284,10 @@ def serve(args, stopped, decision_client=None):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
+    add_arguments(ap)
+    ap.add_argument(
+        "--web", default="https://arena.uotavern.com", help="Authoritative replay endpoint"
+    )
     ap.add_argument("--host", default="arena.uotavern.com")
     ap.add_argument("--port", type=int, default=2593)
     ap.add_argument("--user", required=True)
@@ -319,9 +337,14 @@ def main():
     decision_client = load_policy(
         args.backend, args.decision_factory, model=args.model, max_calls=args.max_model_calls
     )
+    strategy = build_session(args, decision_client, Path(args.log_dir) / "brain")
+    if strategy and args.policy_file:
+        ap.error(
+            "Hybrid plans adapt during matches; use a separate log and no direct-policy champion file"
+        )
     while not stopping:
         try:
-            serve(args, lambda: stopping, decision_client)
+            serve(args, lambda: stopping, decision_client, strategy)
         except Exception as e:
             append_event(Path(args.log_dir) / "client.jsonl", {"event": "error", "error": str(e)})
             if args.once:

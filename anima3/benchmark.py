@@ -21,7 +21,7 @@ def summarize(directory: Path, minimum=40):
         if row.get('source') != 'verified-server-replay' or not row.get('valid') or row.get('aborted') or not row.get('training') or row.get('modelBudgetExhausted'):
             skipped += 1
             continue
-        if row.get('stage') == 'exploration' or any(str(row.get('policy_'+s, '')).startswith('explore-') for s in ('a','b')):
+        if row.get('stage') in ('exploration', 'adaptive') or any(str(row.get('policy_'+s, '')).startswith('explore-') for s in ('a','b')):
             skipped += 1
             continue
         mid = row['id']

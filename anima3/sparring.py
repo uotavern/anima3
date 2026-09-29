@@ -25,6 +25,7 @@ from .duel_wait import RULES, prepare, pump, server_state
 from .learning_run import experiment, update, verify_receipts
 from .magic import PLAYBOOKS
 from .persona import Persona
+from .strategy import add_arguments, build_session
 
 TRAINING_RULES = RULES + "-training"
 
@@ -57,7 +58,8 @@ def policies(directory, game, minimum, sample):
     )
 
 
-def fight(bodies, policies_by_side, log, stop, clients=None):
+def fight(bodies, policies_by_side, log, stop, clients=None, strategies=None):
+    strategies = strategies or [None, None]
     clients = clients or [load_policy(), load_policy()]
     states = [{}, {}]
     agents = [None, None]
@@ -95,8 +97,11 @@ def fight(bodies, policies_by_side, log, stop, clients=None):
                     agents[i] = Agent(
                         views[i],
                         Persona.load("mage_a"),
-                        clients[i],
-                        sync=clients[i].name == "scripted",
+                        strategies[i].reflex if strategies[i] else clients[i],
+                        sync=bool(strategies[i]) or clients[i].name == "scripted",
+                        tactician=strategies[i].director(assigned_id, state["round"])
+                        if strategies[i]
+                        else None,
                         pump_ms=100,
                         reflect_every=0,
                         log_path=log / assigned_id / f"player-{i}-round-{state['round']}.jsonl",
@@ -107,6 +112,7 @@ def fight(bodies, policies_by_side, log, stop, clients=None):
                         explosion_potions=True,
                         duel_opponent=state["opponent"],
                         duel_round=state["round"],
+                        duel_rules=state["rules"],
                         playbook=policies_by_side[i]["playbook"],
                     )
                 agents[i].memory["showdown"] = state.get("showdown") is True
@@ -144,6 +150,7 @@ def receipt(base, match_id, ids, log):
 
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__)
+    add_arguments(ap)
     ap.add_argument("--host", default="arena.uotavern.com")
     ap.add_argument("--port", type=int, default=2593)
     ap.add_argument("--web", default="https://arena.uotavern.com")
@@ -183,6 +190,7 @@ def main(argv=None):
         load_policy(args.backend, model=args.model, max_calls=args.max_model_calls)
         for _ in range(2)
     ]
+    strategies = [build_session(args, c, log / f"brain-{i}") for i, c in enumerate(clients)]
     policy_dir = log / "policies"
     policy_dir.mkdir(exist_ok=True)
     if not (policy_dir / "champion.json").exists():
@@ -229,12 +237,17 @@ def main(argv=None):
                 )
                 break
             trial, champion, stage = policies(policy_dir, completed, args.minimum, args.sample)
+            if args.brain == "hybrid":
+                trial = champion
+                stage = "adaptive"
             chosen = [trial, champion] if completed % 2 == 0 else [champion, trial]
             with ThreadPoolExecutor(max_workers=2) as pool:
                 players = list(pool.map(prepare, bodies))
             for body, policy in zip(bodies, chosen):
                 body.act(
-                    say(f"[ArenaAgent {args.backend} {policy['version']} {policy['playbook']}")
+                    say(
+                        f"[ArenaAgent {'jev+llm' if args.brain == 'hybrid' else args.backend} {policy['version']} {policy['playbook']}"
+                    )
                 )
                 pump(body, 0.6)
             ids = [p["serial"] for p in players]
@@ -269,7 +282,7 @@ def main(argv=None):
             }
             atomic_json(log / "status.json", status)
             append_event(log / "progress.jsonl", status)
-            match_id = fight(bodies, chosen, log, lambda: stopping, clients)
+            match_id = fight(bodies, chosen, log, lambda: stopping, clients, strategies)
             meta, rows = receipt(args.web, match_id, [ids[i] for i in order], log)
             row = {
                 "schema": 1,
@@ -291,13 +304,19 @@ def main(argv=None):
                 "providerCalls": [c.calls for c in clients],
                 "providerErrors": [c.errors for c in clients],
                 "stage": stage,
+                "brain": args.brain,
                 "backend": args.backend,
                 "model": args.model if args.backend == "jev" else args.backend,
                 "sha256": meta["sha256"],
             }
             append_event(events, row)
             completed += 1
-            verdict = update(log, args.minimum, args.sample, clients)
+            if args.brain == "hybrid":
+                for session, serial in zip(strategies, ids):
+                    session.remember(meta, rows, serial)
+                verdict = {"status": "adaptive_experience", "automaticPromotion": False}
+            else:
+                verdict = update(log, args.minimum, args.sample, clients)
             status.update(
                 stage=verdict["status"],
                 completed=completed,

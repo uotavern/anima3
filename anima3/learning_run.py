@@ -26,6 +26,10 @@ def experiment(directory, args):
         "rules": "7x-magic-explosion-classic-training",
         "protocol": "playbook-v2",
     }
+    if getattr(args, "brain", "direct") == "hybrid":
+        spec.update(
+            brain="hybrid-v1", llm_model=args.llm_model, promotion="disabled-adaptive-experience"
+        )
     path = directory / "experiment.json"
     if path.exists():
         if json.loads(path.read_text()) != spec:
