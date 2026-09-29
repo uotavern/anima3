@@ -328,7 +328,7 @@ def main(argv=None):
             if args.opponent == "fixed-scripted":
                 chosen = [champion, {**BASELINE, "version": "fixed-scripted-v1"}]
             with ThreadPoolExecutor(max_workers=2) as pool:
-                players = list(pool.map(prepare, bodies))
+                players = list(pool.map(lambda body, configured=completed > 0: prepare(body, previously_configured=configured), bodies))
             for i, (body, policy) in enumerate(zip(bodies, chosen)):
                 body.act(
                     say(

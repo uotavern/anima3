@@ -156,7 +156,7 @@ def test_fixed_opponent_never_receives_learning_session(monkeypatch, tmp_path):
     monkeypatch.setattr(sparring, "connect_training", lambda *a: bodies.pop(0))
     monkeypatch.setattr(sparring, "pump", lambda *a: None)
     monkeypatch.setattr(sparring, "wait_training_idle", lambda *a: None)
-    monkeypatch.setattr(sparring, "prepare", lambda b: {"serial": b.serial, "name": str(b.serial)})
+    monkeypatch.setattr(sparring, "prepare", lambda b, **kw: {"serial": b.serial, "name": str(b.serial)})
     monkeypatch.setattr(
         sparring,
         "poll",

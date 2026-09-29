@@ -86,7 +86,7 @@ def wait_prepared_stats(body, observation, timeout=125):
     return observation
 
 
-def prepare(body):
+def prepare(body, previously_configured=False):
     """Use the same public commands and consumable dialogs as a human player."""
     for command in (
         "[Arena leave",
@@ -104,6 +104,15 @@ def prepare(body):
     body.act({"type": "SkillsRequest"})
     o = pump(body, 1)
     if configured(o):
+        return o["player"]
+    if previously_configured:
+        # A verified earlier match establishes the base build. Stat curses are
+        # temporary; requesting fresh balls can be refused while combat clears.
+        o = wait_prepared_stats(body, o)
+        body.act({"type": "SkillsRequest"})
+        o = pump(body, 1)
+        if not configured(o):
+            raise RuntimeError("Previously verified training build changed")
         return o["player"]
     for command in ("[Arena skills", "[Arena stats"):
         body.act(say(command))
