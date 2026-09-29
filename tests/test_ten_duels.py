@@ -208,3 +208,14 @@ def test_fixed_opponent_never_receives_learning_session(monkeypatch, tmp_path):
         ]
     )
     assert calls == ["remember"]
+
+
+def test_continuation_target_and_last_five_use_later_games(tmp_path):
+    for n in range(1, 13):
+        recording(tmp_path, n, winner=1 if n > 7 else 2)
+    (tmp_path / "ten-duels-state.json").write_text(json.dumps({"target": 20}))
+    result = report(tmp_path)
+    assert result["target"] == 20
+    assert result["completed"] == 12
+    assert result["firstFive"]["wins"] == 0
+    assert result["lastFive"]["wins"] == 5

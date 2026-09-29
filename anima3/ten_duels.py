@@ -26,7 +26,10 @@ def events(path):
     )
 
 
-def report(root):
+def report(root, target=None):
+    if target is None:
+        state = root / "ten-duels-state.json"
+        target = json.loads(state.read_text()).get("target", 10) if state.exists() else 10
     records = matches(root / "learning.jsonl") if (root / "learning.jsonl").exists() else []
     verify_receipts(root, records)
     logs = events(root / "brain-0/strategy.jsonl")
@@ -105,22 +108,22 @@ def report(root):
         }
 
     result = {
-        "target": 10,
+        "target": target,
         "completed": len(games),
         "games": games,
         "experienceUsedMatches": sum(bool(g["verifiedHistory"]) for g in games),
         "strategyChangedMatches": sum(g["strategyChanged"] for g in games),
         "firstFive": summary(games[:5]),
-        "lastFive": summary(games[5:10]),
+        "lastFive": summary(games[5:10] if len(games) <= 10 else games[-5:]),
         "performanceImprovement": "not-established",
         "automaticPromotion": False,
-        "limitation": "Ten adaptive games are a feasibility pilot, not a held-out causal win-rate evaluation. Arenas can differ.",
+        "limitation": "Adaptive games are a feasibility pilot, not a held-out causal win-rate evaluation. Arenas can differ.",
     }
     atomic_json(root / "ten-duels-report.json", result)
     lines = [
-        "# 10경기 전략 적응 실험",
+        f"# {target}경기 전략 적응 실험",
         "",
-        f"완료: {len(games)} / 10",
+        f"완료: {len(games)} / {target}",
         f"이전 경험 사용: {result['experienceUsedMatches']}경기 · 첫 계획 변경: {result['strategyChangedMatches']}경기",
         "",
         "| 경기 | 결과 | 이전 경험 | 첫 전략 | 피해 / 자해 / 상대 피해 | 리플레이 |",
@@ -143,7 +146,7 @@ def report(root):
         )
     lines += [
         "",
-        "10경기는 작동 가능성을 확인하는 예비 실험입니다. 전략 변화는 성능 향상의 증명이 아니며, 모델 가중치 학습이나 자동 승격은 수행하지 않습니다.",
+        "이 실행은 작동 가능성을 확인하는 예비 실험입니다. 전략 변화는 성능 향상의 증명이 아니며, 모델 가중치 학습이나 자동 승격은 수행하지 않습니다.",
         "앞 5경기와 뒤 5경기의 결과는 참고용이며, 경기장 차이·무작위 전투 결과·진행 중 전략 변경의 영향을 포함합니다.",
         "",
     ]
@@ -153,6 +156,7 @@ def report(root):
 
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__)
+    ap.add_argument("--matches", type=int, default=10, help="Total verified games, including inherited games")
     ap.add_argument("--burst-combo", action="store_true")
     ap.add_argument("--user-a", required=True)
     ap.add_argument("--user-b", required=True)
@@ -167,7 +171,8 @@ def main(argv=None):
     ap.add_argument("--llm-budget", type=int, default=100)
     args = ap.parse_args(argv)
     if (
-        not 1 <= args.max_starts <= 10
+        not 1 <= args.matches <= 100
+        or not 1 <= args.max_starts <= 10
         or not 1 <= args.max_minutes <= 120
         or min(args.jev_budget, args.llm_budget) < 1
     ):
@@ -188,6 +193,9 @@ def main(argv=None):
         if state_path.exists()
         else {"starts": 0, "started": time.time()}
     )
+    if "target" in state and state["target"] != args.matches:
+        raise ValueError("Target changed; use a new continuation directory")
+    state["target"] = args.matches
     deadline = state["started"] + args.max_minutes * 60
     stopping = False
 
@@ -200,8 +208,8 @@ def main(argv=None):
     child = None
     try:
         while not stopping and time.time() < deadline and state["starts"] < args.max_starts:
-            result = report(root)
-            if result["completed"] >= 10:
+            result = report(root, args.matches)
+            if result["completed"] >= args.matches:
                 break
             logs = events(root / "brain-0/strategy.jsonl")
             jev = args.jev_budget - sum(r["event"] == "tactic_requested" for r in logs)
@@ -232,7 +240,7 @@ def main(argv=None):
                 "--opening",
                 args.opening,
                 "--matches",
-                "10",
+                str(args.matches),
                 "--max-model-calls",
                 str(jev),
                 "--max-strategy-calls",
@@ -256,17 +264,17 @@ def main(argv=None):
                     child.kill()
                     child.wait()
             state["lastExit"] = child.returncode
-            result = report(root)
-            if result["completed"] >= 10:
+            result = report(root, args.matches)
+            if result["completed"] >= args.matches:
                 break
             # Preserve experience, and let the server finish any abandoned match.
             for _ in range(15):
                 if stopping or time.time() >= deadline:
                     break
                 time.sleep(1)
-        result = report(root)
+        result = report(root, args.matches)
         state.update(
-            stage="complete" if result["completed"] == 10 else "stopped",
+            stage="complete" if result["completed"] == args.matches else "stopped",
             completed=result["completed"],
             finished=time.time(),
         )

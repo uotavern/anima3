@@ -81,3 +81,12 @@ python -c 'from pathlib import Path; from anima3.ten_duels import report; report
 개별 damage 이벤트에는 주문명이 없으므로 피해를 특정 주문으로 단정하지 않습니다.
 자신에게 준 포션 피해는 `self_damage`로 분리하고 공격 피해·순간 피해에서 제외합니다.
 이 요약은 다음 경기의 검증된 경험에도 전달됩니다.
+
+## 추가 대련
+
+`--matches 20`은 상속한 경기까지 포함하여 누적 20경기를 목표로 합니다.
+기존 완료 기록을 보존하려면 새 로그 폴더에 검증된 경기 폴더,
+`experiment.json`, `learning.jsonl`, `brain-0`, `policies`를 복사하고 실행합니다.
+이전 `ten-duels-state.json`·PID·락 파일은 복사하지 않습니다. 새 실행의
+시간/재시작 한도는 다시 시작하며, 모델 요청 예산은 상속된 로그의 요청도 포함합니다.
+보고서는 이전 경험의 출처를 검증하고 10경기를 넘으면 최근 5경기를 별도 집계합니다.
