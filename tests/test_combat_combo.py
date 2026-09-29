@@ -172,14 +172,14 @@ def test_combo_missing_spell_cursor_throws_potion_without_finisher(monkeypatch):
 def test_burst_metrics_measure_observed_hits_and_potion_timeline():
     from anima3.replay import burst_metrics
     rows = [
-        {"type": "header", "players": [{"serial": 1}]},
+        {"type": "header", "players": [{"serial": 1}, {"serial": 2}]},
         {"type": "cast", "actor": 1, "t": 0, "name": "ExplosionSpell"},
         {"type": "potion_state", "actor": 1, "item": 10, "phase": "prime", "t": 100},
         {"type": "potion_state", "actor": 1, "item": 10, "phase": "throw", "t": 3000},
         {"type": "potion_state", "actor": 1, "item": 10, "phase": "explode", "t": 3800},
-        {"type": "damage", "actor": 1, "amount": 30, "t": 3800},
-        {"type": "damage", "actor": 1, "amount": 25, "t": 4000},
-        {"type": "damage", "actor": 1, "amount": 40, "t": 6000},
+        {"type": "damage", "actor": 1, "target": 2, "amount": 30, "t": 3800},
+        {"type": "damage", "actor": 1, "target": 2, "amount": 25, "t": 4000},
+        {"type": "damage", "actor": 1, "target": 2, "amount": 40, "t": 6000},
     ]
     result = burst_metrics(rows)["1"]
     assert result["peakOneSecondDamage"] == 55

@@ -123,13 +123,13 @@ def report(root):
         f"완료: {len(games)} / 10",
         f"이전 경험 사용: {result['experienceUsedMatches']}경기 · 첫 계획 변경: {result['strategyChangedMatches']}경기",
         "",
-        "| 경기 | 결과 | 이전 경험 | 첫 전략 | 피해 / 상대 피해 | 리플레이 |",
+        "| 경기 | 결과 | 이전 경험 | 첫 전략 | 피해 / 자해 / 상대 피해 | 리플레이 |",
         "|---|---|---|---|---|---|",
     ]
     for g in games:
         primary = g["plans"][0]["primary"] if g["plans"] else "기본 규칙"
         lines.append(
-            f"| {g['number']} | {g['result']} | {len(g['verifiedHistory'])} | {primary} | {g['self']['damage']} / {g['opponent']['damage']} | [보기](https://arena.uotavern.com/replay/?replay={g['id']}) |"
+            f"| {g['number']} | {g['result']} | {len(g['verifiedHistory'])} | {primary} | {g['self']['damage']} / {g['self']['self_damage']} / {g['opponent']['damage']} | [보기](https://arena.uotavern.com/replay/?replay={g['id']}) |"
         )
     lines += ["", "## 오프닝과 순간 피해", ""]
     for g in games:

@@ -79,4 +79,5 @@ python -c 'from pathlib import Path; from anima3.ten_duels import report; report
 실제 네트워크 지연 때문에 세 타격의 완전한 동시 적중을 보장하지 않습니다.
 보고서의 `burstMetrics`에 1초 최대 피해와 포션 준비/투척/폭발 시간을 남깁니다.
 개별 damage 이벤트에는 주문명이 없으므로 피해를 특정 주문으로 단정하지 않습니다.
+자신에게 준 포션 피해는 `self_damage`로 분리하고 공격 피해·순간 피해에서 제외합니다.
 이 요약은 다음 경기의 검증된 경험에도 전달됩니다.

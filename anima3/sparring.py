@@ -330,6 +330,8 @@ def main(argv=None):
             atomic_json(log / "status.json", {"stage": "preparing", "completed": completed, "game": completed + 1})
             with ThreadPoolExecutor(max_workers=2) as pool:
                 players = list(pool.map(lambda body, configured=completed > 0: prepare(body, previously_configured=configured), bodies))
+            if stopping:
+                break
             for i, (body, policy) in enumerate(zip(bodies, chosen)):
                 body.act(
                     say(

@@ -69,6 +69,7 @@ def test_corrupt_or_incomplete_evidence_rejected(change):
 
 def test_download_retries_transient_transport_but_not_bad_evidence(monkeypatch):
     import urllib.error
+
     from anima3 import replay
     attempts, waits = [], []
 
@@ -90,3 +91,13 @@ def test_download_retries_transient_transport_but_not_bad_evidence(monkeypatch):
     with pytest.raises(urllib.error.HTTPError):
         replay.fetch('https://arena.example/duel/replays/expired.jsonl')
     assert waits == [1]
+
+
+def test_self_inflicted_potion_damage_is_not_offensive_reward():
+    from anima3.replay import burst_metrics
+    rows, _ = fixture()
+    rows.insert(2, {"type": "damage", "actor": 1, "target": 1, "amount": 39, "t": 110})
+    rows.insert(3, {"type": "damage", "actor": 1, "target": 999, "amount": 99, "t": 120})
+    assert metrics(rows)["1"]["damage"] == 15
+    assert metrics(rows)["1"]["self_damage"] == 39
+    assert burst_metrics(rows)["1"]["peakOneSecondDamage"] == 15
