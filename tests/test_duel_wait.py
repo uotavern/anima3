@@ -32,7 +32,7 @@ def test_match_state_requires_server_opponent_and_round():
 
 
 def test_configured_requires_exact_server_skill_and_stat_confirmation():
-    from anima3.duel_wait import configured, SKILLS
+    from anima3.duel_wait import SKILLS, configured
 
     observation = {
         "player": {"strength": 100, "dexterity": 25, "intelligence": 100},
