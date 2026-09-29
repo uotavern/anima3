@@ -57,3 +57,24 @@ def test_login_retries_are_bounded_and_do_not_log_credentials(monkeypatch, tmp_p
         sparring.connect_training(args, 'training', 'private-password', tmp_path, lambda: False)
     assert len(calls) == 3
     assert 'private-password' not in (tmp_path / 'progress.jsonl').read_text()
+
+
+def test_replay_download_keeps_both_game_connections_pumping(monkeypatch, tmp_path):
+    import threading
+    ready = threading.Event()
+    seen = set()
+
+    def download(*args):
+        assert ready.wait(2), 'game sockets were not serviced during HTTP wait'
+        return 'verified', []
+
+    class Body:
+        def pump(self, ms):
+            seen.add(self)
+            if len(seen) == 2:
+                ready.set()
+
+    monkeypatch.setattr(sparring, 'receipt', download)
+    assert sparring.receipt_while_pumping('web', 'id', [1, 2], tmp_path,
+                                         [Body(), Body()]) == ('verified', [])
+    assert len(seen) == 2

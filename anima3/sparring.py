@@ -172,6 +172,17 @@ def receipt(base, match_id, ids, log):
     raise RuntimeError("server replay missing; no learning result will be invented")
 
 
+def receipt_while_pumping(base, match_id, ids, log, bodies):
+    # Replay HTTP can be slow. Keep servicing both game sockets while the
+    # verified recording downloads, before preparing the next match.
+    with ThreadPoolExecutor(max_workers=1) as pool:
+        result = pool.submit(receipt, base, match_id, ids, log)
+        while not result.done():
+            for body in bodies:
+                body.pump(100)
+        return result.result()
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__)
     add_arguments(ap)
@@ -303,7 +314,9 @@ def main(argv=None):
             atomic_json(log / "status.json", status)
             append_event(log / "progress.jsonl", status)
             match_id = fight(bodies, chosen, log, lambda: stopping, clients, strategies)
-            meta, rows = receipt(args.web, match_id, [ids[i] for i in order], log)
+            meta, rows = receipt_while_pumping(
+                args.web, match_id, [ids[i] for i in order], log, bodies
+            )
             row = {
                 "schema": 1,
                 "event": "match_end",
