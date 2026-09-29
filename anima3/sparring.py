@@ -31,9 +31,12 @@ TRAINING_RULES = RULES + "-training"
 
 
 def poll(body):
-    body.act(say("[DuelState"))
     until = time.monotonic() + 10
+    next_request = 0
     while time.monotonic() < until:
+        if time.monotonic() >= next_request:
+            body.act(say("[DuelState"))
+            next_request = time.monotonic() + 2
         body.pump(100)
         state = server_state(body.observe())
         if state is not None:

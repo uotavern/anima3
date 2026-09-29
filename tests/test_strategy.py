@@ -152,3 +152,27 @@ def test_verified_memory_is_deduplicated_and_survives_restart(tmp_path):
     assert other.history == session.history
     session.remember({**meta, "id": "b" * 32, "aborted": "disconnect"}, rows, 1)
     assert len(session.history) == 1
+
+
+def test_state_handshake_retries_a_lost_request(monkeypatch):
+    from anima3 import sparring
+
+    now = [0.0]
+
+    class Body:
+        requests = 0
+
+        def act(self, action):
+            self.requests += 1
+
+        def pump(self, milliseconds):
+            now[0] += milliseconds / 1000
+
+        def observe(self):
+            return {"phase": "Idle"} if self.requests >= 2 else None
+
+    monkeypatch.setattr(sparring.time, "monotonic", lambda: now[0])
+    monkeypatch.setattr(sparring, "server_state", lambda value: value)
+    body = Body()
+    assert sparring.poll(body) == {"phase": "Idle"}
+    assert body.requests == 2
