@@ -147,10 +147,37 @@ def _actor(body, opponent, worker, log, stop, *, deadline=340, expected_rules=TR
         elif len(events) < 1000:
             events.append(row)
 
+    def rpc(operation, call, *args):
+        started_at = time.monotonic()
+        try:
+            return call(*args)
+        finally:
+            finished_at = time.monotonic()
+            emit(
+                {
+                    "type": "bridge_rpc",
+                    "operation": operation,
+                    "started_at": started_at,
+                    "finished_at": finished_at,
+                    "duration_ms": (finished_at - started_at) * 1000,
+                }
+            )
+
+    def drain_worker_events():
+        if worker:
+            for event in worker.drain_events():
+                emit(event)
+                if (
+                    event.get("type") == "inference_error"
+                    or event.get("type") == "inference_rejected"
+                    and event.get("epoch", epoch) == epoch
+                ):
+                    invalid.add(event.get("reason", event["type"]))
+
     body_id = body.observe().player.serial
     while not stop.is_set() and time.monotonic() < end:
-        obs = body.observe()
-        now = time.monotonic()
+        obs = rpc("observe", body.observe)
+        observation_at = now = time.monotonic()
         enemy = next((m for m in obs.mobiles if m.serial == opponent), None)
         update = server_state(obs)
         if update is not None:
@@ -172,7 +199,7 @@ def _actor(body, opponent, worker, log, stop, *, deadline=340, expected_rules=TR
                 seen = True
             emit({"type": "server_state", "state": state})
         if now - last_ping >= 0.8:
-            body.act(say("[DuelState"))
+            rpc("act:duel_state", body.act, say("[DuelState"))
             last_ping = now
             emit(
                 {
@@ -193,15 +220,29 @@ def _actor(body, opponent, worker, log, stop, *, deadline=340, expected_rules=TR
             and now - last_state < 3
             and health_requests < 3
             and now - last_health_request >= 1
+            and enemy is not None
+            and not enemy.hidden
+            and enemy.hits_max <= 0
         ):
-            if enemy is not None and not enemy.hidden and enemy.hits_max <= 0:
-                # The ordinary client requests the same public health bar.
-                # No private opponent mana, skills or inventory are used.
-                body.act({"type": "StatusRequest", "serial": opponent})
-                health_requests += 1
-                last_health_request = now
-                emit({"type": "public_health_requested", "opponent": opponent})
-        if seen and state.get("phase") == "Idle":
+            # The ordinary client requests the same public health bar.
+            # No private opponent mana, skills or inventory are used.
+            rpc("act:status_request", body.act, {"type": "StatusRequest", "serial": opponent})
+            health_requests += 1
+            last_health_request = now
+            emit({"type": "public_health_requested", "opponent": opponent})
+        final_training_round = (
+            expected_rules == TRAINING_RULES
+            and state.get("phase") == "RoundOver"
+            and state.get("round") == 1
+            and seen_rounds == {1}
+        )
+        if seen and (state.get("phase") == "Idle" or final_training_round):
+            # The training invitation requests one round. Stop recording when
+            # that round ends; run() still requires its completed server replay
+            # before assigning any terminal reward or accepting the episode.
+            # A deadline discovered on the final iteration must not disappear
+            # merely because the authoritative match result has now arrived.
+            drain_worker_events()
             if start_times:
                 transitions[-1]["dt"] = max(0.001, now - start_times[-1])
             return {
@@ -212,6 +253,7 @@ def _actor(body, opponent, worker, log, stop, *, deadline=340, expected_rules=TR
                 "invalid_reasons": sorted(invalid),
                 "inference_ms": latencies,
                 "policy_sha": worker.policy_sha if worker else None,
+                "collection_end_phase": state.get("phase"),
             }
 
         if state.get("phase") == "Fighting":
@@ -250,23 +292,19 @@ def _actor(body, opponent, worker, log, stop, *, deadline=340, expected_rules=TR
             if worker:
                 frame = executor.observe(obs, server_state=update, now=now)
                 # Advance an already committed option even across brief state latency.
-                for packet in executor.tick(obs, now):
-                    body.act(packet)
+                for packet in executor.tick(obs, time.monotonic()):
+                    rpc(f"act:{packet.get('type', 'unknown')}", body.act, packet)
                 for event in executor.drain_events():
                     emit(event)
                     if policy_override(event):
                         invalid.add("policy_override")
-                for event in worker.drain_events():
-                    emit(event)
-                    if (
-                        event.get("type") == "inference_error"
-                        or event.get("type") == "inference_rejected"
-                        and event.get("epoch", epoch) == epoch
-                    ):
-                        invalid.add(event.get("reason", event["type"]))
+                # RPCs above can block. Deadline checks and transition durations
+                # use the actual consumption clock, never the old loop clock.
+                now = time.monotonic()
+                decision = worker.take(epoch, now)
+                drain_worker_events()
                 if worker.startup_error:
                     raise RuntimeError("neural worker failed during match")
-                decision = worker.take(epoch, now)
                 if decision is not None:
                     execution = dispatch_option(
                         executor, decision.action, frame, obs, now, now - last_state < 3
@@ -298,13 +336,23 @@ def _actor(body, opponent, worker, log, stop, *, deadline=340, expected_rules=TR
                             "request_id": decision.request_id,
                             "infer_ms": decision.infer_ms,
                             "response_age_ms": decision.age_ms,
+                            "observation_at": decision.observed_at,
+                            "submitted_at": decision.submitted_at,
+                            "received_at": decision.received_at,
+                            "taken_at": now,
+                            "observation_age_ms": (now - decision.observed_at) * 1000,
+                            "response_wait_ms": (now - decision.received_at) * 1000,
                             **execution,
                         }
                     )
-                if now >= next_decision and not worker.busy and now - last_state < 3:
-                    worker.submit(executor.observe(obs, now=now), epoch, now)
-                    next_decision = now + 0.25
-                body.pump(50)
+                submit_now = time.monotonic()
+                if submit_now >= next_decision and not worker.busy and submit_now - last_state < 3:
+                    worker.submit(
+                        executor.observe(obs, now=submit_now), epoch, observed_at=observation_at
+                    )
+                    next_decision = time.monotonic() + 0.25
+                drain_worker_events()
+                rpc("pump", body.pump, 50)
             elif now - last_state < 3:
                 baseline.memory["showdown"] = state.get("showdown") is True
                 view.pending = obs
@@ -312,7 +360,7 @@ def _actor(body, opponent, worker, log, stop, *, deadline=340, expected_rules=TR
                 del baseline.reports[:-1000]
                 del baseline.proc_log[:-1000]
             else:
-                body.pump(50)
+                rpc("pump", body.pump, 50)
         else:
             # Never execute offensive actions during countdown/round-over/lobby.
             if epoch is not None:
@@ -320,7 +368,7 @@ def _actor(body, opponent, worker, log, stop, *, deadline=340, expected_rules=TR
                 if worker:
                     worker.reset("inactive")
                 epoch = None
-            body.pump(50)
+            rpc("pump", body.pump, 50)
     raise RuntimeError("live match stopped or timed out; no unverified training result emitted")
 
 
@@ -430,7 +478,8 @@ def run(args, stop=None):
                 label = workers[i].policy_sha[:12] if workers[i] else "fixed-scripted"
                 body.act(say(f"[ArenaAgent neural {label} recurrent"))
                 pump(body, 0.5)
-            order = [0, 1] if game % 2 == 0 else [1, 0]
+            fixture_index = game + getattr(args, "fixture_offset", 0)
+            order = [0, 1] if fixture_index % 2 == 0 else [1, 0]
             challenger, receiver = [bodies[i] for i in order]
             challenger.act(say(f"[Challenge 0x{ids[order[1]]:X} 1 standard7-explosion-training"))
             pump(challenger, 0.6)
@@ -468,7 +517,7 @@ def run(args, stop=None):
                     "domain": "servuo",
                     "sampling": "categorical",
                     "executor_sha256": EXECUTION_FINGERPRINT,
-                    "collector_version": "fixed-cadence-options-v3",
+                    "collector_version": "fixed-cadence-options-v4",
                     "schema_fingerprint": schema_fingerprint(),
                     "eligible": bool(transitions) and not actor["invalid_reasons"],
                     "transitions": transitions,
@@ -489,6 +538,7 @@ def run(args, stop=None):
                 files.append(str(file))
             result = {
                 "game": game + 1,
+                "challenger": ids[order[0]],
                 "match_id": match_id,
                 "winner": meta["winner"],
                 "metrics": replay.metrics(rows),

@@ -5,6 +5,10 @@ from __future__ import annotations
 import sys
 import time
 from dataclasses import replace
+from io import StringIO
+from types import SimpleNamespace
+
+import pytest
 
 from anima3.contract import Item, Journal, Mobile, Observation, Player, Pos, Terrain
 from anima3.neural.executor import CombatExecutor, cast_seconds
@@ -286,5 +290,106 @@ def test_inference_rechecks_sampled_mask():
         assert client.take("one") is None
         assert any(row.get("reason") == "illegal_action" for row in client.drain_events())
         assert client.hidden == (0, 0)
+    finally:
+        client.close()
+
+
+def queued_inference():
+    """Controlled IPC timing without sleeping or invoking model computation."""
+    client = InferenceClient("unused", deadline_ms=500)
+    client.process = SimpleNamespace(stdin=StringIO())
+    client._inbox.put(
+        (
+            {
+                "type": "ready",
+                "policy_sha": "abc",
+                "hidden_size": 2,
+                "feature_size": 2,
+                "action_size": 2,
+            },
+            99.0,
+        )
+    )
+    client._poll(100.0)
+    client.reset("one")
+    return client
+
+
+def queue_policy_response(client, received_at):
+    pending = client._pending
+    client._inbox.put(
+        (
+            {
+                "type": "decision",
+                "id": pending["id"],
+                "epoch": "one",
+                "action": 1,
+                "log_prob": -0.5,
+                "value": 0.2,
+                "hidden_out": [1, 1],
+                "policy_sha": "abc",
+                "infer_ms": 2,
+            },
+            received_at,
+        )
+    )
+
+
+def test_inference_separates_observation_submission_arrival_and_consumption():
+    client = queued_inference()
+    assert client.submit(Frame([0, 0], [True, True]), "one", 100.2, observed_at=100.0)
+    queue_policy_response(client, 100.203)
+    decision = client.take("one", 100.49)
+    assert decision is not None
+    assert decision.observed_at == 100.0 and decision.submitted_at == 100.2
+    assert decision.received_at == 100.203
+    assert decision.age_ms == pytest.approx(3.0)
+    assert client.hidden == (1, 1)
+
+
+@pytest.mark.parametrize("poll_before_take", [False, True])
+def test_fast_response_consumed_late_keeps_observation_deadline_and_hidden_uncommitted(
+    poll_before_take,
+):
+    client = queued_inference()
+    client.submit(Frame([0, 0], [True, True]), "one", 100.2, observed_at=100.0)
+    queue_policy_response(client, 100.203)
+    if poll_before_take:
+        client._poll(100.3)
+    # Request age is only310ms, but source observation is already510ms old.
+    assert client.take("one", 100.51) is None
+    assert client.hidden == (0, 0)
+    rejected = [row for row in client._events if row.get("reason") == "deadline"]
+    assert len(rejected) == 1
+    assert rejected[0]["observation_age_ms"] == pytest.approx(510)
+    assert rejected[0]["request_age_ms"] == pytest.approx(310)
+    assert rejected[0]["response_wait_ms"] == pytest.approx(307)
+    assert rejected[0]["received_at"] == 100.203
+
+
+def test_stale_input_is_skipped_without_new_sample_or_fake_freshness():
+    client = queued_inference()
+    assert client.submit(Frame([0, 0], [True, True]), "one", 100.6, observed_at=100.0) is None
+    assert client.process.stdin.getvalue() == ""
+    assert client.hidden == (0, 0) and client._pending is None
+    assert client._events[-1]["type"] == "inference_skipped"
+    with pytest.raises(ValueError, match="observation time"):
+        client.submit(Frame([0, 0], [True, True]), "one", 100.6, observed_at=100.7)
+
+
+def test_stdout_reader_records_arrival_before_actor_consumption():
+    client = InferenceClient(
+        "unused", deadline_ms=500, worker_command=[sys.executable, "-u", "-c", FAKE_WORKER]
+    ).start()
+    try:
+        wait_for(lambda: client.ready)
+        client.submit(Frame([0, 0], [True, True]), "one")
+        wait_for(lambda: not client._inbox.empty())
+        inbox_ready_at = time.monotonic()
+        time.sleep(0.02)
+        decision = client.take("one")
+        assert decision is not None
+        assert decision.received_at <= inbox_ready_at
+        assert time.monotonic() - decision.received_at >= 0.02
     finally:
         client.close()

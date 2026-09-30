@@ -33,7 +33,7 @@ from .schema import (
     legal_mask,
 )
 
-SIM_VERSION = "approximate-pre-aos-options-v4"
+SIM_VERSION = "approximate-pre-aos-options-v5"
 POTION_FUSE = 3.75
 POTION_FLIGHT = 1.0
 POTION_RADIUS = 2
@@ -374,6 +374,11 @@ class DuelSim:
         actual = max(0.0, min(victim.hp, amount))
         if actual <= 0:
             return
+        # Mobile.Damage calls FatigueHandler BEFORE assigning the new HP, and
+        # skips it only for overkill (newHits < 0), not exact-zero HP. Preserve
+        # the existing fractional damage/regen simulation around that branch.
+        if amount <= victim.hp:
+            self._fatigue_on_damage(victim, amount)
         victim.hp -= actual
         victim.damage_received += actual
         victim.recent_received.append((self.elapsed, actual))
@@ -387,6 +392,27 @@ class DuelSim:
             own.recent_dealt.append((self.elapsed, actual))
         self._record("damage", source, target=target, amount=actual, damage_kind=kind)
         self._interrupt_cast(target, kind)
+
+    @staticmethod
+    def _fatigue_on_damage(victim: Fighter, amount: float) -> None:
+        """Deployed pre-AOS Standard fatigue, at integer server boundaries.
+
+        WeightOverloading.FatigueOnDamage uses integer HitsMax / Hits before
+        converting to double. Pre-AOS armor reduction is zero. Our simulator's
+        fractional regen/damage is retained elsewhere; project those inputs to
+        the server's integer fields for this calculation and truncate the final
+        loss as C# does. Exact deployed example: 89/89 HP, 14/14 stamina, damage
+        40 loses 35 stamina before HP becomes 49, hence clamps to zero.
+        """
+        hits = max(1, int(victim.hp))
+        hits_max = max(1, int(victim.hp_max))
+        stamina = max(0, int(victim.stamina))
+        stamina_max = max(1, int(victim.stamina_max))
+        fatigue = int(amount) * (hits_max // hits) * (stamina / stamina_max) - 5
+        if fatigue <= 0:
+            return
+        loss = int(fatigue * (hits / hits_max)) if stamina - fatigue <= 10 else int(fatigue)
+        victim.stamina = float(max(0, stamina - loss))
 
     def _interrupt_cast(self, target: int, cause: str) -> None:
         """ServUO OnCasterHurt without inventing HP damage for debuff hits.

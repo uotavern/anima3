@@ -91,6 +91,9 @@ def cycle_main(argv=None):
         for iteration in range(args.iterations):
             if stop.is_set():
                 break
+            # Reconnecting after each game must not reset challenger/spawn
+            # alternation for every collection in the learning cycle.
+            args.fixture_offset = iteration * args.matches
             args.log_dir = root / f"round-{iteration + 1:03d}" / "collection"
             atomic_json(
                 root / "cycle.json",

@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import copy
 import json
+import math
+from itertools import pairwise
 
 import pytest
 import torch
@@ -139,11 +141,212 @@ def test_gae_uses_elapsed_seconds_for_semi_markov_actions():
     assert advantage.item() == pytest.approx(1.0)
 
 
+@pytest.mark.parametrize("field", ["gamma", "gae_lambda", "entropy_coef", "discount_time_unit"])
+@pytest.mark.parametrize("value", [float("nan"), float("inf"), -float("inf")])
+def test_training_discount_and_exploration_reject_nonfinite(field, value):
+    with pytest.raises(ValueError, match="finite"):
+        TrainConfig(**{field: value})
+
+
+@pytest.mark.parametrize(
+    "field,value",
+    [
+        ("gamma", 0.0),
+        ("gamma", 1.01),
+        ("gae_lambda", -0.01),
+        ("gae_lambda", 1.01),
+        ("entropy_coef", -0.01),
+        ("discount_time_unit", -0.01),
+    ],
+)
+def test_training_discount_and_exploration_reject_invalid_ranges(field, value):
+    with pytest.raises(ValueError):
+        TrainConfig(**{field: value})
+
+
+@pytest.mark.parametrize(
+    "extra,gamma,lam,entropy,unit",
+    [
+        ([], 0.995, 0.95, 0.01, 0.0),
+        (["--gamma", "0.81", "--discount-time-unit", "1"], 0.81, 0.95, 0.01, 1.0),
+        (
+            ["--gamma", "0.9", "--gae-lambda", "0.97", "--entropy-coef", "0"],
+            0.9,
+            0.97,
+            0.0,
+            0.0,
+        ),
+    ],
+)
+def test_training_cli_uses_matching_discount_for_bc_ppo_and_manifest(
+    tmp_path, monkeypatch, extra, gamma, lam, entropy, unit
+):
+    from anima3.neural import train
+
+    calls = []
+    original = train.collect_simulator
+
+    def collect(*args, **kwargs):
+        calls.append(kwargs)
+        return original(*args, **kwargs)
+
+    monkeypatch.setattr(train, "collect_simulator", collect)
+    out = tmp_path / "policy"
+    assert train.main(
+        [
+            "--out", str(out), "--steps", "8", "--rollout-steps", "8",
+            "--bc-steps", "4", "--bc-epochs", "1", "--eval-games", "0",
+            "--hidden-size", "16", "--sequence-length", "4", "--threads", "1",
+            "--epochs", "1", *extra,
+        ]
+    ) == 0
+    expected = gamma ** (0.25 / unit) if unit > 0 else gamma
+    assert len(calls) == 2 and calls[0]["teacher_actions"] is True
+    assert all(row["shaping_gamma"] == pytest.approx(expected) for row in calls)
+    training = load_checkpoint(out).manifest["training"]
+    assert training["simulator"]["shaping_gamma"] == pytest.approx(expected)
+    assert training["actor_normalization"] == "free-choice"
+    assert {key: training["config"][key] for key in (
+        "gamma", "gae_lambda", "entropy_coef", "discount_time_unit"
+    )} == {"gamma": gamma, "gae_lambda": lam, "entropy_coef": entropy, "discount_time_unit": unit}
+    # With the same discount, potential shaping telescopes out of a terminal
+    # trajectory's discounted return; a mismatch would bias policy rankings.
+    potentials = [2.0, 5.0, -3.0, 0.0]
+    shaped_return = sum(
+        expected**index * (expected * after - before)
+        for index, (before, after) in enumerate(pairwise(potentials))
+    )
+    assert shaped_return == pytest.approx(-potentials[0])
+
+
+def test_training_cli_rejects_invalid_config_before_creating_output(tmp_path):
+    from anima3.neural.train import main
+
+    out = tmp_path / "invalid"
+    with pytest.raises(SystemExit) as exc:
+        main(["--out", str(out), "--entropy-coef", "nan"])
+    assert exc.value.code == 2
+    assert not out.exists()
+
+
+def test_categorical_evaluation_is_seeded_without_changing_training_rng():
+    from anima3.neural.train import evaluate
+
+    model = policy()
+    before = torch.get_rng_state().clone()
+    first = evaluate(model, games=2, seed=2_660_000_000, max_episode_steps=40,
+                     sampling="categorical")
+    assert torch.equal(before, torch.get_rng_state())
+    torch.rand(13)  # Evaluation must not depend on unrelated sampling history.
+    changed = torch.get_rng_state().clone()
+    second = evaluate(model, games=2, seed=2_660_000_000, max_episode_steps=40,
+                      sampling="categorical")
+    assert first == second
+    assert torch.equal(changed, torch.get_rng_state())
+    assert first["sampling"] == "categorical"
+    assert [r["policy_seed"] for r in first["rows"]] == [2_660_000_000, 2_660_000_001]
+    assert [r["seed"] for r in first["rows"]] == [2_660_000_000, 2_660_000_000]
+    assert [r["side"] for r in first["rows"]] == [0, 1]
+
+
+def test_categorical_evaluation_cli_records_mode_and_rejects_unknown_sampling(tmp_path):
+    from anima3.neural.train import evaluate, main
+
+    model = policy()
+    save_checkpoint(tmp_path / "parent", model)
+    out = tmp_path / "evaluation"
+    assert main(["--resume", str(tmp_path / "parent"), "--out", str(out),
+                 "--evaluate-only", "--eval-games", "2", "--max-episode-steps", "4",
+                 "--eval-sampling", "categorical", "--eval-seed", "2660000000",
+                 "--threads", "1"]) == 0
+    assert json.loads((out / "evaluation.json").read_text())["sampling"] == "categorical"
+    with pytest.raises(ValueError, match="sampling"):
+        evaluate(model, sampling="unknown")
+
+
 def test_ppo_clipping_both_advantage_signs():
     loss = clipped_policy_loss(
         torch.tensor([2.0, 0.5]).log(), torch.zeros(2), torch.tensor([1.0, -1.0]), 0.2
     )
     assert loss.tolist() == pytest.approx([-1.2, 0.8])
+
+
+def force_hold(episode, indices):
+    for index in indices:
+        episode.masks[index] = [True] + [False] * (len(ACTION_NAMES) - 1)
+        episode.actions[index] = 0
+        episode.log_probs[index] = 0.0
+
+
+def test_actor_advantage_normalization_ignores_forced_holds_but_retains_critic_targets():
+    from anima3.neural.train import _targets
+
+    episode = trajectory(policy(), length=4)
+    episode.values = [0.0] * 4
+    episode.rewards = [1.0, 100.0, 3.0, -100.0]
+    force_hold(episode, [1, 3])
+    advantages, returns = _targets([episode], TrainConfig(gamma=1.0, gae_lambda=0.0))[0]
+    assert advantages.tolist() == pytest.approx([-1.0, 0.0, 1.0, 0.0])
+    assert returns.tolist() == pytest.approx(episode.rewards)
+
+
+def test_all_forced_ppo_rollout_still_trains_critic_without_nan_or_actor_update():
+    model = policy()
+    episode = trajectory(model)
+    force_hold(episode, range(len(episode)))
+    policy_before = copy.deepcopy(model.policy_head.state_dict())
+    value_before = copy.deepcopy(model.value_head.state_dict())
+    metrics = ppo_update(
+        model, torch.optim.Adam(model.parameters(), lr=1e-3), [episode],
+        TrainConfig(epochs=1, sequence_length=4, batch_sequences=1),
+    )
+    assert metrics["optimized_steps"] == len(episode)
+    assert metrics["policy_optimized_steps"] == 0
+    for key in ("policy_loss", "entropy", "approximate_kl", "clip_fraction"):
+        assert metrics[key] == 0.0
+    assert all(math.isfinite(value) for value in metrics.values())
+    assert all(
+        torch.equal(policy_before[name], value)
+        for name, value in model.policy_head.state_dict().items()
+    )
+    assert any(
+        not torch.equal(value_before[name], value)
+        for name, value in model.value_head.state_dict().items()
+    )
+
+
+def test_ppo_entropy_counts_only_free_choices_while_critic_counts_every_frame():
+    model = policy()
+    episode = trajectory(model)
+    force_hold(episode, range(2, len(episode)))
+    with torch.no_grad():
+        _, entropy, _, _ = model.evaluate_actions(
+            torch.tensor([episode.features]), torch.tensor([episode.masks]),
+            torch.tensor([episode.actions]), torch.tensor([episode.hidden[0]]),
+        )
+    metrics = ppo_update(
+        model, torch.optim.Adam(model.parameters(), lr=1e-3), [episode],
+        TrainConfig(epochs=1, sequence_length=len(episode)),
+    )
+    assert metrics["entropy"] == pytest.approx(entropy[0, :2].mean().item())
+    assert metrics["policy_optimized_steps"] == 2
+    assert metrics["optimized_steps"] == len(episode)
+
+
+def test_forced_holds_do_not_dilute_actor_kl_early_stop():
+    model = policy()
+    episode = trajectory(model)
+    force_hold(episode, range(2, len(episode)))
+    episode.log_probs[0] -= 0.4
+    episode.log_probs[1] -= 0.4
+    before = copy.deepcopy(model.state_dict())
+    metrics = ppo_update(
+        model, torch.optim.Adam(model.parameters(), lr=1e-3), [episode],
+        TrainConfig(epochs=1, sequence_length=len(episode)),
+    )
+    assert metrics["kl_early_stop"] is True
+    assert metrics["optimized_steps"] == metrics["policy_optimized_steps"] == 0
+    assert all(torch.equal(before[name], value) for name, value in model.state_dict().items())
 
 
 def test_ppo_changes_real_weights_and_keeps_finite_losses():

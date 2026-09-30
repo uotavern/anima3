@@ -35,6 +35,7 @@ class InferenceDecision:
     infer_ms: float
     submitted_at: float
     received_at: float
+    observed_at: float
 
     @property
     def inference_ms(self) -> float:
@@ -120,15 +121,20 @@ class InferenceClient:
             for line in self.process.stdout:
                 # Responses are one compact hidden vector, never weights.
                 if len(line) > 2_000_000:
-                    self._inbox.put({"type": "fatal", "error": "oversized worker response"})
+                    self._inbox.put(
+                        ({"type": "fatal", "error": "oversized worker response"}, time.monotonic())
+                    )
                     return
                 try:
-                    self._inbox.put(json.loads(line))
+                    received_at = time.monotonic()
+                    self._inbox.put((json.loads(line), received_at))
                 except (ValueError, TypeError):
-                    self._inbox.put({"type": "fatal", "error": "invalid worker JSON"})
+                    self._inbox.put(
+                        ({"type": "fatal", "error": "invalid worker JSON"}, time.monotonic())
+                    )
                     return
         finally:
-            self._inbox.put({"type": "eof"})
+            self._inbox.put(({"type": "eof"}, time.monotonic()))
 
     def _read_stderr(self) -> None:
         assert self.process is not None and self.process.stderr is not None
@@ -158,13 +164,32 @@ class InferenceClient:
             self._pending["invalid"] = "context_changed"
         self._events.append({"type": "context_reset", "epoch": self._epoch})
 
-    def submit(self, frame: Any, epoch: str, now: float | None = None) -> int | None:
+    def submit(
+        self, frame: Any, epoch: str, now: float | None = None, *, observed_at: float | None = None
+    ) -> int | None:
         now = time.monotonic() if now is None else now
+        observed_at = now if observed_at is None else observed_at
+        if not math.isfinite(observed_at) or observed_at > now:
+            raise ValueError("observation time must be finite and no later than submission")
         self._poll(now)
         if not self._ready or self.startup_error or self._closed or self._pending or self._decision:
             return None
         if str(epoch) != self._epoch:
             self.reset(str(epoch))
+        if (now - observed_at) * 1000 > self.deadline_ms:
+            # No policy sample exists yet. Skip stale input without committing
+            # recurrence or relabelling an old observation as freshly acquired.
+            self._events.append(
+                {
+                    "type": "inference_skipped",
+                    "reason": "observation_stale",
+                    "epoch": self._epoch,
+                    "observed_at": observed_at,
+                    "checked_at": now,
+                    "observation_age_ms": (now - observed_at) * 1000,
+                }
+            )
+            return None
         features = tuple(float(x) for x in frame.features)
         mask = tuple(bool(x) for x in frame.mask)
         if (
@@ -191,6 +216,7 @@ class InferenceClient:
             "mask": mask,
             "hidden": self._hidden,
             "submitted_at": now,
+            "observed_at": observed_at,
             "invalid": None,
         }
         try:
@@ -203,27 +229,33 @@ class InferenceClient:
             self.startup_error = f"worker write failed: {type(exc).__name__}"
             self._ready = False
             return None
+        self._events.append(
+            {
+                "type": "inference_submitted",
+                "id": request_id,
+                "epoch": self._epoch,
+                "submitted_at": now,
+                "observed_at": observed_at,
+            }
+        )
         return request_id
 
+    @staticmethod
+    def _timing(pending: dict, now: float, received_at: float | None = None) -> dict:
+        return {
+            "observed_at": pending["observed_at"],
+            "submitted_at": pending["submitted_at"],
+            "received_at": received_at,
+            "checked_at": now,
+            "request_age_ms": (now - pending["submitted_at"]) * 1000,
+            "observation_age_ms": (now - pending["observed_at"]) * 1000,
+            "response_wait_ms": (now - received_at) * 1000 if received_at is not None else None,
+        }
+
     def _poll(self, now: float) -> None:
-        pending = self._pending
-        if (
-            pending
-            and not pending["invalid"]
-            and (now - pending["submitted_at"]) * 1000 > self.deadline_ms
-        ):
-            pending["invalid"] = "deadline"
-            self._events.append(
-                {
-                    "type": "inference_rejected",
-                    "reason": "deadline",
-                    "id": pending["id"],
-                    "epoch": pending["epoch"],
-                }
-            )
         while True:
             try:
-                row = self._inbox.get_nowait()
+                row, received_at = self._inbox.get_nowait()
             except queue.Empty:
                 break
             kind = row.get("type")
@@ -267,7 +299,7 @@ class InferenceClient:
                 reason = "policy_changed"
             elif row.get("error"):
                 reason = "worker_error"
-            elif (now - pending["submitted_at"]) * 1000 > self.deadline_ms:
+            elif (now - pending["observed_at"]) * 1000 > self.deadline_ms:
                 reason = "deadline"
             try:
                 action = int(row["action"])
@@ -292,6 +324,7 @@ class InferenceClient:
                             "reason": reason,
                             "id": pending["id"],
                             "epoch": pending["epoch"],
+                            **self._timing(pending, now, received_at),
                         }
                     )
                 continue
@@ -308,7 +341,24 @@ class InferenceClient:
                 self.policy_sha or "",
                 float(row["infer_ms"]),
                 pending["submitted_at"],
-                now,
+                received_at,
+                pending["observed_at"],
+            )
+        pending = self._pending
+        if (
+            pending
+            and not pending["invalid"]
+            and (now - pending["observed_at"]) * 1000 > self.deadline_ms
+        ):
+            pending["invalid"] = "deadline"
+            self._events.append(
+                {
+                    "type": "inference_rejected",
+                    "reason": "deadline",
+                    "id": pending["id"],
+                    "epoch": pending["epoch"],
+                    **self._timing(pending, now),
+                }
             )
 
     def take(self, epoch: str, now: float | None = None) -> InferenceDecision | None:
@@ -327,13 +377,21 @@ class InferenceClient:
                 }
             )
             return None
-        if (now - decision.submitted_at) * 1000 > self.deadline_ms:
+        if (now - decision.observed_at) * 1000 > self.deadline_ms:
             self._events.append(
                 {
                     "type": "inference_rejected",
                     "reason": "deadline",
                     "id": decision.request_id,
                     "epoch": decision.epoch,
+                    **self._timing(
+                        {
+                            "observed_at": decision.observed_at,
+                            "submitted_at": decision.submitted_at,
+                        },
+                        now,
+                        decision.received_at,
+                    ),
                 }
             )
             return None

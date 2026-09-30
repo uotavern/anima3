@@ -123,13 +123,23 @@ class RecurrentPolicy(nn.Module):
         mask: Tensor,
         hidden: Tensor | None = None,
         deterministic: bool = False,
+        generator: torch.Generator | None = None,
     ) -> tuple[Tensor, Tensor, Tensor, Tensor]:
         """One observation per batch member, with the same mask semantics as PPO."""
         if features.ndim != 2:
             raise ValueError("act features must have shape [batch, feature_dim]")
         logits, values, hidden = self(features.unsqueeze(1), hidden)
         distribution = masked_distribution(logits[:, 0], mask)
-        action = distribution.probs.argmax(-1) if deterministic else distribution.sample()
+        if deterministic:
+            action = distribution.probs.argmax(-1)
+        elif generator is not None:
+            # Independent CPU sampling makes paired evaluations reproducible
+            # without advancing the training or live worker's global RNG.
+            action = torch.multinomial(
+                distribution.probs.cpu(), 1, generator=generator
+            ).squeeze(-1).to(features.device)
+        else:
+            action = distribution.sample()
         return action, distribution.log_prob(action), values[:, 0], hidden
 
     def evaluate_actions(

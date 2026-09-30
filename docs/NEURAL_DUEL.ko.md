@@ -244,6 +244,122 @@ CPU 전용 PyTorch 2.14.0 환경을 만들었다. 두 클라이언트가 서버 
 각 모델 SHA, 경기별 성적, 사용/제외 여부와 원인은
 [실험 기록](experiments/2026-09-30-neural-duel.json)에 보존했다.
 
+## 2026-09-30 추가 학습
+
+추가로 세 경로에서 각각 100만 PPO step을 실행했다. 최종 선택한 모델은
+기존 starter에서 100만 step을 이어 학습한 `models/duel-continuation`이며,
+이 모델의 계보상 누적 학습량은 200만 step이다. 다른 두 경로의 학습량을
+선택한 모델의 누적 학습량에 더하지 않는다. 이번 세 경로에서 완료된
+시뮬레이션 학습 경기는 총 3,217회다.
+
+### 수정한 학습 조건
+
+- 시뮬레이터 v5에 배포된 서버의 피해에 따른 스태미나 감소를 반영했다.
+  리플레이의 `HP 89, stamina 14 → 40 피해 → HP 49, stamina 0`을 재현했다.
+  피해 후 체력이 아닌 피해 전 체력과 C# 정수 나눗셈·절삭 순서를 사용한다.
+- `--discount-time-unit 1`로 할인율의 시간 단위를 1초로 설정했다.
+  0.25초 시뮬레이션 tick의 잠재함수 보상에도 같은 유효 할인율을 적용한다.
+- 주문 중 강제 hold는 기억과 상태 가치 학습에 남긴다. 실제 선택이 가능한
+  시점만 정책 손실·엔트로피·KL·advantage 정규화에 포함한다.
+- `--eval-sampling categorical`로 실제 live/wait와 같은 확률 선택을 평가한다.
+  각 경기의 전용 RNG를 사용하므로 평가가 학습 RNG를 바꾸지 않는다.
+  기존 greedy 결과는 별도 지표로 보존한다.
+
+### 모델을 고정한 뒤 평가한 결과
+
+같은 시드와 양쪽 시작 위치를 사용하여 기존 모델과 후보를 비교했다.
+시뮬레이터는 양쪽 모두 v5이며, 후보 선택용 시드와 아래 최종 평가 시드는 다르다.
+
+| 평가 방식 | 기존 starter | 추가 학습 후보 |
+|---|---|---|
+| 실제 실행과 같은 categorical, 새 200경기 | 49승 151패 | 99승 100패 1무 |
+| 별도 greedy, 새 200경기 | 91승 106패 3무 | 110승 89패 1무 |
+
+categorical 승률은 24.5%에서 49.5%가 됐다. 무승부를 0.5점으로 계산한
+점수 차이는 +25.25%p이며, 같은 시드의 양쪽 경기를 함께 재표집한 bootstrap
+95% 구간은 +15.75~+34.5%p다. greedy 점수 차이 구간은 0을 포함했다.
+이 결과는 근사 시뮬레이터와 고정 스크립트 상대에 한정된다.
+
+후보는 categorical 평가에서 Weaken 54회, Clumsy 165회,
+`burst_bolt` 159회를 선택했다. 매 경기 Weaken→Clumsy 오프닝을 수행한다거나
+선택한 연계가 모두 적중했다고 해석하면 안 된다.
+
+```sh
+# 원본 starter에서 선택된 추가 학습 조건 재현
+.venv/bin/python -m anima3.neural train \
+  --resume models/duel-starter --out .logs/continued-v5 \
+  --steps 1000000 --rollout-steps 4096 --bc-steps 0 \
+  --gamma 0.995 --gae-lambda 0.95 --entropy-coef 0.01 \
+  --discount-time-unit 1 --learning-rate 0.0003 \
+  --max-episode-steps 1200 --eval-games 40 --eval-seed 2650000000 \
+  --seed 47 --threads 2
+
+# 실제 실행 방식으로 평가; 새 모델을 다시 선택할 때는 새 최종 시드를 예약한다.
+.venv/bin/python -m anima3.neural evaluate \
+  --resume models/duel-continuation --out .logs/continued-evaluation \
+  --eval-sampling categorical --eval-games 200 --eval-seed 2800000000
+
+# 비밀번호 환경 변수를 설정한 뒤 실전 학습. 경기마다 재접속하고 도전 순서를 교대한다.
+.venv/bin/python -m anima3.neural cycle \
+  --checkpoint models/duel-continuation \
+  --user-a TRAIN_ACCOUNT_A --user-b TRAIN_ACCOUNT_B \
+  --opponent scripted --matches 1 --iterations 4 \
+  --deadline-ms 1000 --log-dir .logs/continued-live
+```
+
+실전 수집 v4는 요청 제출·stdout 응답·소비 시각을 분리하고, 최초 관측의
+나이를 기준으로 기한을 검사한다. observe/pump/act 시간도 기록한다.
+실제 루프에서 535~737ms 간격을 관측해 이 실험은 명시적으로 1초의 관측 나이
+한도를 사용했다. 기본값 500ms는 유지하며, 이전에 제외한 경기를 다시
+학습 데이터로 인정하지 않는다. 기한을 늘리는 것이 추론 속도를 개선한 것은 아니다.
+
+수정 후 두 실전 수집에서 observe RPC는 중앙값 202ms, p95 239ms,
+최대 555ms였다. 정책 실행 시 관측 나이는 중앙값 272ms, 최대 640ms였다.
+따라서 신경망 계산 시간과 클라이언트 관측·스케줄링 지연을 구분해야 한다.
+기존 수집 실패를 journal rollover 버그로 추정하지 않는다. 배포된 Linux
+바이너리를 역어셈블하여 absolute journal cursor 처리가 이미 있음을 확인했다.
+
+1라운드 training 경기의 RoundOver에서 기록을 마친 뒤 완료된 서버 리플레이를
+기다려 결과를 검증한다. RoundOver 자체로 학습 적격성을 인정하지 않는다.
+재접속 후에도 사이클 전체에서 도전자 순서를 교대한다.
+
+### 추가 실전 학습 결과
+
+수집기 보정 전후와 새 모델을 합쳐 서버에서 10경기를 진행했다. 초기 네 경기 중
+한 경기만 학습에 사용했으며, 응답 기한 위반과 미완성 수집 기록은 제외했다.
+수집기 수정 후 기존 실전 모델의 두 경기는 모두 검증·업데이트를 완료했다.
+
+새 시뮬레이터 후보는 별도로 **4경기 3승 1패**를 기록했다. 네 경기 모두
+리플레이와 행동 확률을 검증했고, 620개 transition으로 네 차례 PPO 업데이트를
+수행했다. 이 중 자유롭게 선택할 수 있었던 판단은 86개이며 나머지는 시전 중
+대기 등의 강제 행동이다. 4 epoch 기준 전체 최적화 2,480 step, 정책 선택
+최적화 344 step이다. 새 가중치를 다음 경기에 사용하는 것을 매번 확인했다.
+
+| 경기 | 신경망 결과 | 학습 transition |
+|---|---|---:|
+| `af9e520e0cbd4bffa6f7b00d8d7d0914` | 패 | 133 |
+| `d1cdce16976848d0b7b3ca3dac9b3b59` | 승 | 50 |
+| `0bd5a94b6934449986938bfd2cbc9bf0` | 승 | 204 |
+| `27e442010d144d16959852721e6d71d6` | 승 | 233 |
+
+실전 학습 후 후보는 `models/duel-continuation-live`에 별도로 저장했다.
+부모 `22bc333e0874` → 최종 `fe5796b401fe`다. Linux에서 학습한 가중치와
+optimizer/RNG를 Mac에서 복원했고, 다운로드 후 네 리플레이의 무결성과
+가중치 계보를 재검증했다. 고정된 80경기 categorical 진단은 부모 29승에서
+후보 43승으로 바뀌었다. 이미 사용한 진단 세트이며 새로운 최종 평가가 아니다.
+실전 4경기의 승률을 장기적인 실력으로 일반화하지 않는다.
+
+[마지막 승리 리플레이](https://arena.uotavern.com/replay/?replay=27e442010d144d16959852721e6d71d6).
+실험은 모두 종료됐으며 공개 shard는 재시작하지 않았다.
+
+여전히 단순화된 부분이 있다. 실제 GM stat curse의 11점 감소는 10점으로
+근사하고, 타깃 커서 왕복 지연과 지형을 완전히 복제하지 않는다. 지급되는
+refresh potion도 현재 23개 행동에는 포함되지 않는다. 실전 검증과 추가 보정이
+필요하며, 공개 에이전트의 자동 교체는 하지 않는다.
+
+원본 모델·후보 SHA, 실패한 분기, 평가 방식과 시드, 학습 적격성 및 리플레이는
+[추가 학습 기록](experiments/2026-09-30-neural-continuation.json)에 남겼다.
+
 ## Jev/LLM과의 관계
 
 기존 `anima3.strategy` 경로는 그대로 남아 있다. Jev/LLM의 긴 응답은

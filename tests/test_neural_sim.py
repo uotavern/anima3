@@ -114,6 +114,55 @@ def test_quick_damage_interrupts_long_cast_without_spending_its_mana():
     assert not any(event["type"] == "damage" and event["side"] == 0 for event in sim.trace)
 
 
+def test_damage_fatigue_matches_recorded_89hp_14stamina_40damage_before_hp_reduction():
+    # Authoritative replay b470dc944875413194d96fcc97b8e079, t=13.923s.
+    sim = DuelSim(domain_randomization=False)
+    victim = sim.fighters[1]
+    victim.hp = victim.hp_max = 89
+    victim.stamina = victim.stamina_max = 14
+    sim._hurt(0, 1, 40, "energy_bolt")
+    assert victim.hp == 49
+    assert victim.stamina == 0
+    assert not any(sim.frames()[1].mask[1:5])
+
+
+@pytest.mark.parametrize(
+    "hp, hp_max, stamina, damage, expected_stamina",
+    [
+        (100, 100, 25, 10, 20),  # Direct subtraction above the low-stamina boundary.
+        (60, 100, 25, 20, 16),  # 100/60 is integer 1; fatigue 15 * prehit .6 = 9.
+        (59, 100, 25, 20, 17),  # 15 * .59 = 8.85 truncates to 8, not 9.
+        (100, 100, 5, 10, 5),  # Current/max stamina ratio gives negative fatigue.
+        (100, 100, 0, 40, 0),  # No division by current stamina and no negative loss.
+    ],
+)
+def test_damage_fatigue_uses_source_integer_ratio_and_truncation(
+    hp, hp_max, stamina, damage, expected_stamina,
+):
+    sim = DuelSim(domain_randomization=False)
+    victim = sim.fighters[1]
+    victim.hp, victim.hp_max, victim.stamina = hp, hp_max, stamina
+    sim._hurt(0, 1, damage, "energy_bolt")
+    assert victim.hp == hp - damage
+    assert victim.stamina == expected_stamina
+
+
+def test_lethal_overkill_skips_fatigue_but_exact_zero_hp_preserves_source_branch():
+    sim = DuelSim(domain_randomization=False)
+    victim = sim.fighters[1]
+    victim.hp = 40
+    sim._hurt(0, 1, 41, "energy_bolt")
+    assert victim.hp == 0
+    assert victim.stamina == 25
+
+    sim = DuelSim(domain_randomization=False)
+    victim = sim.fighters[1]
+    victim.hp = 40
+    sim._hurt(0, 1, 40, "energy_bolt")
+    assert victim.hp == 0
+    assert victim.stamina == 0
+
+
 @pytest.mark.parametrize("spell", ["weaken", "clumsy"])
 def test_stat_debuff_interrupts_burst_before_prime_without_counting_as_damage(spell):
     sim = DuelSim(domain_randomization=False)

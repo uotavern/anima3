@@ -27,6 +27,13 @@ A [small trained starter checkpoint](models/duel-starter/README.md) is included
 for inference and integration testing. Its simulator results do not establish
 real-server strength.
 
+The [continued-training candidate](models/duel-continuation/README.md) includes
+the stamina-calibrated simulator run and deployment-matched categorical
+evaluation. On 200 fresh paired games it won 99, compared with the previous
+starter's 49; real-server results are recorded separately.
+Its [live-trained descendant](models/duel-continuation-live/README.md) completed
+four verified server matches (three wins, one loss) with an update after each.
+
 anima2 is 80K lines of rules with an LLM that *writes* JSON to pick from a list.
 anima3 inverts it: the body's Observation becomes a short **text scene** (an
 accessibility tree, not a screenshot), code enumerates the **verbs that are valid

@@ -5,11 +5,13 @@ import pytest
 from anima3.neural import live, online
 
 
-def test_cycle_collects_next_batch_with_new_policy(tmp_path, monkeypatch):
+@pytest.mark.parametrize("matches", [1, 2])
+def test_cycle_collects_next_batch_with_new_policy(tmp_path, monkeypatch, matches):
     seen = []
 
     def collect(args, stop):
         assert getattr(args, "known_build", False) == bool(seen)
+        assert args.fixture_offset == len(seen) * matches
         seen.append(args.checkpoint)
         return [{"id": str(len(seen))}]
 
@@ -30,6 +32,8 @@ def test_cycle_collects_next_batch_with_new_policy(tmp_path, monkeypatch):
                 "b",
                 "--iterations",
                 "2",
+                "--matches",
+                str(matches),
                 "--log-dir",
                 str(tmp_path),
             ]

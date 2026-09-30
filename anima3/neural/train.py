@@ -52,10 +52,27 @@ class TrainConfig:
     discount_time_unit: float = 0.0
 
     def __post_init__(self) -> None:
+        if not all(
+            math.isfinite(value)
+            for value in (
+                self.learning_rate,
+                self.gamma,
+                self.gae_lambda,
+                self.clip_range,
+                self.value_coef,
+                self.entropy_coef,
+                self.max_grad_norm,
+                self.target_kl,
+                self.discount_time_unit,
+            )
+        ):
+            raise ValueError("training coefficients must be finite")
         if not (0 < self.learning_rate <= 0.1 and 0 < self.gamma <= 1):
             raise ValueError("invalid learning rate or discount")
         if not (0 <= self.gae_lambda <= 1 and 0 < self.clip_range < 1):
             raise ValueError("invalid GAE lambda or PPO clip range")
+        if self.value_coef < 0 or self.entropy_coef < 0:
+            raise ValueError("value and entropy coefficients must be nonnegative")
         if min(self.epochs, self.sequence_length, self.batch_sequences) < 1 or self.burn_in < 0:
             raise ValueError("invalid recurrent training budget")
         if self.discount_time_unit < 0 or self.max_grad_norm <= 0 or self.target_kl <= 0:
@@ -149,9 +166,21 @@ def _targets(episodes: list[Trajectory], config: TrainConfig) -> list[tuple[Tens
                 discount_time_unit=config.discount_time_unit,
             )
         )
-    all_advantages = torch.cat([target[0] for target in targets])
-    mean, std = all_advantages.mean(), all_advantages.std(unbiased=False).clamp_min(1e-8)
-    return [((adv - mean) / std, returns) for adv, returns in targets]
+    free_choices = [torch.tensor(episode.masks).sum(-1) > 1 for episode in episodes]
+    # Forced holds remain in the recurrent trajectory and critic targets, but
+    # their advantages must not set the scale of the actor's actual decisions.
+    actor_advantages = torch.cat(
+        [target[0][free] for target, free in zip(targets, free_choices, strict=True)]
+    )
+    if len(actor_advantages):
+        mean = actor_advantages.mean()
+        std = actor_advantages.std(unbiased=False).clamp_min(1e-8)
+    else:
+        mean, std = 0.0, 1.0
+    return [
+        (torch.where(free, (adv - mean) / std, 0.0), returns)
+        for (adv, returns), free in zip(targets, free_choices, strict=True)
+    ]
 
 
 def _chunks(episodes: list[Trajectory], length: int):
@@ -233,6 +262,8 @@ def ppo_update(
     rng = random.Random(seed)
     totals: dict[str, float] = {}
     count = 0
+    actor_count = 0
+    actor_metric_names = {"policy_loss", "entropy", "approximate_kl", "clip_fraction"}
     stopped = False
     model.train()
     for _ in range(config.epochs):
@@ -245,17 +276,28 @@ def ppo_update(
                 batch["features"], batch["masks"], batch["actions"], batch["hidden"]
             )
             valid = batch["valid"]
-            log_ratio = log_probs[valid] - batch["old_log_probs"][valid]
-            approximate_kl = ((log_ratio.exp() - 1) - log_ratio).mean()
-            if float(approximate_kl.detach()) > config.target_kl * 1.5:
-                stopped = True
-                break
-            policy_loss = clipped_policy_loss(
-                log_probs[valid],
-                batch["old_log_probs"][valid],
-                batch["advantages"][valid],
-                config.clip_range,
-            ).mean()
+            free = valid & (batch["masks"].sum(-1) > 1)
+            actor_weight = int(free.sum())
+            if actor_weight:
+                log_ratio = log_probs[free] - batch["old_log_probs"][free]
+                approximate_kl = ((log_ratio.exp() - 1) - log_ratio).mean()
+                if float(approximate_kl.detach()) > config.target_kl * 1.5:
+                    stopped = True
+                    break
+                policy_loss = clipped_policy_loss(
+                    log_probs[free],
+                    batch["old_log_probs"][free],
+                    batch["advantages"][free],
+                    config.clip_range,
+                ).mean()
+                mean_entropy = entropy[free].mean()
+                clip_fraction = (
+                    ((log_ratio.exp() - 1).abs() > config.clip_range).float().mean()
+                )
+            else:
+                # A chunk can be entirely waiting/casting.  Its critic and
+                # recurrent state still learn without an empty actor mean.
+                policy_loss = mean_entropy = approximate_kl = clip_fraction = values.new_zeros(())
             clipped_values = batch["old_values"] + (values - batch["old_values"]).clamp(
                 -config.clip_range, config.clip_range
             )
@@ -266,7 +308,6 @@ def ppo_update(
                     (clipped_values[valid] - batch["returns"][valid]).square(),
                 ).mean()
             )
-            mean_entropy = entropy[valid].mean()
             loss = policy_loss + config.value_coef * value_loss - config.entropy_coef * mean_entropy
             if not bool(torch.isfinite(loss)):
                 raise ValueError("non-finite PPO loss")
@@ -282,20 +323,24 @@ def ppo_update(
                 "value_loss": float(value_loss.detach()),
                 "entropy": float(mean_entropy.detach()),
                 "approximate_kl": float(approximate_kl.detach()),
-                "clip_fraction": float(
-                    ((log_ratio.exp() - 1).abs() > config.clip_range).float().mean().detach()
-                ),
+                "clip_fraction": float(clip_fraction.detach()),
                 "grad_norm": float(gradient),
             }
             for key, value in metrics.items():
-                totals[key] = totals.get(key, 0.0) + value * weight
+                metric_weight = actor_weight if key in actor_metric_names else weight
+                totals[key] = totals.get(key, 0.0) + value * metric_weight
             count += weight
+            actor_count += actor_weight
         if stopped:
             break
     model.eval()
     return {
-        **{key: value / max(count, 1) for key, value in totals.items()},
+        **{
+            key: value / max(actor_count if key in actor_metric_names else count, 1)
+            for key, value in totals.items()
+        },
         "optimized_steps": count,
+        "policy_optimized_steps": actor_count,
         "kl_early_stop": stopped,
         "rollout_steps": sum(map(len, episodes)),
     }
@@ -441,14 +486,20 @@ def evaluate(
     games: int = 20,
     seed: int = 1_000_000,
     max_episode_steps: int = 1200,
+    sampling: str = "greedy",
 ) -> dict:
     """Held-out seeds, alternating spawn sides, fixed scripted opponent."""
-    from .sim import DuelSim
+    from .sim import SIM_VERSION, DuelSim
+
+    if sampling not in {"greedy", "categorical"}:
+        raise ValueError("evaluation sampling must be greedy or categorical")
 
     rows = []
     model.eval()
     for index in range(games):
         side = index % 2
+        policy_seed = seed + index
+        generator = torch.Generator(device="cpu").manual_seed(policy_seed)
         sim = DuelSim(max_steps=max_episode_steps)
         frames = sim.reset(seed=seed + index // 2)
         hidden = model.initial_state()
@@ -458,7 +509,8 @@ def evaluate(
         free_action_counts = dict.fromkeys(ACTION_NAMES, 0)
         while not done:
             action, _, _, hidden = model.act(
-                *_input(frames[side], model.device), hidden, deterministic=True
+                *_input(frames[side], model.device), hidden,
+                deterministic=sampling == "greedy", generator=generator,
             )
             action_name = ACTION_NAMES[int(action.item())]
             action_counts[action_name] += 1
@@ -477,6 +529,7 @@ def evaluate(
             {
                 "seed": seed + index // 2,
                 "side": side,
+                "policy_seed": policy_seed if sampling == "categorical" else None,
                 "outcome": "draw" if winner is None else "win" if winner == side else "loss",
                 "steps": steps,
                 "action_counts": action_counts,
@@ -493,6 +546,8 @@ def evaluate(
     draws = sum(row["outcome"] == "draw" for row in rows)
     return {
         "domain": "approximate-pre-aos-simulator",
+        "simulator_version": SIM_VERSION,
+        "sampling": sampling,
         "games": games,
         "wins": wins,
         "losses": games - wins - draws,
@@ -656,6 +711,7 @@ def update_verified_episodes(
         "source": "verified-servuo-on-policy",
         "parent_policy_sha": loaded.policy_sha,
         "config": asdict(config),
+        "actor_normalization": "free-choice",
         "seed": seed,
         "metrics": metrics,
         "episodes": [
@@ -702,10 +758,20 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--eval-games", type=int, default=20)
     parser.add_argument("--seed", type=int, default=17)
     parser.add_argument("--eval-seed", type=int, default=2_000_000_000)
+    parser.add_argument("--eval-sampling", choices=("greedy", "categorical"), default="greedy")
     parser.add_argument("--device", choices=("cpu", "mps", "cuda"), default="cpu")
     parser.add_argument("--threads", type=int, default=2)
     parser.add_argument("--hidden-size", type=int, default=128)
     parser.add_argument("--learning-rate", type=float, default=3e-4)
+    parser.add_argument("--gamma", type=float, default=0.995)
+    parser.add_argument("--gae-lambda", type=float, default=0.95)
+    parser.add_argument("--entropy-coef", type=float, default=0.01)
+    parser.add_argument(
+        "--discount-time-unit",
+        type=float,
+        default=0.0,
+        help="seconds per discount unit; 0 discounts once per decision",
+    )
     parser.add_argument("--epochs", type=int, default=4)
     parser.add_argument("--sequence-length", type=int, default=64)
     parser.add_argument("--max-episode-steps", type=int, default=1200)
@@ -727,12 +793,29 @@ def main(argv: list[str] | None = None) -> int:
         parser.error("held-out eval seeds must be >= 1000000000; training seeds are below it")
     if args.evaluate_only and args.resume is None:
         parser.error("--evaluate-only requires --resume")
+    try:
+        config = TrainConfig(
+            learning_rate=args.learning_rate,
+            gamma=args.gamma,
+            gae_lambda=args.gae_lambda,
+            entropy_coef=args.entropy_coef,
+            discount_time_unit=args.discount_time_unit,
+            epochs=args.epochs,
+            sequence_length=args.sequence_length,
+        )
+    except ValueError as exc:
+        parser.error(str(exc))
+    simulator_dt = 0.25
+    # Potential shaping must use the same transition discount as GAE.  With
+    # elapsed-time discounting, gamma is per configured unit, not per sim tick.
+    shaping_gamma = (
+        config.gamma ** (simulator_dt / config.discount_time_unit)
+        if config.discount_time_unit > 0
+        else config.gamma
+    )
     args.out.mkdir(parents=True, exist_ok=True)
     torch.set_num_threads(args.threads)
     torch.manual_seed(args.seed)
-    config = TrainConfig(
-        learning_rate=args.learning_rate, epochs=args.epochs, sequence_length=args.sequence_length
-    )
     loaded = load_checkpoint(args.resume, args.device) if args.resume else None
     model = (
         loaded.model
@@ -747,6 +830,7 @@ def main(argv: list[str] | None = None) -> int:
             games=args.eval_games,
             seed=args.eval_seed,
             max_episode_steps=args.max_episode_steps,
+            sampling=args.eval_sampling,
         )
         result["policy_sha"] = loaded.policy_sha
         (args.out / "evaluation.json").write_text(json.dumps(result, indent=2) + "\n")
@@ -766,7 +850,8 @@ def main(argv: list[str] | None = None) -> int:
     total_steps = int(prior.get("environment_steps", 0))
     previous_sha = loaded.policy_sha if loaded else None
     before = evaluate(
-        model, games=args.eval_games, seed=args.eval_seed, max_episode_steps=args.max_episode_steps
+        model, games=args.eval_games, seed=args.eval_seed,
+        max_episode_steps=args.max_episode_steps, sampling=args.eval_sampling,
     )
     (args.out / "evaluation-before.json").write_text(json.dumps(before, indent=2) + "\n")
     _append_metrics(
@@ -779,6 +864,7 @@ def main(argv: list[str] | None = None) -> int:
             seed=args.seed,
             teacher_actions=True,
             max_episode_steps=args.max_episode_steps,
+            shaping_gamma=shaping_gamma,
         )
         bc = behavioral_clone(
             model, optimizer, demonstrations, config, epochs=args.bc_epochs, seed=args.seed
@@ -796,8 +882,10 @@ def main(argv: list[str] | None = None) -> int:
     metadata = {
         "source": "approximate-pre-aos-simulator",
         "config": asdict(config),
+        "actor_normalization": "free-choice",
         "seed": args.seed,
         "eval_seed": args.eval_seed,
+        "eval_sampling": args.eval_sampling,
         "environment_steps": total_steps,
         "updates": updates,
         "parent_policy_sha": previous_sha,
@@ -809,10 +897,10 @@ def main(argv: list[str] | None = None) -> int:
         "live_consumed": prior.get("live_consumed", []),
         "simulator": {
             "version": SIM_VERSION,
-            "dt": 0.25,
+            "dt": simulator_dt,
             "max_episode_steps": args.max_episode_steps,
             "showdown_after": 180,
-            "shaping_gamma": config.gamma,
+            "shaping_gamma": shaping_gamma,
         },
     }
     if loaded:
@@ -829,6 +917,7 @@ def main(argv: list[str] | None = None) -> int:
             games=args.eval_games,
             seed=args.eval_seed,
             max_episode_steps=args.max_episode_steps,
+            sampling=args.eval_sampling,
         )
         (args.out / "evaluation-after-bc.json").write_text(json.dumps(after_bc, indent=2) + "\n")
         _append_metrics(
@@ -846,6 +935,7 @@ def main(argv: list[str] | None = None) -> int:
             seed=args.seed + updates * 100_003,
             opponents=league,
             max_episode_steps=args.max_episode_steps,
+            shaping_gamma=shaping_gamma,
         )
         metrics = ppo_update(model, optimizer, episodes, config, seed=args.seed + updates)
         remaining -= steps
@@ -872,7 +962,8 @@ def main(argv: list[str] | None = None) -> int:
                 args.out / "league" / f"update-{updates:06d}", frozen, training=metadata
             )
     after = evaluate(
-        model, games=args.eval_games, seed=args.eval_seed, max_episode_steps=args.max_episode_steps
+        model, games=args.eval_games, seed=args.eval_seed,
+        max_episode_steps=args.max_episode_steps, sampling=args.eval_sampling,
     )
     current = load_checkpoint(args.out)
     after.update(

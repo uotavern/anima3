@@ -187,6 +187,91 @@ def test_match_preparation_requests_only_visible_unknown_opponent_health(
     assert len([p for p in sent if p["type"] == "StatusRequest"]) == expected
 
 
+@pytest.mark.parametrize("ending", ["Idle", "RoundOver"])
+def test_actor_rpc_timing_uses_actual_clock_but_retains_original_observation_age(
+    tmp_path, monkeypatch, ending
+):
+    import threading
+    from types import SimpleNamespace
+
+    from anima3.neural import live
+
+    clock = [100.0]
+    state = {
+        "id": "a" * 32,
+        "phase": "Fighting",
+        "opponent": 2,
+        "rules": TRAINING_RULES,
+        "round": 1,
+    }
+    obs = SimpleNamespace(
+        player=SimpleNamespace(serial=1, hits=100, pos=SimpleNamespace(x=1, y=1)),
+        mobiles=[SimpleNamespace(serial=2, hidden=False, hits_max=100)],
+        new_journal=[],
+    )
+    taken, submitted = [], []
+
+    def act(_):
+        clock[0] += 0.2  # A blocking state request and a blocking executor RPC.
+
+    def pump(_):
+        clock[0] += 0.05
+        state["phase"] = ending
+
+    def submit(frame, epoch, now=None, *, observed_at=None):
+        submitted.append((clock[0], observed_at))
+        return 1
+
+    def drain():
+        if state["phase"] != "Fighting":
+            return [
+                {
+                    "type": "inference_rejected",
+                    "reason": "deadline",
+                    "epoch": f"{state['id']}:1:1",
+                }
+            ]
+        return []
+
+    worker = SimpleNamespace(
+        policy_sha="b" * 64,
+        startup_error=None,
+        busy=False,
+        reset=lambda _: None,
+        drain_events=drain,
+        take=lambda epoch, now: taken.append(now),
+        submit=submit,
+    )
+    executor = SimpleNamespace(
+        reset=lambda *a: None,
+        observe=lambda *a, **k: SimpleNamespace(mask=[True, True]),
+        tick=lambda *a: [{"type": "CastSpell", "spell": 1}],
+        drain_events=list,
+    )
+    body = SimpleNamespace(observe=lambda: obs, act=act, pump=pump)
+    monkeypatch.setattr(live.time, "monotonic", lambda: clock[0])
+    monkeypatch.setattr(live, "server_state", lambda _: dict(state))
+    monkeypatch.setattr(live, "CombatExecutor", lambda _: executor)
+    result = live._actor(body, 2, worker, tmp_path, threading.Event())
+    assert taken == pytest.approx([100.4])
+    assert submitted[0] == pytest.approx((100.4, 100.0))
+    assert result["collection_end_phase"] == ending
+    assert result["invalid_reasons"] == ["deadline"]
+    # RoundOver stops collection, but does not manufacture a verified outcome.
+    assert "verification" not in result and "final_result" not in result
+    events = [
+        json.loads(line)
+        for line in (tmp_path / state["id"] / "actor-1.jsonl").read_text().splitlines()
+    ]
+    rpc = [row for row in events if row["type"] == "bridge_rpc"]
+    assert [row["duration_ms"] for row in rpc if row["operation"].startswith("act:")] == (
+        pytest.approx([200.0, 200.0])
+    )
+    assert [row["duration_ms"] for row in rpc if row["operation"] == "pump"] == (
+        pytest.approx([50.0])
+    )
+
+
 def test_later_connection_failure_keeps_prior_verified_match_available(tmp_path, monkeypatch):
     from types import SimpleNamespace
 
