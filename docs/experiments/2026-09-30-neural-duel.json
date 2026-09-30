@@ -1,0 +1,1167 @@
+{
+  "date": "2026-09-30",
+  "worktree_branch": "feat/neural-duel",
+  "simulation": {
+    "policy_sha": "7c0cbe1a04729b0be553022a84ce6c032424b6ba51a9194bf3f5e7e7c5a51789",
+    "parameters": 127384,
+    "weights_bytes": 513977,
+    "cpu_threads": 2,
+    "inference_ms_median": 0.065459,
+    "inference_ms_p95": 0.072542,
+    "evaluation_games": 200,
+    "unique_test_seeds": 100,
+    "wins": 87,
+    "losses": 111,
+    "draws": 2,
+    "fresh_seed_base": 2500000000,
+    "free_action_counts": {
+      "hold": 31982,
+      "approach": 3205,
+      "retreat": 370,
+      "strafe_left": 80,
+      "strafe_right": 430,
+      "weaken": 0,
+      "clumsy": 0,
+      "magic_arrow": 1896,
+      "harm": 30,
+      "explosion": 0,
+      "energy_bolt": 1449,
+      "flamestrike": 728,
+      "greater_heal": 3619,
+      "heal": 1215,
+      "cure": 308,
+      "poison": 0,
+      "paralyze": 0,
+      "meditate": 10087,
+      "heal_potion": 966,
+      "cure_potion": 1000,
+      "explosion_potion": 829,
+      "burst_bolt": 0,
+      "burst_flame": 246
+    },
+    "learner_self_damage_total": 0.0,
+    "learner_mean_damage": 321.1260961519674,
+    "diagnostic_ladder": {
+      "evaluation-before.json": {
+        "games": 40,
+        "wins": 0,
+        "losses": 30,
+        "draws": 10,
+        "win_rate": 0.0
+      },
+      "evaluation.json": {
+        "games": 40,
+        "wins": 15,
+        "losses": 25,
+        "draws": 0,
+        "win_rate": 0.375
+      }
+    },
+    "ppo_wall_seconds": 247.473,
+    "completed_rollout_games_this_run": 778,
+    "completed_rollout_games": 985,
+    "training_manifest": {
+      "bc_epochs": 10,
+      "config": {
+        "batch_sequences": 8,
+        "burn_in": 8,
+        "clip_range": 0.2,
+        "discount_time_unit": 0.0,
+        "entropy_coef": 0.01,
+        "epochs": 4,
+        "gae_lambda": 0.95,
+        "gamma": 0.995,
+        "learning_rate": 0.0003,
+        "max_grad_norm": 0.5,
+        "sequence_length": 64,
+        "target_kl": 0.04,
+        "value_coef": 0.5
+      },
+      "environment_steps": 1000000,
+      "eval_seed": 2000000000,
+      "latest_metrics": {
+        "approximate_kl": 0.0020986261998904125,
+        "clip_fraction": 0.02948778210193815,
+        "entropy": 0.5096496049370757,
+        "grad_norm": 0.3271281720398176,
+        "kl_early_stop": false,
+        "optimized_steps": 8512,
+        "policy_loss": -0.007916446547619159,
+        "rollout_steps": 2128,
+        "value_loss": 0.001235361485628243
+      },
+      "live_consumed": [],
+      "parameters": 127384,
+      "parent_policy_sha": "cb2296904815cff068393787f9e62d12aa140932c2ca0b7571ed59b6f2968a10",
+      "real_server_strength_established": false,
+      "seed": 17,
+      "simulator": {
+        "dt": 0.25,
+        "max_episode_steps": 1200,
+        "shaping_gamma": 0.995,
+        "showdown_after": 180,
+        "version": "approximate-pre-aos-options-v4"
+      },
+      "source": "approximate-pre-aos-simulator",
+      "teacher_steps": 16384,
+      "torch_version": "2.14.0",
+      "updates": 245
+    },
+    "source_file_sha256": {
+      "model.py": "1ac455d2f567973e7a5388d136050f3ae3d41f58b883e6c9cf5a1f0acc9c4575",
+      "checkpoints.py": "ed25d234ae834ee922a14bc88c31810207fc56a7faed643858b6469d9cc76903",
+      "train.py": "c0e6caaca1b5d576c7ce08ac3fe32016c9c7c2270323abfb87790f4a79734d91",
+      "schema.py": "64ea4987d27ba9f28007bb207e62f2fb7bdb5699b50d6e3b7a565f8a518910a3",
+      "sim.py": "1a2064f6cef56b658b3c10b911b2582604fd0b3e6c87a4acc6f6b359e826c01f"
+    },
+    "supply_calibration": {
+      "heal_potions": 5,
+      "cure_potions": 5,
+      "explosion_potions": 5,
+      "feature_normalization_denominator": 20,
+      "only_simulator_change_from_previous": "initial supply of each potion20->5"
+    },
+    "historical_v5": {
+      "policy_sha": "cb2296904815cff068393787f9e62d12aa140932c2ca0b7571ed59b6f2968a10",
+      "wins": 0,
+      "losses": 163,
+      "draws": 37,
+      "fresh_seed_base": 2400000000,
+      "evaluation_games": 200,
+      "unique_test_seeds": 100,
+      "diagnostic_ladder": {
+        "evaluation-before.json": {
+          "games": 40,
+          "wins": 5,
+          "losses": 35,
+          "draws": 0,
+          "win_rate": 0.125
+        },
+        "evaluation-after-bc.json": {
+          "games": 40,
+          "wins": 0,
+          "losses": 40,
+          "draws": 0,
+          "win_rate": 0.0
+        },
+        "evaluation.json": {
+          "games": 40,
+          "wins": 0,
+          "losses": 30,
+          "draws": 10,
+          "win_rate": 0.0
+        },
+        "v4-on-corrected-stock/evaluation.json": {
+          "games": 40,
+          "wins": 2,
+          "losses": 38,
+          "draws": 0,
+          "win_rate": 0.05
+        }
+      }
+    },
+    "diagnostic_return_comparison": {
+      "v5": {
+        "mean_terminal_outcome": -0.75,
+        "mean_raw_return": -0.7323714774770043,
+        "mean_discounted_return": -0.00369813196230893,
+        "mean_duration_seconds": 286.36875,
+        "mean_terminal_discount_factor": 0.00332854487863403,
+        "discount_weight_after_180s": 0.027078096829945757
+      },
+      "v6": {
+        "mean_terminal_outcome": -0.25,
+        "mean_raw_return": -0.27687353930337394,
+        "mean_discounted_return": 0.014285440370166536,
+        "mean_duration_seconds": 211.2125,
+        "mean_terminal_discount_factor": 0.029440685249099353,
+        "discount_weight_after_180s": 0.027078096829945757
+      }
+    },
+    "win_rate_improvement_established_in_fixed_diagnostic": true,
+    "real_server_strength_established": false,
+    "automatic_promotion": false,
+    "test_protocol": "ONE predeclared850k continuation from failed V5, total1m, sameoptimizer/hyperparameters/seed, no repeatedBC, frozen before one evaluation on100 new paired seeds; no subsequent tuning."
+  },
+  "real_server": [
+    {
+      "game": 1,
+      "match_id": "f4e2b1f9721d434d8ed38fc948bad3f8",
+      "metrics": {
+        "57": {
+          "casts": 7,
+          "damage": 85,
+          "fizzles": 0,
+          "healing": 89,
+          "potion_throws": 1,
+          "self_damage": 0
+        },
+        "58": {
+          "casts": 8,
+          "damage": 181,
+          "fizzles": 0,
+          "healing": 44,
+          "potion_throws": 3,
+          "self_damage": 0
+        }
+      },
+      "replay": "https://arena.uotavern.com/replay/?replay=f4e2b1f9721d434d8ed38fc948bad3f8",
+      "winner": 58,
+      "run": "neural-live-v3-01",
+      "actor": 57,
+      "policy_sha": "a74e3e9936b8d5b7b9c5c7108a54fc4869064b17b265900bc77be36d7e66ae60",
+      "eligible": false,
+      "invalid_reasons": [
+        "decision_rejected_by_executor",
+        "executor_intervention"
+      ],
+      "transitions": 65
+    },
+    {
+      "game": 1,
+      "match_id": "0a1b40242a894e3ab9a1adca94b7a16c",
+      "metrics": {
+        "57": {
+          "casts": 13,
+          "damage": 130,
+          "fizzles": 0,
+          "healing": 202,
+          "potion_throws": 1,
+          "self_damage": 0
+        },
+        "58": {
+          "casts": 11,
+          "damage": 301,
+          "fizzles": 0,
+          "healing": 43,
+          "potion_throws": 5,
+          "self_damage": 0
+        }
+      },
+      "replay": "https://arena.uotavern.com/replay/?replay=0a1b40242a894e3ab9a1adca94b7a16c",
+      "winner": 58,
+      "run": "neural-live-v3-02",
+      "actor": 57,
+      "policy_sha": "a74e3e9936b8d5b7b9c5c7108a54fc4869064b17b265900bc77be36d7e66ae60",
+      "eligible": true,
+      "invalid_reasons": [],
+      "transitions": 95
+    },
+    {
+      "episodes": [
+        ".logs/neural-v6-live/0463c2d7397a48658748ea6f88fba9c6/episode-57.json"
+      ],
+      "game": 1,
+      "match_id": "0463c2d7397a48658748ea6f88fba9c6",
+      "metrics": {
+        "57": {
+          "casts": 4,
+          "damage": 35,
+          "fizzles": 0,
+          "healing": 0,
+          "potion_throws": 0,
+          "self_damage": 0
+        },
+        "58": {
+          "casts": 4,
+          "damage": 106,
+          "fizzles": 0,
+          "healing": 0,
+          "potion_throws": 1,
+          "self_damage": 0
+        }
+      },
+      "replay": "https://arena.uotavern.com/replay/?replay=0463c2d7397a48658748ea6f88fba9c6",
+      "winner": 58,
+      "run": "neural-v6-live",
+      "actor": 57,
+      "eligible": true,
+      "invalid_reasons": [],
+      "transitions": 29,
+      "policy_sha": "7c0cbe1a04729b0be553022a84ce6c032424b6ba51a9194bf3f5e7e7c5a51789",
+      "collector_version": "fixed-cadence-options-v2"
+    }
+  ],
+  "automatic_promotion": false,
+  "verified_live_update": {
+    "accepted_episodes": 1,
+    "automatic_promotion": false,
+    "rejected": [],
+    "source": ".logs/neural-live-v3-02",
+    "update": {
+      "automatic_promotion": false,
+      "episodes": 1,
+      "metrics": {
+        "approximate_kl": 6.607802475855351e-06,
+        "clip_fraction": 0.0,
+        "entropy": 0.19738100096583366,
+        "grad_norm": 1.383696012198925,
+        "kl_early_stop": false,
+        "optimized_steps": 380,
+        "policy_loss": -0.0003270277857252424,
+        "rollout_steps": 95,
+        "value_loss": 0.08370311185717583
+      },
+      "parent_policy_sha": "a74e3e9936b8d5b7b9c5c7108a54fc4869064b17b265900bc77be36d7e66ae60",
+      "policy_sha": "70a4344a7d41c79cb99458883460dc4b3e7fb3ffcad0ad81fed87144864168d3"
+    }
+  },
+  "interrupted_selfplay": {
+    "run": "neural-selfplay-01",
+    "match_id": "2d1ae68c4d644656a7319730a2512b08",
+    "status": "stopped after loss of authoritative match state",
+    "used_for_training": false,
+    "winner_not_counted": true
+  },
+  "completed_selfplay_cycles": [
+    {
+      "run": "neural-cycle-v4",
+      "status": "complete",
+      "history": [
+        {
+          "checkpoint": ".logs/neural-cycle-v4/round-001/candidate",
+          "iteration": 1,
+          "learning": {
+            "accepted_episodes": 1,
+            "automatic_promotion": false,
+            "rejected": [
+              {
+                "file": ".logs/neural-cycle-v4/round-001/collection/0d66340db7aa4175b9105d4110869d32/episode-57.json",
+                "reasons": [
+                  "decision_rejected_by_executor"
+                ]
+              }
+            ],
+            "source": ".logs/neural-cycle-v4/round-001/collection",
+            "update": {
+              "automatic_promotion": false,
+              "episodes": 1,
+              "metrics": {
+                "approximate_kl": 0.0014681034376899105,
+                "clip_fraction": 0.02158273383975029,
+                "entropy": 0.2989506423473358,
+                "grad_norm": 1.0311746373772621,
+                "kl_early_stop": false,
+                "optimized_steps": 556,
+                "policy_loss": -0.004166675246615625,
+                "rollout_steps": 139,
+                "value_loss": 0.06915927026420832
+              },
+              "parent_policy_sha": "1f3b721b7ff1b41e8aaa221a4f0232d35778a8cf00c9140dba86779c9b519f47",
+              "policy_sha": "2c0f7b89fe1dab6aaea16945e5936af410235fb4fa7ffca331f7452900b15932"
+            }
+          },
+          "matches": [
+            {
+              "episodes": [
+                ".logs/neural-cycle-v4/round-001/collection/0d66340db7aa4175b9105d4110869d32/episode-57.json",
+                ".logs/neural-cycle-v4/round-001/collection/0d66340db7aa4175b9105d4110869d32/episode-58.json"
+              ],
+              "game": 1,
+              "match_id": "0d66340db7aa4175b9105d4110869d32",
+              "metrics": {
+                "57": {
+                  "casts": 7,
+                  "damage": 70,
+                  "fizzles": 0,
+                  "healing": 25,
+                  "potion_throws": 2,
+                  "self_damage": 0
+                },
+                "58": {
+                  "casts": 6,
+                  "damage": 141,
+                  "fizzles": 0,
+                  "healing": 40,
+                  "potion_throws": 2,
+                  "self_damage": 0
+                }
+              },
+              "replay": "https://arena.uotavern.com/replay/?replay=0d66340db7aa4175b9105d4110869d32",
+              "winner": 58,
+              "episode_summary": [
+                {
+                  "actor": 57,
+                  "eligible": false,
+                  "invalid_reasons": [
+                    "decision_rejected_by_executor"
+                  ],
+                  "steps": 137,
+                  "policy_sha": "1f3b721b7ff1b41e8aaa221a4f0232d35778a8cf00c9140dba86779c9b519f47",
+                  "collector_version": "fixed-cadence-options-v1",
+                  "executor_sha256": "42de4d7e4429300ae73f9454ad68d17fae14e2f448163e17db6e7588dc171781",
+                  "cancelled_options": {}
+                },
+                {
+                  "actor": 58,
+                  "eligible": true,
+                  "invalid_reasons": [],
+                  "steps": 139,
+                  "policy_sha": "1f3b721b7ff1b41e8aaa221a4f0232d35778a8cf00c9140dba86779c9b519f47",
+                  "collector_version": "fixed-cadence-options-v1",
+                  "executor_sha256": "42de4d7e4429300ae73f9454ad68d17fae14e2f448163e17db6e7588dc171781",
+                  "cancelled_options": {}
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "run": "neural-cycle-final",
+      "status": "failed",
+      "history": [
+        {
+          "checkpoint": ".logs/neural-cycle-final/round-001/candidate",
+          "iteration": 1,
+          "learning": {
+            "accepted_episodes": 2,
+            "automatic_promotion": false,
+            "rejected": [],
+            "source": ".logs/neural-cycle-final/round-001/collection",
+            "update": {
+              "automatic_promotion": false,
+              "episodes": 2,
+              "metrics": {
+                "approximate_kl": 0.0003415612970974563,
+                "clip_fraction": 0.00197316496798382,
+                "entropy": 0.22226786236818982,
+                "grad_norm": 0.3790594297883872,
+                "kl_early_stop": false,
+                "optimized_steps": 5068,
+                "policy_loss": -0.0007778992295712115,
+                "rollout_steps": 1267,
+                "value_loss": 0.025713804555210065
+              },
+              "parent_policy_sha": "1f3b721b7ff1b41e8aaa221a4f0232d35778a8cf00c9140dba86779c9b519f47",
+              "policy_sha": "954d307111888d4aa2de7b44b7c90a952b212f1f0ce438a681761feed99b724f"
+            }
+          },
+          "matches": [
+            {
+              "episodes": [
+                ".logs/neural-cycle-final/round-001/collection/a5a2cc88c0074e1498433f70312f98a4/episode-57.json",
+                ".logs/neural-cycle-final/round-001/collection/a5a2cc88c0074e1498433f70312f98a4/episode-58.json"
+              ],
+              "game": 1,
+              "match_id": "a5a2cc88c0074e1498433f70312f98a4",
+              "metrics": {
+                "57": {
+                  "casts": 45,
+                  "damage": 455,
+                  "fizzles": 0,
+                  "healing": 299,
+                  "potion_throws": 5,
+                  "self_damage": 0
+                },
+                "58": {
+                  "casts": 50,
+                  "damage": 437,
+                  "fizzles": 0,
+                  "healing": 360,
+                  "potion_throws": 5,
+                  "self_damage": 0
+                }
+              },
+              "replay": "https://arena.uotavern.com/replay/?replay=a5a2cc88c0074e1498433f70312f98a4",
+              "winner": 58,
+              "episode_summary": [
+                {
+                  "actor": 57,
+                  "eligible": true,
+                  "invalid_reasons": [],
+                  "steps": 625,
+                  "policy_sha": "1f3b721b7ff1b41e8aaa221a4f0232d35778a8cf00c9140dba86779c9b519f47",
+                  "collector_version": "fixed-cadence-options-v2",
+                  "executor_sha256": "42de4d7e4429300ae73f9454ad68d17fae14e2f448163e17db6e7588dc171781",
+                  "cancelled_options": {}
+                },
+                {
+                  "actor": 58,
+                  "eligible": true,
+                  "invalid_reasons": [],
+                  "steps": 642,
+                  "policy_sha": "1f3b721b7ff1b41e8aaa221a4f0232d35778a8cf00c9140dba86779c9b519f47",
+                  "collector_version": "fixed-cadence-options-v2",
+                  "executor_sha256": "42de4d7e4429300ae73f9454ad68d17fae14e2f448163e17db6e7588dc171781",
+                  "cancelled_options": {
+                    "mask_changed": 1
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "error": "lost authoritative live duel state"
+    }
+  ],
+  "additional_interrupted_trials": [
+    {
+      "run": "neural-cycle-final/round-002",
+      "match_id": "799f90d3ceb64df68238703340c0d39a",
+      "loaded_policy_sha": "954d307111888d4aa2de7b44b7c90a952b212f1f0ce438a681761feed99b724f",
+      "error": "lost authoritative live duel state",
+      "used_for_training": false,
+      "forfeit_not_counted": true
+    },
+    {
+      "run": "neural-v6-live-health",
+      "match_id": "3cc900574244416a8b078344cc94e9bf",
+      "used_for_training": false,
+      "forfeit_not_counted": true,
+      "cause": "lost authoritative state with TCP retransmission evidence on a concurrent bridge flow"
+    }
+  ],
+  "verification": {
+    "python_tests": 96,
+    "ruff": "passed",
+    "server_restarted": false,
+    "public_worker_replaced": false,
+    "real_server_strength_established": false,
+    "server_main_pid": 76512,
+    "server_active_since": "2026-09-28T22:49:08Z"
+  },
+  "limitations": [
+    "Current held-out simulator result is87W111L2D; it is not live-server strength.",
+    "Weaken/Clumsy opener is not yet selected in greedy evaluation.",
+    "Burst_flame246 counts selections, not proof all combined impacts landed.",
+    "Real self-play updates prove weight updates and next-match reuse, not statistically established improvement.",
+    "Failed/incomplete trials are excluded from PPO; verified earlier matches survive later collection failures.",
+    "WAN transfer stalls were observed with TCP retransmission evidence; route/MTU root cause not established."
+  ],
+  "verified_continuous_learning": {
+    "run": "neural-cycle-verified",
+    "automatic_promotion": false,
+    "history": [
+      {
+        "checkpoint": ".logs/neural-cycle-verified/round-001/candidate",
+        "iteration": 1,
+        "learning": {
+          "accepted_episodes": 2,
+          "automatic_promotion": false,
+          "rejected": [],
+          "source": ".logs/neural-cycle-verified/round-001/collection",
+          "update": {
+            "automatic_promotion": false,
+            "episodes": 2,
+            "metrics": {
+              "approximate_kl": 0.0007422346046450735,
+              "clip_fraction": 0.008735440817754044,
+              "entropy": 0.23533289676456734,
+              "grad_norm": 0.2811460729752457,
+              "kl_early_stop": false,
+              "optimized_steps": 7212,
+              "policy_loss": -0.002179167780294783,
+              "rollout_steps": 1803,
+              "value_loss": 0.0056919796262605345
+            },
+            "parent_policy_sha": "1f3b721b7ff1b41e8aaa221a4f0232d35778a8cf00c9140dba86779c9b519f47",
+            "policy_sha": "010543abfd0d8eea0ddc1047ad2ad6965c8e01a57b258d65a13a5114cc54007b"
+          }
+        },
+        "matches": [
+          {
+            "episodes": [
+              ".logs/neural-cycle-verified/round-001/collection/26283fea61a545e7af2a208eb41a4068/episode-57.json",
+              ".logs/neural-cycle-verified/round-001/collection/26283fea61a545e7af2a208eb41a4068/episode-58.json"
+            ],
+            "game": 1,
+            "match_id": "26283fea61a545e7af2a208eb41a4068",
+            "metrics": {
+              "57": {
+                "casts": 42,
+                "damage": 414,
+                "fizzles": 0,
+                "healing": 304,
+                "potion_throws": 5,
+                "self_damage": 0
+              },
+              "58": {
+                "casts": 47,
+                "damage": 368,
+                "fizzles": 0,
+                "healing": 354,
+                "potion_throws": 5,
+                "self_damage": 0
+              }
+            },
+            "replay": "https://arena.uotavern.com/replay/?replay=26283fea61a545e7af2a208eb41a4068",
+            "winner": null,
+            "episode_summary": [
+              {
+                "actor": 57,
+                "steps": 902,
+                "eligible": true,
+                "policy_sha": "1f3b721b7ff1b41e8aaa221a4f0232d35778a8cf00c9140dba86779c9b519f47",
+                "collector_version": "fixed-cadence-options-v2",
+                "executor_sha256": "f41c01c7c7f07064120142901413a2cf5947d35706aa33efe6af867f35d70f29"
+              },
+              {
+                "actor": 58,
+                "steps": 901,
+                "eligible": true,
+                "policy_sha": "1f3b721b7ff1b41e8aaa221a4f0232d35778a8cf00c9140dba86779c9b519f47",
+                "collector_version": "fixed-cadence-options-v2",
+                "executor_sha256": "f41c01c7c7f07064120142901413a2cf5947d35706aa33efe6af867f35d70f29"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "checkpoint": ".logs/neural-cycle-verified/round-002/candidate",
+        "iteration": 2,
+        "learning": {
+          "accepted_episodes": 2,
+          "automatic_promotion": false,
+          "rejected": [],
+          "source": ".logs/neural-cycle-verified/round-002/collection",
+          "update": {
+            "automatic_promotion": false,
+            "episodes": 2,
+            "metrics": {
+              "approximate_kl": 0.0002450283580354806,
+              "clip_fraction": 0.001282051250609195,
+              "entropy": 0.22626953235166705,
+              "grad_norm": 0.46000156631836525,
+              "kl_early_stop": false,
+              "optimized_steps": 2340,
+              "policy_loss": -0.0010377119144058635,
+              "rollout_steps": 585,
+              "value_loss": 0.04348896315209886
+            },
+            "parent_policy_sha": "010543abfd0d8eea0ddc1047ad2ad6965c8e01a57b258d65a13a5114cc54007b",
+            "policy_sha": "a1772434dd1ea4efadfbc52dd21a50232e41fcf5ca4b756cd69d8dff4e16e554"
+          }
+        },
+        "matches": [
+          {
+            "episodes": [
+              ".logs/neural-cycle-verified/round-002/collection/6e10d7c24a7241aba40486bd7743f71e/episode-57.json",
+              ".logs/neural-cycle-verified/round-002/collection/6e10d7c24a7241aba40486bd7743f71e/episode-58.json"
+            ],
+            "game": 1,
+            "match_id": "6e10d7c24a7241aba40486bd7743f71e",
+            "metrics": {
+              "57": {
+                "casts": 23,
+                "damage": 359,
+                "fizzles": 0,
+                "healing": 194,
+                "potion_throws": 5,
+                "self_damage": 0
+              },
+              "58": {
+                "casts": 29,
+                "damage": 304,
+                "fizzles": 0,
+                "healing": 321,
+                "potion_throws": 5,
+                "self_damage": 0
+              }
+            },
+            "replay": "https://arena.uotavern.com/replay/?replay=6e10d7c24a7241aba40486bd7743f71e",
+            "winner": 58,
+            "episode_summary": [
+              {
+                "actor": 57,
+                "steps": 292,
+                "eligible": true,
+                "policy_sha": "010543abfd0d8eea0ddc1047ad2ad6965c8e01a57b258d65a13a5114cc54007b",
+                "collector_version": "fixed-cadence-options-v2",
+                "executor_sha256": "f41c01c7c7f07064120142901413a2cf5947d35706aa33efe6af867f35d70f29"
+              },
+              {
+                "actor": 58,
+                "steps": 293,
+                "eligible": true,
+                "policy_sha": "010543abfd0d8eea0ddc1047ad2ad6965c8e01a57b258d65a13a5114cc54007b",
+                "collector_version": "fixed-cadence-options-v2",
+                "executor_sha256": "f41c01c7c7f07064120142901413a2cf5947d35706aa33efe6af867f35d70f29"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "status": "complete",
+    "complete_matches": 2,
+    "eligible_episodes": 4,
+    "policy_transitions": 2388
+  },
+  "bridge": {
+    "repository": "https://github.com/uotavern/anima-client",
+    "branch": "fix/neural-bridge",
+    "commit": "4100ecbae62d3296d979a621b0bf2e42b76fc612",
+    "binary_sha256": "baa22bf1b3e93f1c92c6ed931fc0edec233483172f61aa31517616cda73376c3",
+    "observation_schema_unchanged": true,
+    "purpose": "Non-sensitive transport, framing and journal diagnostic counters",
+    "journal_rollover_live_verified": true,
+    "earlier_state_stall_cause": "A later stalled bridge flow was correlated with server-side unacknowledged data and repeated TCP retransmission; underlying route/MTU cause not established."
+  },
+  "historical_simulations": {
+    "v4_with_20_potions": {
+      "policy_sha": "1f3b721b7ff1b41e8aaa221a4f0232d35778a8cf00c9140dba86779c9b519f47",
+      "parameters": 127384,
+      "weights_bytes": 513977,
+      "cpu_threads": 2,
+      "inference_ms_median": 0.065833,
+      "inference_ms_p95": 0.074834,
+      "evaluation_games": 200,
+      "unique_test_seeds": 100,
+      "wins": 139,
+      "losses": 56,
+      "draws": 5,
+      "fresh_seed_base": 2300000000,
+      "free_action_counts": {
+        "hold": 1597,
+        "approach": 8452,
+        "retreat": 9066,
+        "strafe_left": 29,
+        "strafe_right": 18,
+        "weaken": 0,
+        "clumsy": 0,
+        "magic_arrow": 2266,
+        "harm": 0,
+        "explosion": 0,
+        "energy_bolt": 2697,
+        "flamestrike": 0,
+        "greater_heal": 4836,
+        "heal": 0,
+        "cure": 0,
+        "poison": 13,
+        "paralyze": 0,
+        "meditate": 6985,
+        "heal_potion": 2336,
+        "cure_potion": 1251,
+        "explosion_potion": 3506,
+        "burst_bolt": 0,
+        "burst_flame": 0
+      },
+      "learner_self_damage_total": 22.0,
+      "learner_mean_damage": 572.9762886578266,
+      "diagnostic_ladder": {
+        "evaluation-before.json": {
+          "games": 40,
+          "wins": 0,
+          "losses": 40,
+          "draws": 0,
+          "win_rate": 0.0
+        },
+        "evaluation-after-bc.json": {
+          "games": 40,
+          "wins": 2,
+          "losses": 38,
+          "draws": 0,
+          "win_rate": 0.05
+        },
+        "evaluation.json": {
+          "games": 40,
+          "wins": 28,
+          "losses": 12,
+          "draws": 0,
+          "win_rate": 0.7
+        },
+        "v3-on-corrected-sim/evaluation.json": {
+          "games": 40,
+          "wins": 27,
+          "losses": 13,
+          "draws": 0,
+          "win_rate": 0.675
+        }
+      },
+      "ppo_wall_seconds": 41.157,
+      "completed_rollout_games": 232,
+      "training_manifest": {
+        "bc_epochs": 10,
+        "config": {
+          "batch_sequences": 8,
+          "burn_in": 8,
+          "clip_range": 0.2,
+          "discount_time_unit": 0.0,
+          "entropy_coef": 0.01,
+          "epochs": 4,
+          "gae_lambda": 0.95,
+          "gamma": 0.995,
+          "learning_rate": 0.0003,
+          "max_grad_norm": 0.5,
+          "sequence_length": 64,
+          "target_kl": 0.04,
+          "value_coef": 0.5
+        },
+        "environment_steps": 150000,
+        "eval_seed": 2000000000,
+        "latest_metrics": {
+          "approximate_kl": 0.0019255507375708124,
+          "clip_fraction": 0.015526729497811266,
+          "entropy": 0.22712743846969036,
+          "grad_norm": 0.20589265809980156,
+          "kl_early_stop": false,
+          "optimized_steps": 10176,
+          "policy_loss": -0.0019990714556813415,
+          "rollout_steps": 2544,
+          "value_loss": 0.004391102653530166
+        },
+        "live_consumed": [],
+        "parameters": 127384,
+        "parent_policy_sha": null,
+        "real_server_strength_established": false,
+        "seed": 17,
+        "simulator": {
+          "dt": 0.25,
+          "max_episode_steps": 1200,
+          "shaping_gamma": 0.995,
+          "showdown_after": 180,
+          "version": "approximate-pre-aos-options-v3"
+        },
+        "source": "approximate-pre-aos-simulator",
+        "teacher_steps": 16384,
+        "torch_version": "2.14.0",
+        "updates": 37
+      },
+      "source_file_sha256": {
+        "model.py": "1ac455d2f567973e7a5388d136050f3ae3d41f58b883e6c9cf5a1f0acc9c4575",
+        "checkpoints.py": "ed25d234ae834ee922a14bc88c31810207fc56a7faed643858b6469d9cc76903",
+        "train.py": "c90270566312589a92e21ff42015da1530b143a5f7b9083fde0253c3c5811651",
+        "schema.py": "64ea4987d27ba9f28007bb207e62f2fb7bdb5699b50d6e3b7a565f8a518910a3",
+        "sim.py": "9380fdec29f6e43adccb263f765f6167ec664159eda46f33d0843a29b99c7fa4"
+      },
+      "historical_v3": {
+        "policy_sha": "a74e3e9936b8d5b7b9c5c7108a54fc4869064b17b265900bc77be36d7e66ae60",
+        "trained_sim_version": "approximate-pre-aos-options-v2",
+        "original_fresh_evaluation": {
+          "games": 100,
+          "distinct_seeds": 50,
+          "seed_base": 2200000000,
+          "wins": 61,
+          "losses": 38,
+          "draws": 1
+        },
+        "comparison_note": "Historical original-simulator score is not directly comparable to v4. The separate same-corrected-simulator diagnostic is included above."
+      }
+    },
+    "v5_with_5_potions": {
+      "policy_sha": "cb2296904815cff068393787f9e62d12aa140932c2ca0b7571ed59b6f2968a10",
+      "parameters": 127384,
+      "weights_bytes": 513977,
+      "cpu_threads": 2,
+      "inference_ms_median": 0.0739165,
+      "inference_ms_p95": 0.178958,
+      "evaluation_games": 200,
+      "unique_test_seeds": 100,
+      "wins": 0,
+      "losses": 163,
+      "draws": 37,
+      "fresh_seed_base": 2400000000,
+      "free_action_counts": {
+        "hold": 40727,
+        "approach": 2930,
+        "retreat": 56,
+        "strafe_left": 1415,
+        "strafe_right": 1425,
+        "weaken": 0,
+        "clumsy": 0,
+        "magic_arrow": 55,
+        "harm": 0,
+        "explosion": 120,
+        "energy_bolt": 307,
+        "flamestrike": 0,
+        "greater_heal": 1524,
+        "heal": 482,
+        "cure": 356,
+        "poison": 9567,
+        "paralyze": 0,
+        "meditate": 15316,
+        "heal_potion": 804,
+        "cure_potion": 1000,
+        "explosion_potion": 210,
+        "burst_bolt": 0,
+        "burst_flame": 0
+      },
+      "learner_self_damage_total": 530.0,
+      "learner_mean_damage": 58.66875,
+      "diagnostic_ladder": {
+        "evaluation-before.json": {
+          "games": 40,
+          "wins": 5,
+          "losses": 35,
+          "draws": 0,
+          "win_rate": 0.125
+        },
+        "evaluation-after-bc.json": {
+          "games": 40,
+          "wins": 0,
+          "losses": 40,
+          "draws": 0,
+          "win_rate": 0.0
+        },
+        "evaluation.json": {
+          "games": 40,
+          "wins": 0,
+          "losses": 30,
+          "draws": 10,
+          "win_rate": 0.0
+        },
+        "v4-on-corrected-stock/evaluation.json": {
+          "games": 40,
+          "wins": 2,
+          "losses": 38,
+          "draws": 0,
+          "win_rate": 0.05
+        }
+      },
+      "ppo_wall_seconds": 48.471,
+      "completed_rollout_games": 207,
+      "training_manifest": {
+        "bc_epochs": 10,
+        "config": {
+          "batch_sequences": 8,
+          "burn_in": 8,
+          "clip_range": 0.2,
+          "discount_time_unit": 0.0,
+          "entropy_coef": 0.01,
+          "epochs": 4,
+          "gae_lambda": 0.95,
+          "gamma": 0.995,
+          "learning_rate": 0.0003,
+          "max_grad_norm": 0.5,
+          "sequence_length": 64,
+          "target_kl": 0.04,
+          "value_coef": 0.5
+        },
+        "environment_steps": 150000,
+        "eval_seed": 2000000000,
+        "latest_metrics": {
+          "approximate_kl": 0.0009159297042975859,
+          "clip_fraction": 0.011301100689334993,
+          "entropy": 0.29313454152313323,
+          "grad_norm": 0.2886851218195175,
+          "kl_early_stop": false,
+          "optimized_steps": 10176,
+          "policy_loss": -0.003250651089723497,
+          "rollout_steps": 2544,
+          "value_loss": 0.001828248198796915
+        },
+        "live_consumed": [],
+        "parameters": 127384,
+        "parent_policy_sha": null,
+        "real_server_strength_established": false,
+        "seed": 17,
+        "simulator": {
+          "dt": 0.25,
+          "max_episode_steps": 1200,
+          "shaping_gamma": 0.995,
+          "showdown_after": 180,
+          "version": "approximate-pre-aos-options-v4"
+        },
+        "source": "approximate-pre-aos-simulator",
+        "teacher_steps": 16384,
+        "torch_version": "2.14.0",
+        "updates": 37
+      },
+      "source_file_sha256": {
+        "model.py": "1ac455d2f567973e7a5388d136050f3ae3d41f58b883e6c9cf5a1f0acc9c4575",
+        "checkpoints.py": "ed25d234ae834ee922a14bc88c31810207fc56a7faed643858b6469d9cc76903",
+        "train.py": "c0e6caaca1b5d576c7ce08ac3fe32016c9c7c2270323abfb87790f4a79734d91",
+        "schema.py": "64ea4987d27ba9f28007bb207e62f2fb7bdb5699b50d6e3b7a565f8a518910a3",
+        "sim.py": "1a2064f6cef56b658b3c10b911b2582604fd0b3e6c87a4acc6f6b359e826c01f"
+      },
+      "supply_calibration": {
+        "heal_potions": 5,
+        "cure_potions": 5,
+        "explosion_potions": 5,
+        "feature_normalization_denominator": 20,
+        "only_simulator_change_from_previous": "initial supply of each potion20->5"
+      },
+      "historical_v4": {
+        "policy_sha": "1f3b721b7ff1b41e8aaa221a4f0232d35778a8cf00c9140dba86779c9b519f47",
+        "trained_sim_version": "approximate-pre-aos-options-v3",
+        "initial_potions_each": 20,
+        "original_fresh_evaluation": {
+          "games": 200,
+          "distinct_seeds": 100,
+          "seed_base": 2300000000,
+          "wins": 139,
+          "losses": 56,
+          "draws": 5
+        },
+        "comparison_note": "Historical20-potion score does not establish strength with actual5-potion stock. Separate same-corrected-stock diagnostic included above."
+      },
+      "win_rate_improvement_established": false,
+      "promotion_recommended": false,
+      "test_protocol": "Fixed hyperparameters, fresh150k run, frozen before one evaluation on100 new paired seeds; no subsequent tuning."
+    }
+  },
+  "supply_correction": {
+    "source": "ServUO Scripts/Services/Dueling/ArenaSupplies.cs:65-68",
+    "observed_live_explosion_stock": 5,
+    "old_simulator_stock": 20,
+    "current_simulator_stock": 5,
+    "historical_v4_score_not_current_benchmark": true
+  },
+  "artifact_reload": [
+    {
+      "checkpoint": "models/duel-starter",
+      "policy_sha": "7c0cbe1a04729b0be553022a84ce6c032424b6ba51a9194bf3f5e7e7c5a51789",
+      "independent_worker_decisions": 3,
+      "events": [
+        "inference_ready",
+        "context_reset"
+      ]
+    },
+    {
+      "checkpoint": ".logs/neural-cycle-verified/round-002/candidate",
+      "policy_sha": "a1772434dd1ea4efadfbc52dd21a50232e41fcf5ca4b756cd69d8dff4e16e554",
+      "independent_worker_decisions": 3,
+      "events": [
+        "inference_ready",
+        "context_reset"
+      ],
+      "historical_artifact": true
+    },
+    {
+      "checkpoint": "models/duel-live-candidate",
+      "policy_sha": "2953462ad05642e68bfc1c66e751cfa6fc6a7ddc5a6d4a2731c502e9d0ddfa89",
+      "independent_worker_decisions": 3,
+      "events": [
+        "inference_ready",
+        "context_reset"
+      ],
+      "optimizer_restored": true,
+      "rng_restored": true,
+      "trained_platform": "Linux x86_64 CPU",
+      "verified_platform": "macOS arm64 CPU"
+    }
+  ],
+  "transport_diagnostic": {
+    "recorded_utc": "2026-09-30T05:31:38.242530+00:00",
+    "observations": [
+      {
+        "flow_port": 56980,
+        "server_send_queue": 49592,
+        "bytes_sent": 72016,
+        "bytes_retrans": 45580,
+        "bytes_acked": 21564,
+        "rto_ms": 5424,
+        "backoff": 4,
+        "retransmits": 34,
+        "lost_segments": 4,
+        "cwnd": 1,
+        "correlation": "not matched to local PID; exact capture time unavailable"
+      },
+      {
+        "flow_port": 57005,
+        "local_pid": 31566,
+        "local_process": "anima-bridge",
+        "server_send_queue": 55358,
+        "bytes_sent": 47980,
+        "bytes_retrans": 17552,
+        "bytes_acked": 18844,
+        "rto_ms": 10912,
+        "backoff": 5,
+        "retransmits": 16,
+        "lost_segments": 8,
+        "cwnd": 1,
+        "last_receive_ms": 105,
+        "correlation": "local lsof ESTABLISHED srcport57005, followed by server ss peerport57005; account unknown"
+      }
+    ],
+    "local_connections": {
+      "started_utc": "2026-09-30T05:31:38.242646+00:00",
+      "finished_utc": "2026-09-30T05:31:38.256742+00:00",
+      "exit_code": 1,
+      "stdout": "",
+      "stderr": ""
+    },
+    "local_parent": {
+      "started_utc": "2026-09-30T05:31:38.256761+00:00",
+      "finished_utc": "2026-09-30T05:31:38.259169+00:00",
+      "exit_code": 1,
+      "stdout": "",
+      "stderr": ""
+    },
+    "server_connections": {
+      "started_utc": "2026-09-30T05:31:38.259181+00:00",
+      "error": "timeout"
+    }
+  },
+  "server_local_validation": {
+    "directory": "/opt/uoarena/anima3-neural-lab-20260930",
+    "python": "3.12.3",
+    "torch": "2.14.0+cpu",
+    "cuda": false,
+    "match_id": "b470dc944875413194d96fcc97b8e079",
+    "winner": 58,
+    "neural_actor": 57,
+    "eligible_episodes": 1,
+    "policy_transitions": 83,
+    "optimized_steps": 332,
+    "first_opponent_health_known": true,
+    "status": "complete",
+    "parent_policy_sha": "7c0cbe1a04729b0be553022a84ce6c032424b6ba51a9194bf3f5e7e7c5a51789",
+    "candidate_policy_sha": "2953462ad05642e68bfc1c66e751cfa6fc6a7ddc5a6d4a2731c502e9d0ddfa89",
+    "replay": "https://arena.uotavern.com/replay/?replay=b470dc944875413194d96fcc97b8e079",
+    "metrics": {
+      "57": {
+        "damage": 91,
+        "healing": 64,
+        "casts": 7,
+        "potion_throws": 2,
+        "self_damage": 0
+      },
+      "58": {
+        "damage": 164,
+        "healing": 46,
+        "casts": 7,
+        "potion_throws": 2,
+        "self_damage": 0
+      }
+    },
+    "strength_improvement_established": false,
+    "environment": {
+      "python": "3.12.3",
+      "torch": "2.14.0+cpu",
+      "cuda": null,
+      "cuda_available": false,
+      "numpy": "2.5.3",
+      "pyyaml": "6.0.3",
+      "setuptools": "78.1.0",
+      "tensor_sum": 6.0,
+      "threads": 2,
+      "created_utc": "2026-09-30T05:34:49.741166+00:00",
+      "environment": "/opt/uoarena/anima3-neural-lab-20260930/.venv"
+    },
+    "archive": {
+      "sha256": "ad4115b09c24fae7e834ac4665768bb43a350e2b4b5bb26b10be86791d7ed7cd",
+      "bytes": 1569931,
+      "verified_after_download": true
+    },
+    "checkpoint_export": "models/duel-live-candidate",
+    "checkpoint_reload": {
+      "checkpoint": "models/duel-live-candidate",
+      "policy_sha": "2953462ad05642e68bfc1c66e751cfa6fc6a7ddc5a6d4a2731c502e9d0ddfa89",
+      "independent_worker_decisions": 3,
+      "events": [
+        "inference_ready",
+        "context_reset"
+      ],
+      "optimizer_restored": true,
+      "rng_restored": true,
+      "trained_platform": "Linux x86_64 CPU",
+      "verified_platform": "macOS arm64 CPU"
+    },
+    "update_metrics": {
+      "approximate_kl": 3.600407899284619e-05,
+      "clip_fraction": 0.0,
+      "entropy": 0.19762098044157028,
+      "grad_norm": 2.4603520929813385,
+      "kl_early_stop": false,
+      "optimized_steps": 332,
+      "policy_loss": -0.0010931396896172174,
+      "rollout_steps": 83,
+      "value_loss": 0.1490927841514349
+    }
+  }
+}

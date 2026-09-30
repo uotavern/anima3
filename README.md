@@ -2,6 +2,31 @@
 
 > A thin **System One** brain that drives [anima-client](https://github.com/hulryung-uo/anima-client) directly.
 
+## Trainable duel policy
+
+The new `anima3.neural` path trains a compact GRU actor/critic with behavioral
+cloning and recurrent PPO, runs checkpoint inference in an isolated process,
+and collects ordinary-client ServUO duels for verified on-policy updates.
+It includes frozen opponents, held-out simulation evaluation, hash-checked
+checkpoints and a bounded real-server learning loop. Simulator scores and real
+server scores are recorded separately; public-agent promotion is not automatic.
+
+```sh
+uv venv --python 3.12
+uv pip install --python .venv/bin/python -e '.[neural,dev]'
+.venv/bin/python -m anima3.neural train --out .logs/neural-v1 \
+  --steps 100000 --bc-steps 8192 --max-episode-steps 1200 --eval-games 40
+.venv/bin/python -m anima3.neural --help
+```
+
+See [training, inference and real-server instructions](docs/NEURAL_DUEL.ko.md)
+and [Pluto analysis](docs/PLUTO_BINARY_ANALYSIS.ko.md). The following sections
+describe the existing scene/logprob path, which remains available.
+
+A [small trained starter checkpoint](models/duel-starter/README.md) is included
+for inference and integration testing. Its simulator results do not establish
+real-server strength.
+
 anima2 is 80K lines of rules with an LLM that *writes* JSON to pick from a list.
 anima3 inverts it: the body's Observation becomes a short **text scene** (an
 accessibility tree, not a screenshot), code enumerates the **verbs that are valid

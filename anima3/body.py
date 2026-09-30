@@ -64,6 +64,7 @@ class BridgeBody:
         self.ready = ready
         self.terrain_radius = terrain_radius
         self.monitor_url: str | None = None
+        self.diagnostics: dict[str, Any] = {}
         self._lock = threading.Lock()
         self._stderr_thread = threading.Thread(target=self._drain_stderr, daemon=True)
         self._stderr_thread.start()
@@ -111,7 +112,12 @@ class BridgeBody:
             line = self._proc.stdout.readline()
         if not line:
             raise BodyError("bridge closed the pipe")
-        return json.loads(line)
+        response = json.loads(line)
+        # Optional transport counters from newer bridges, without packet payloads.
+        # Preserve compatibility with bridges predating diagnostics.
+        if isinstance(response.get("diagnostics"), dict):
+            self.diagnostics = response["diagnostics"]
+        return response
 
     def observe_raw(self) -> dict[str, Any]:
         r = self._rpc({"cmd": "observe", "terrain_radius": self.terrain_radius})
@@ -129,6 +135,8 @@ class BridgeBody:
 
     def pump(self, ms: int) -> int:
         r = self._rpc({"cmd": "pump", "ms": int(ms)})
+        if not r.get("ok"):
+            raise BodyError(r.get("error", "pump failed"))
         return int(r.get("applied", 0))
 
     def close(self) -> None:
