@@ -146,6 +146,9 @@ def _actor(body, opponent, worker, log, stop, *, deadline=340, expected_rules=TR
             append_event(log / match_id / f"actor-{body_id}.jsonl", row)
         elif len(events) < 1000:
             events.append(row)
+            # Persist diagnostics even when one client never receives its
+            # assignment. Buffered-only events vanish on handshake failure.
+            append_event(log / f"unassigned-actor-{body_id}.jsonl", row)
 
     def rpc(operation, call, *args):
         started_at = time.monotonic()

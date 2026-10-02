@@ -87,7 +87,11 @@ def main() -> int:
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--user-a", default="arena_train_a")
     parser.add_argument("--user-b", default="arena_train_b")
+    parser.add_argument("--matches-total", type=int, default=100)
+    parser.add_argument("--fixture-start", type=int, default=0)
     args = parser.parse_args()
+    if not 1 <= args.matches_total <= 100 or args.fixture_start < 0:
+        parser.error("matches-total must be 1..100 and fixture-start nonnegative")
     root = args.log_dir.resolve()
     if root.exists():
         parser.error("choose a new log directory; automatic restart is disabled")
@@ -107,7 +111,8 @@ def main() -> int:
     root.mkdir(parents=True, mode=0o700)
     atomic_json(root / "experiment.json", {
         "started_at": datetime.now(UTC).isoformat(),
-        "target_matches": 100,
+        "target_matches": args.matches_total,
+        "fixture_start": args.fixture_start,
         "checkpoint": str(checkpoint),
         "initial_policy_sha": initial.policy_sha,
         "rules": "standard7-explosion-training",
@@ -124,12 +129,13 @@ def main() -> int:
             "--checkpoint", str(checkpoint), "--host", args.host,
             "--bridge", args.bridge, "--data-dir", args.data_dir,
             "--user-a", args.user_a, "--user-b", args.user_b,
-            "--opponent", "scripted", "--matches", "1", "--iterations", "100",
+            "--opponent", "scripted", "--matches", "1", "--iterations", str(args.matches_total),
+            "--fixture-start", str(args.fixture_start),
             "--deadline-ms", "1000", "--seed", "20261002", "--log-dir", str(root),
         ])
     finally:
         result = summarize(root)
-    if result["status"] != "complete" or result["verified_matches"] != 100:
+    if result["status"] != "complete" or result["verified_matches"] != args.matches_total:
         return 2
     # Evaluate the frozen original and final policies using the same new seeds.
     # These are simulator fixtures, not additional Arena matches.
@@ -146,7 +152,7 @@ def main() -> int:
         })
     atomic_json(root / "finished.json", {
         "finished_at": datetime.now(UTC).isoformat(),
-        "verified_matches": 100, "updates": result["updates"],
+        "verified_matches": result["verified_matches"], "updates": result["updates"],
         "evaluation_complete": True, "automatic_promotion": False,
     })
     return code

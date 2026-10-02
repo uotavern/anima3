@@ -77,6 +77,7 @@ def cycle_main(argv=None):
     add_arguments(ap)
     ap.add_argument("--iterations", type=int, default=2)
     ap.add_argument("--seed", type=int, default=0)
+    ap.add_argument("--fixture-start", type=int, default=0)
     args = ap.parse_args(argv)
     if not 1 <= args.iterations <= 100 or not 1 <= args.matches <= 100:
         ap.error("iterations and matches must each be 1..100")
@@ -94,7 +95,7 @@ def cycle_main(argv=None):
                 break
             # Reconnecting after each game must not reset challenger/spawn
             # alternation for every collection in the learning cycle.
-            args.fixture_offset = iteration * args.matches
+            args.fixture_offset = args.fixture_start + iteration * args.matches
             args.log_dir = root / f"round-{iteration + 1:03d}" / "collection"
             atomic_json(
                 root / "cycle.json",
