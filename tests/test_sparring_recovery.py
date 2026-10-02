@@ -3,6 +3,31 @@ from types import SimpleNamespace
 from anima3 import sparring
 
 
+def test_missing_idle_response_has_diagnostics_and_bounded_timeout(monkeypatch, tmp_path):
+    import json
+    import pytest
+    now = [100.0]
+    monkeypatch.setattr(sparring.time, 'monotonic', lambda: now[0])
+    monkeypatch.setattr(sparring, 'server_state', lambda obs: None)
+
+    class Body:
+        def observe(self):
+            return SimpleNamespace(player=SimpleNamespace(serial=57))
+
+        def act(self, action):
+            assert action['text'] == '[DuelState'
+
+        def pump(self, ms):
+            now[0] += 1
+
+    with pytest.raises(sparring.TrainingIdleTimeout, match='fresh DuelState'):
+        sparring.wait_training_idle([Body(), Body()], tmp_path, lambda: False)
+    assert 130 < now[0] < 135
+    rows = [json.loads(line) for line in (tmp_path / 'progress.jsonl').read_text().splitlines()]
+    assert rows[-1]['states'] == [None, None]
+    assert rows[-1]['response_ages'] == [None, None]
+
+
 def test_short_state_gap_preserves_round_agent(monkeypatch, tmp_path):
     now = [0.0]
     monkeypatch.setattr(sparring.time, 'monotonic', lambda: now[0])

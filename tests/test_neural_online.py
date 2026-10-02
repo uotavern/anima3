@@ -3,6 +3,7 @@ import json
 import pytest
 
 from anima3.neural import live, online
+from anima3.sparring import TrainingIdleTimeout
 
 
 @pytest.mark.parametrize("matches", [1, 2])
@@ -69,3 +70,32 @@ def test_cycle_records_failure_without_claiming_completion(tmp_path, monkeypatch
         )
     result = json.loads((tmp_path / "cycle.json").read_text())
     assert result["status"] == "failed" and result["history"] == []
+
+
+@pytest.mark.parametrize("recover", [True, False])
+def test_idle_retry_is_bounded_and_keeps_fixture(tmp_path, monkeypatch, recover):
+    attempts = []
+
+    def collect(args, stop):
+        attempts.append((args.fixture_offset, str(args.checkpoint)))
+        args.log_dir.mkdir(parents=True, exist_ok=True)
+        (args.log_dir / "diagnostic.json").write_text('{}')
+        if not recover or len(attempts) == 1:
+            raise TrainingIdleTimeout("no fresh state")
+        return [{"match_id": "only-one-match"}]
+
+    monkeypatch.setattr(live, "run", collect)
+    monkeypatch.setattr(online, "update_collection", lambda *a, **kw: {"updated": True})
+    monkeypatch.setattr(online.threading.Event, "wait", lambda *a: False)
+    argv = ["--checkpoint", "seed", "--user-a", "a", "--user-b", "b",
+            "--iterations", "1", "--matches", "1", "--log-dir", str(tmp_path)]
+    if recover:
+        assert online.cycle_main(argv) == 0
+    else:
+        with pytest.raises(TrainingIdleTimeout):
+            online.cycle_main(argv)
+    result = json.loads((tmp_path / "cycle.json").read_text())
+    assert len(attempts) == (2 if recover else 3)
+    assert set(attempts) == {(0, "seed")}
+    assert len(result['history']) == (1 if recover else 0)
+    assert (tmp_path / 'round-001/idle-retry-1/diagnostic.json').exists()

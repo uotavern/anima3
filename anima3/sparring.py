@@ -30,6 +30,10 @@ from .strategy import add_arguments, build_session
 TRAINING_RULES = RULES + "-training"
 
 
+class TrainingIdleTimeout(RuntimeError):
+    """No new fixture has been issued; reconnecting this pair is safe."""
+
+
 def connect_training(args, user, password, log, stop):
     """Retry only initial login; never reissue an in-match action after reconnect."""
     for attempt in range(3):
@@ -72,6 +76,8 @@ def wait_training_idle(bodies, log, stop):
     ids = [body.observe().player.serial for body in bodies]
     states, fresh, ping = [None, None], [0, 0], [0, 0]
     deadline = time.monotonic() + 360
+    started = time.monotonic()
+    logged_at = started - 10
     while not stop() and time.monotonic() < deadline:
         for i, body in enumerate(bodies):
             now = time.monotonic()
@@ -86,11 +92,23 @@ def wait_training_idle(bodies, log, stop):
                     state.get("rules") != TRAINING_RULES or state.get("opponent") != ids[1 - i]
                 ):
                     raise RuntimeError("account is in an unrelated duel; refusing takeover")
+        now = time.monotonic()
+        if now - logged_at >= 10:
+            append_event(log / "progress.jsonl", {
+                "stage": "waiting_for_idle", "players": ids, "states": states,
+                "response_ages": [now - t if t else None for t in fresh],
+                "elapsed": now - started,
+            })
+            logged_at = now
         if all(s and s["phase"] == "Idle" for s in states) and all(
             time.monotonic() - t < 5 for t in fresh
         ):
             return
-    raise RuntimeError("training accounts did not become idle within 360 seconds")
+        if now - started > 30 and any(not t or now - t > 30 for t in fresh):
+            raise TrainingIdleTimeout("missing fresh DuelState during pre-match handshake")
+    if stop():
+        raise RuntimeError("training idle wait stopped")
+    raise TrainingIdleTimeout("training accounts did not become idle within 360 seconds")
 
 
 def policies(directory, game, minimum, sample):

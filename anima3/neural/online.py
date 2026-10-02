@@ -70,6 +70,7 @@ def update_main(argv=None):
 
 
 def cycle_main(argv=None):
+    from ..sparring import TrainingIdleTimeout
     from .live import add_arguments, run
 
     ap = argparse.ArgumentParser(description=__doc__)
@@ -104,7 +105,19 @@ def cycle_main(argv=None):
                     "iteration": iteration + 1,
                 },
             )
-            matches = run(args, stop)
+            for attempt in range(3):
+                try:
+                    matches = run(args, stop)
+                    break
+                except TrainingIdleTimeout:
+                    # run() has closed both clients. This exception is only
+                    # raised before issuing a challenge, never during a fight.
+                    # Keep the failed handshake evidence and the same fixture.
+                    if stop.is_set() or attempt == 2:
+                        raise
+                    args.log_dir.rename(args.log_dir.with_name(f"idle-retry-{attempt + 1}"))
+                    if stop.wait(5):
+                        raise RuntimeError("stopped before handshake retry") from None
             if stop.is_set():
                 break
             # The verified previous fixture establishes the build; lingering
