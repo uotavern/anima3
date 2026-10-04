@@ -6,6 +6,29 @@ from anima3.neural import live, online
 from anima3.sparring import TrainingIdleTimeout
 
 
+def test_rejected_completed_match_counts_without_updating_policy(tmp_path, monkeypatch):
+    seen = []
+
+    def collect(args, stop):
+        seen.append(str(args.checkpoint))
+        return [{"match_id": str(len(seen))}]
+
+    def reject(*args, **kwargs):
+        raise online.NoEligibleEpisodes([{"reasons": ["deadline"]}])
+
+    monkeypatch.setattr(live, "run", collect)
+    monkeypatch.setattr(online, "update_collection", reject)
+    assert online.cycle_main([
+        "--checkpoint", "seed", "--user-a", "a", "--user-b", "b",
+        "--iterations", "2", "--matches", "1", "--log-dir", str(tmp_path),
+    ]) == 0
+    result = json.loads((tmp_path / 'cycle.json').read_text())
+    assert result['status'] == 'complete'
+    assert seen == ['seed', 'seed']
+    assert len(result['history']) == 2
+    assert all(h['learning']['skipped'] for h in result['history'])
+
+
 @pytest.mark.parametrize("matches", [1, 2])
 def test_cycle_collects_next_batch_with_new_policy(tmp_path, monkeypatch, matches):
     seen = []

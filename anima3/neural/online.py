@@ -11,6 +11,12 @@ from pathlib import Path
 from ..arena_learning import atomic_json
 
 
+class NoEligibleEpisodes(ValueError):
+    def __init__(self, rejected):
+        self.rejected = rejected
+        super().__init__(f"no eligible on-policy episodes; rejected={rejected}")
+
+
 def update_collection(checkpoint, collection, out, *, seed=0):
     from .checkpoints import load_checkpoint
     from .live import LiveReplayVerifier
@@ -35,7 +41,7 @@ def update_collection(checkpoint, collection, out, *, seed=0):
             else:
                 episodes.append(episode)
     if not episodes:
-        raise ValueError(f"no eligible on-policy episodes; rejected={rejected}")
+        raise NoEligibleEpisodes(rejected)
     result = update_verified_episodes(
         loaded,
         episodes,
@@ -125,9 +131,17 @@ def cycle_main(argv=None):
             # Weaken/Clumsy must expire before reuse instead of requesting balls.
             args.known_build = bool(matches)
             out = args.log_dir.parent / "candidate"
-            update = update_collection(
-                args.checkpoint, args.log_dir, out, seed=args.seed + iteration
-            )
+            try:
+                update = update_collection(
+                    args.checkpoint, args.log_dir, out, seed=args.seed + iteration
+                )
+            except NoEligibleEpisodes as exc:
+                # A verified completed fixture still consumes the match budget.
+                # Keep its rejected trajectory and use the unchanged policy.
+                update = {"accepted_episodes": 0, "rejected": exc.rejected,
+                          "skipped": True, "automatic_promotion": False}
+                atomic_json(args.log_dir.parent / "learning-skipped.json", update)
+                out = args.checkpoint
             history.append(
                 {
                     "iteration": iteration + 1,

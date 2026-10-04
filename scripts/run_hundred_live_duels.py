@@ -46,7 +46,8 @@ def summarize(root: Path) -> dict:
         "wins": sum(row["outcome"] == 1 for row in rows),
         "losses": sum(row["outcome"] == -1 for row in rows),
         "draws": sum(row["outcome"] == 0 for row in rows),
-        "updates": len(history),
+        "updates": sum(not h["learning"].get("skipped", False) for h in history),
+        "skipped_updates": sum(h["learning"].get("skipped", False) for h in history),
         "initial_policy_sha": experiment["initial_policy_sha"],
         "final_checkpoint": history[-1]["checkpoint"] if history else experiment["checkpoint"],
         "automatic_promotion": False,
@@ -81,6 +82,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--accounts-file", type=Path, required=True)
     parser.add_argument("--checkpoint", type=Path, required=True)
+    parser.add_argument("--evaluation-baseline", type=Path)
     parser.add_argument("--log-dir", type=Path, required=True)
     parser.add_argument("--bridge", required=True)
     parser.add_argument("--data-dir", required=True)
@@ -139,7 +141,8 @@ def main() -> int:
         return 2
     # Evaluate the frozen original and final policies using the same new seeds.
     # These are simulator fixtures, not additional Arena matches.
-    for label, path in (("before", checkpoint), ("after", result["final_checkpoint"])):
+    baseline = args.evaluation_baseline or checkpoint
+    for label, path in (("before", baseline), ("after", result["final_checkpoint"])):
         loaded = load_checkpoint(path)
         evaluation = evaluate(
             loaded.model, games=200, seed=3501000000,
