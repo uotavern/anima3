@@ -96,3 +96,7 @@ rare combo examples. Repeated training with new seeds, 16,384 demonstration step
 - Selected SHA `e5915b8ddc9ecf1b5373fef4c9b60d11022584b3363faceac7aed918be67e903`.
 - Exact summary and demonstration option counts: `2026-10-06-curriculum-results.json`.
 - Live deployment artifact is `/opt/uoarena/anima3-training-league-20261006/warmstart`.
+
+Final simulator W/L/D: initial 1/86/13, BC 8/35/57, PPO 11/30/59.
+Most of the improvement is survival/draw conversion; it is not a 36.5% win rate.
+The historical 100-duel experiment finished all fixtures before this live pilot.
