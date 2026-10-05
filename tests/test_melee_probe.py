@@ -47,3 +47,16 @@ def test_no_punch_or_stun_with_unsafe_state_or_owned_cursor():
 def test_emergency_heal_precedes_closing_distance():
     v = view(distance=6, hp=40)
     assert MeleeProbe('punch').choose(v, legal_mask(v)) == 'greater_heal'
+
+
+def test_agility_before_refresh_when_clumsy_lowers_maximum():
+    p = MeleeProbe('stun', resources=True)
+    items = [SimpleNamespace(graphic=0xF08, amount=5, serial=100),
+             SimpleNamespace(graphic=0xF0B, amount=5, serial=200)]
+    def packet(v, now, busy=False):
+        return p.resource_packet(v, now, items, busy=busy, hands_free=True)
+    assert packet(view(stamina_max=14, stamina=14), 0) == [{'type': 'Use', 'serial': 100}]
+    assert packet(view(stamina_max=34, stamina=14), 1) == []
+    assert packet(view(stamina_max=34, stamina=14), 5) == [{'type': 'Use', 'serial': 200}]
+    assert packet(view(stamina_max=34, stamina=34), 10) == []
+    assert packet(view(stamina_max=14, stamina=14), 10, busy=True) == []

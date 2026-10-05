@@ -14,9 +14,14 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument('--accounts-file', type=Path, required=True)
     ap.add_argument('--root', type=Path, required=True)
+    ap.add_argument('--probe-resources', action='store_true')
+    ap.add_argument('--modes', nargs='+', choices=['magic', 'punch', 'stun'],
+                    default=['magic', 'punch', 'stun', 'magic', 'punch', 'stun'])
     ap.add_argument('--bridge', required=True)
     ap.add_argument('--data-dir', required=True)
     args = ap.parse_args()
+    if not 1 <= len(args.modes) <= 6:
+        ap.error('choose 1..6 fixtures')
     if args.root.exists():
         ap.error('choose a new root; no automatic replay of prior fixtures')
     accounts = json.loads(args.accounts_file.read_text())
@@ -28,9 +33,9 @@ def main():
     signal.signal(signal.SIGINT, lambda *_: stop.set())
     history = []
     report = {'experiment': 'melee-harm-v1', 'training_updates': 0,
-              'target_matches': 6, 'history': history, 'status': 'running'}
+              'target_matches': len(args.modes), 'history': history, 'status': 'running'}
     try:
-        for n, mode in enumerate(('magic', 'punch', 'stun', 'magic', 'punch', 'stun')):
+        for n, mode in enumerate(args.modes):
             if stop.is_set():
                 raise RuntimeError('experiment stopped')
             parser = argparse.ArgumentParser()
@@ -41,6 +46,7 @@ def main():
                 '--matches', '1', '--log-dir', str(args.root / f'{n+1:02d}-{mode}'),
                 '--bridge', args.bridge, '--data-dir', args.data_dir,
             ])
+            cfg.probe_resources = args.probe_resources
             cfg.fixture_offset = n
             report.update(current_fixture=n+1, current_tactic=mode)
             atomic_json(args.root / 'report.json', report)

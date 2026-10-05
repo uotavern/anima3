@@ -124,7 +124,7 @@ class LiveReplayVerifier:
             return False
 
 
-def _actor(body, opponent, worker, log, stop, *, deadline=340, expected_rules=TRAINING_RULES, tactic=None):
+def _actor(body, opponent, worker, log, stop, *, deadline=340, expected_rules=TRAINING_RULES, tactic=None, probe_resources=False):
     """All access to one BridgeBody belongs to this thread during a match."""
     state, last_state, last_ping = {}, time.monotonic(), 0.0
     match_id = epoch = None
@@ -134,7 +134,7 @@ def _actor(body, opponent, worker, log, stop, *, deadline=340, expected_rules=TR
     events = []
     end = time.monotonic() + deadline
     baseline = None
-    probe = MeleeProbe(tactic) if tactic else None
+    probe = MeleeProbe(tactic, resources=probe_resources) if tactic else None
     view = ObservedBody(body)
     start_times = []
     next_decision = 0.0
@@ -302,7 +302,9 @@ def _actor(body, opponent, worker, log, stop, *, deadline=340, expected_rules=TR
                           "cliloc": j.cliloc, "text": j.text})
                 hands_free = not any(i.container == body_id and i.layer in (1, 2)
                                      for i in obs.items)
-                packets = probe.packets(executor.view, now, opponent,
+                packets = probe.resource_packet(executor.view, now, obs.own_pack(),
+                                                busy=executor.busy, hands_free=hands_free)
+                packets = packets or probe.packets(executor.view, now, opponent,
                                         busy=executor.busy, hands_free=hands_free)
                 for packet in packets:
                     rpc("probe:" + packet["type"], body.act, packet)
@@ -399,12 +401,12 @@ def _actor(body, opponent, worker, log, stop, *, deadline=340, expected_rules=TR
     raise RuntimeError("live match stopped or timed out; no unverified training result emitted")
 
 
-def fight(bodies, workers, log, stop, tactic=None):
+def fight(bodies, workers, log, stop, tactic=None, probe_resources=False):
     with ThreadPoolExecutor(max_workers=2) as pool:
         ids = [b.observe().player.serial for b in bodies]
         futures = [
             pool.submit(_actor, b, ids[1 - i], workers[i], log, stop,
-                        **({"tactic": tactic} if tactic and i == 0 else {})) for i, b in enumerate(bodies)
+                        **({"tactic": tactic, "probe_resources": probe_resources} if tactic and i == 0 else {})) for i, b in enumerate(bodies)
         ]
         try:
             result = [None, None]
@@ -420,6 +422,7 @@ def fight(bodies, workers, log, stop, tactic=None):
 
 def add_arguments(ap):
     ap.add_argument("--checkpoint", type=Path, required=True)
+    ap.add_argument("--probe-resources", action="store_true")
     ap.add_argument("--experimental-tactic", choices=["magic", "punch", "stun"])
     ap.add_argument("--opponent-checkpoint", type=Path)
     ap.add_argument("--opponent", choices=["scripted", "self"], default="scripted")
@@ -528,7 +531,7 @@ def run(args, stop=None):
                 raise RuntimeError("invitation differs from expected training fixture")
             receiver.act(say("[DuelAccept " + invite["id"]))
             atomic_json(log / "status.json", {"stage": "fighting", "game": game + 1})
-            actors = fight(bodies, workers, log, stop, **({"tactic": tactic} if tactic else {}))
+            actors = fight(bodies, workers, log, stop, **({"tactic": tactic, "probe_resources": getattr(args, "probe_resources", False)} if tactic else {}))
             match_id = actors[0]["id"]
             meta, rows = receipt_while_pumping(
                 args.web, match_id, [ids[i] for i in order], log, bodies
@@ -570,6 +573,7 @@ def run(args, stop=None):
                 files.append(str(file))
             result = {
                 "experimental_tactic": tactic,
+                "probe_resources": getattr(args, "probe_resources", False),
                 "game": game + 1,
                 "challenger": ids[order[0]],
                 "match_id": match_id,
