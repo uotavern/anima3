@@ -129,9 +129,9 @@ def _actor(body, opponent, worker, log, stop, *, deadline=340, expected_rules=TR
     state, last_state, last_ping = {}, time.monotonic(), 0.0
     match_id = epoch = None
     seen = False
-    fast_timing = tactic in ("dump-fast", "dump-held")
+    fast_timing = tactic in ("dump-fast", "dump-held", "dump-primed")
     executor = CombatExecutor(opponent, **({"fast_timing": True,
-                              "hold_explosion": tactic == "dump-held"} if fast_timing else {}))
+                              "hold_explosion": tactic in ("dump-held", "dump-primed")} if fast_timing else {}))
     if fast_timing:
         # Only adjacent path decisions are needed in this non-potion probe.
         # Avoid rebuilding a full screen terrain grid on every cast poll.
@@ -434,7 +434,7 @@ def fight(bodies, workers, log, stop, tactic=None, probe_resources=False):
 def add_arguments(ap):
     ap.add_argument("--checkpoint", type=Path, required=True)
     ap.add_argument("--probe-resources", action="store_true")
-    ap.add_argument("--experimental-tactic", choices=["magic", "punch", "stun", "dump-baseline", "dump-fast", "dump-held"])
+    ap.add_argument("--experimental-tactic", choices=["magic", "punch", "stun", "dump-baseline", "dump-fast", "dump-held", "dump-primed"])
     ap.add_argument("--opponent-checkpoint", type=Path)
     ap.add_argument("--opponent", choices=["scripted", "self"], default="scripted")
     ap.add_argument("--host", default="arena.uotavern.com")

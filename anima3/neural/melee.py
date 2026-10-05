@@ -95,6 +95,11 @@ class CastDumpProbe(MeleeProbe):
                              ('heal_potion', view.hp < 65), ('greater_heal', view.hp < 45)):
             if needed and legal(name):
                 return name
+        if self.dump_mode == 'dump-primed':
+            for name in ('weaken', 'clumsy'):
+                if name not in self.opening and legal(name):
+                    self.opening.add(name)
+                    return name
         if view.distance > 6 and legal('approach'):
             return 'approach'
         spell = self.sequence[self.index % len(self.sequence)]
