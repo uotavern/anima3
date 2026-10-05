@@ -29,9 +29,25 @@ def summarize(root):
             if (e.get('type') == 'wire_action' and e.get('action') == 8
                     and e.get('packet', {}).get('type') == 'TargetObject'):
                 harm_distances.append(e.get('probe_distance'))
+        positions = {}
+        server_harm_distances = []
+        for line in (match / 'replay.jsonl').read_text().splitlines():
+            e = json.loads(line)
+            updates = e.get('players', []) if e['type'] == 'frame' else (
+                [e['player']] if e['type'] == 'position' else [])
+            for player in updates:
+                positions[player['serial']] = player['pos']
+            if (e['type'] == 'spell_target' and e.get('actor') == learner
+                    and e.get('name') == 'HarmSpell'):
+                a, b = positions.get(learner), positions.get(e['target'])
+                if a is not None and b is not None:
+                    server_harm_distances.append(max(abs(a[0]-b[0]), abs(a[1]-b[1])))
         rows.append({'tactic': result['experimental_tactic'], 'match_id': result['match_id'],
                      'won': result['winner'] == learner, 'counts': dict(counts),
-                     'harm_release_distances': harm_distances, 'metrics': result['metrics'],
+                     'harm_release_distances': harm_distances,
+                     'server_harm_target_distances': server_harm_distances,
+                     'probe_resources': result.get('probe_resources', False),
+                     'metrics': result['metrics'],
                      'replay': result['replay']})
     return {'status': report['status'], 'completed': len(rows), 'matches': rows,
             'limitation': 'Attack packets are not hits. Anonymous damage cannot establish punch hit rate or causal cast interruption. No learned policy improvement claimed.'}

@@ -27,3 +27,24 @@ anonymous damage cannot prove punch hit rate or causal interruption; do not
 report all fizzles as punch interrupts. Two games per arm is only a smoke test,
 not a statistically reliable win-rate comparison. Existing validation gates and
 state-loss stop remain enabled. Server/shard binaries are unchanged.
+
+## First observed mechanics and resource follow-up
+
+The first stun-labelled fixture reached one tile and released 23 Harm targets,
+with 22 executor completions and 28 Attack requests. No StunRequest was sent:
+Clumsy reduced the 25 DEX build to 14 maximum stamina, below the required 15.
+Do not label this fixture as successful stun use. The first punch fixture stayed
+at distance 2 and never punched; labelled modes alone do not prove exposure.
+
+A separate two-fixture follow-up uses supplied Greater Agility (0xF08) before
+Refresh (0xF0B) when needed. Acknowledged observation, rather than the Use request,
+controls whether stun is legal. Both resources wait for an idle executor/free
+hands and are rate-limited. The follow-up waits for the six-fixture service to
+exit successfully and checks no bridge is active; failure does not auto-retry.
+
+- Runtime: `/opt/uoarena/anima3-melee-resources-20261005`
+- Unit: `arena-melee-resources-20261005.service`
+- Results: `.logs/stun-resources`
+- 41 focused tests passed, including stale-state/cursor guards, toggle semantics,
+  and agility-before-refresh resource recovery.
+- Total authorized mechanics probe is bounded to 8 matches, 0 neural updates.
