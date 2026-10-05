@@ -62,3 +62,20 @@ The first resource-assisted fixture `ed73efec0c79457490f46f23acdf8b1d` won and
 recorded two server-confirmed stun successes, ten one-tile Harm targets, and
 four insufficient-stamina messages. This validates actual stun use and shows
 resource pressure, not guaranteed success from merely issuing a request.
+
+## Final result
+
+All 8/8 fixtures completed; both transient services exited successfully, no
+anima-bridge remained, and arena-shard stayed active. The resource-assisted arm
+won both matches. Across those two fixtures: 6 server-confirmed stun successes,
+2 failed attempts, 4 insufficient-stamina notices, 72 Attack requests and 36
+server-confirmed Harm targets at one tile. See
+`2026-10-05-melee-resources-results.json`. The second replay is
+https://arena.uotavern.com/replay/?replay=90526361b25f49cf86b9de7343cd5429 .
+
+Across all 8 fixtures there were 67 server-confirmed one-tile Harm targets and
+109 Attack requests. All arms won against this fixed opponent, so wins cannot
+establish superiority of the added mechanic. Punch hit rate and causal cast
+interrupt counts remain unmeasured by this replay format. This run proves live
+execution of close Harm and stuns, not reinforcement-learning improvement.
+No policy weights or original 100-match budget were modified.

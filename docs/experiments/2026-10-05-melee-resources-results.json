@@ -1,0 +1,155 @@
+{
+  "status": "complete",
+  "completed": 2,
+  "matches": [
+    {
+      "tactic": "stun",
+      "match_id": "ed73efec0c79457490f46f23acdf8b1d",
+      "won": true,
+      "counts": {
+        "Use": 6,
+        "StunRequest": 2,
+        "Attack": 14,
+        "stun_armed": 2,
+        "harm_options_completed": 10,
+        "stun_insufficient_stamina": 4,
+        "stun_success": 2
+      },
+      "harm_release_distances": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "server_harm_target_distances": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "probe_resources": true,
+      "metrics": {
+        "57": {
+          "casts": 18,
+          "damage": 93,
+          "fizzles": 0,
+          "healing": 193,
+          "potion_throws": 0,
+          "self_damage": 0
+        },
+        "58": {
+          "casts": 15,
+          "damage": 221,
+          "fizzles": 0,
+          "healing": 0,
+          "potion_throws": 1,
+          "self_damage": 0
+        }
+      },
+      "replay": "https://arena.uotavern.com/replay/?replay=ed73efec0c79457490f46f23acdf8b1d"
+    },
+    {
+      "tactic": "stun",
+      "match_id": "90526361b25f49cf86b9de7343cd5429",
+      "won": true,
+      "counts": {
+        "Use": 7,
+        "StunRequest": 5,
+        "Attack": 58,
+        "stun_armed": 5,
+        "harm_options_completed": 26,
+        "stun_success": 4,
+        "stun_failure": 2
+      },
+      "harm_release_distances": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "server_harm_target_distances": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "probe_resources": true,
+      "metrics": {
+        "57": {
+          "casts": 59,
+          "damage": 334,
+          "fizzles": 0,
+          "healing": 205,
+          "potion_throws": 0,
+          "self_damage": 0
+        },
+        "58": {
+          "casts": 46,
+          "damage": 300,
+          "fizzles": 0,
+          "healing": 227,
+          "potion_throws": 1,
+          "self_damage": 0
+        }
+      },
+      "replay": "https://arena.uotavern.com/replay/?replay=90526361b25f49cf86b9de7343cd5429"
+    }
+  ],
+  "limitation": "Attack packets are not hits. Anonymous damage cannot establish punch hit rate or causal cast interruption. No learned policy improvement claimed."
+}
