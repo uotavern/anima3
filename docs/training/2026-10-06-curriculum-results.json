@@ -1,0 +1,90 @@
+{
+  "bc_gate": {
+    "delta_ci95": [
+      0.215,
+      0.365
+    ],
+    "domain": "approximate-pre-aos-simulator",
+    "enough_evidence": true,
+    "paired_delta": 0.29,
+    "passed": true,
+    "public_deployment": false,
+    "reason": "improved",
+    "style_deltas": {
+      "balanced": 0.4,
+      "burst": 0.375,
+      "defensive": 0.25,
+      "potions": 0.375,
+      "pressure": 0.05
+    }
+  },
+  "demonstration_steps": 16384,
+  "ppo_gate": {
+    "delta_ci95": [
+      -0.035,
+      0.11
+    ],
+    "domain": "approximate-pre-aos-simulator",
+    "enough_evidence": true,
+    "paired_delta": 0.04,
+    "passed": false,
+    "public_deployment": false,
+    "reason": "retain incumbent: insufficient or regressed evidence",
+    "style_deltas": {
+      "balanced": 0.05,
+      "burst": 0.125,
+      "defensive": 0.025,
+      "potions": -0.1,
+      "pressure": 0.1
+    }
+  },
+  "public_deployment": false,
+  "real_server_strength_established": false,
+  "selected_checkpoint": "/Users/dkkang/dev/uo/arena-worktrees/anima3-training-league/.logs/curriculum-league-20261006-v3/warmstart",
+  "selected_sha": "e5915b8ddc9ecf1b5373fef4c9b60d11022584b3363faceac7aed918be67e903",
+  "selection_gate": {
+    "delta_ci95": [
+      -0.035,
+      0.11
+    ],
+    "domain": "approximate-pre-aos-simulator",
+    "enough_evidence": true,
+    "paired_delta": 0.04,
+    "passed": false,
+    "public_deployment": false,
+    "reason": "retain incumbent: insufficient or regressed evidence",
+    "style_deltas": {
+      "balanced": 0.05,
+      "burst": 0.125,
+      "defensive": 0.025,
+      "potions": -0.1,
+      "pressure": 0.1
+    }
+  },
+  "selection_scope": "experimental-training-only",
+  "status": "complete",
+  "training_steps": 65536,
+  "demonstration_options": {
+    "weaken": 81,
+    "agility_potion": 115,
+    "stun": 85,
+    "hold": 3112,
+    "clumsy": 79,
+    "harm": 661,
+    "refresh_potion": 312,
+    "heal_potion": 219,
+    "greater_heal": 258,
+    "approach": 235,
+    "punch": 13,
+    "retreat": 272,
+    "heal": 20,
+    "explosion_potion": 203,
+    "magic_arrow": 73,
+    "explosion": 243,
+    "energy_bolt": 210,
+    "meditate": 326,
+    "cure_potion": 98,
+    "burst_bolt": 45,
+    "cure": 52
+  }
+}

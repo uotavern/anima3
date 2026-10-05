@@ -40,7 +40,11 @@ class TacticalTeacher:
         if view.mana < 23:
             choices += ["retreat"] if view.distance < 6 else []
             choices += ["meditate"]
-        if self.style in ("burst", "potions", "balanced"):
+        if self.style == "burst":
+            choices += ["burst_bolt", "explosion"]
+        elif self.style == "potions":
+            choices += ["explosion_potion", "energy_bolt"]
+        elif self.style == "balanced":
             choices += ["burst_bolt", "explosion_potion"]
         if self.style == "defensive" and not view.opponent_poisoned:
             choices += ["poison"]

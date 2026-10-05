@@ -379,6 +379,8 @@ def collect_simulator(
         side = len(episodes) % 2
         frames = setup_drill(sim, drill, side)
         learner_teacher = TacticalTeacher(teacher_style)
+        if drill == "burst":
+            learner_teacher.opened.update(("weaken", "clumsy"))
         opponent_teacher = TacticalTeacher(rng.choice(opponent_styles))
         # Retain a scripted anchor while broadening opponents with frozen snapshots.
         opponent = rng.choice(opponents) if opponents and rng.random() < 0.5 else None

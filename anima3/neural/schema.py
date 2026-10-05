@@ -224,7 +224,7 @@ def legal_mask(view: CombatView) -> list[bool]:
 
 
 def encode(view: CombatView) -> Frame:
-    """Encode 65 bounded features; unknown health never leaks through its value."""
+    """Encode 75 bounded features; unknown health never leaks through its value."""
     values = [
         _unit(view.hp, view.hp_max), _unit(view.mana, view.mana_max),
         _unit(view.stamina, view.stamina_max),

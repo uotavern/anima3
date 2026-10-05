@@ -129,3 +129,19 @@ def test_multi_collection_update_uses_one_behavior_and_each_receipt(tmp_path, mo
         online.update_collections('seed', roots+roots[:1],tmp_path/'dup')
     with pytest.raises(online.NoEligibleEpisodes):
         online.update_collections('seed',roots[:3],tmp_path/'small')
+
+
+def test_burst_and_potion_opponents_have_distinct_priorities():
+    v=CombatView(opponent_visible=True, line_of_sight=True, distance=5,
+                 reagent_counts=(100,)*8, elapsed=20, explosion_potions=5)
+    burst=TacticalTeacher('burst').choose(v)
+    potions=TacticalTeacher('potions').choose(v)
+    assert burst == ACTION_INDEX['burst_bolt']
+    assert potions == ACTION_INDEX['explosion_potion']
+
+
+def test_gate_rejects_nonfinite_scores():
+    before, after=report(0),report(1)
+    after['rows'][0]['score']=float('inf')
+    with pytest.raises(ValueError,match='scores'):
+        promotion_gate(before,after)

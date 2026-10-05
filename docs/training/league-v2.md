@@ -81,3 +81,18 @@ results, not real-server win rates. Selected warmstart SHA:
 
 Artifacts: `.logs/curriculum-league-20261006-v2/` contains demonstrations,
 immutable checkpoints, each evaluation fixture and `registry.json`.
+
+### Final pre-live revision
+
+Code review found that three initial opponent labels shared priorities. Burst now
+prioritizes held Explosion combinations; potions prioritizes independent throws;
+balanced retains mixed combinations. Short drills reset after 30 s to increase
+rare combo examples. Repeated training with new seeds, 16,384 demonstration steps,
+32 BC epochs, 65,536 PPO steps and 100 new evaluation fixtures per model:
+
+- Initial score .075; BC .365; PPO .405.
+- BC delta .290, CI [.215,.365]: pass.
+- PPO vs BC delta .040, CI [-.035,.110]: retain BC.
+- Selected SHA `e5915b8ddc9ecf1b5373fef4c9b60d11022584b3363faceac7aed918be67e903`.
+- Exact summary and demonstration option counts: `2026-10-06-curriculum-results.json`.
+- Live deployment artifact is `/opt/uoarena/anima3-training-league-20261006/warmstart`.

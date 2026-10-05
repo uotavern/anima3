@@ -59,12 +59,16 @@ def evaluate_suite(model, *, games_per_style=20, seed=3_600_000_000, max_steps=8
 
 def promotion_gate(before, after, *, min_games_per_style=20, max_regression=0.10):
     """Paired bootstrap over seed blocks (both sides stay together). Fail closed."""
+    if before["domain"] not in ("servuo", "approximate-pre-aos-simulator"):
+        raise ValueError("unknown evaluation domain")
     if before["domain"] != after["domain"]:
         raise ValueError("cannot compare simulator with live outcomes")
     key = lambda r: (r["style"], r["seed"], r["side"])
     a, b = {key(r): r for r in before["rows"]}, {key(r): r for r in after["rows"]}
     if not a or a.keys() != b.keys() or len(a) != len(before["rows"]) or len(b) != len(after["rows"]):
         raise ValueError("paired evaluation fixtures differ or duplicate")
+    if any(r["score"] not in (0, 0.5, 1) for r in (*a.values(), *b.values())):
+        raise ValueError("evaluation scores must be loss/draw/win")
     by_style, blocks = {}, {}
     for k, row in a.items():
         delta = b[k]["score"] - row["score"]
@@ -126,7 +130,7 @@ def main(argv=None):
             model, steps=args.bc_steps_per_drill, seed=args.seed + i,
             teacher_actions=True, drill=drill,
             teacher_style="pressure" if drill == "melee" else "balanced",
-            opponent_styles=STYLES, max_episode_steps=min(args.max_steps, 400),
+            opponent_styles=STYLES, max_episode_steps=min(args.max_steps, 120 if drill != "full" else 400),
             shaping_gamma=config.gamma)
         demos.extend(trajectories)
         record({"stage": "demonstrations", "drill": drill, **summary})
