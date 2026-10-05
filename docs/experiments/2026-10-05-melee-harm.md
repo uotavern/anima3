@@ -48,3 +48,17 @@ exit successfully and checks no bridge is active; failure does not auto-retry.
 - 41 focused tests passed, including stale-state/cursor guards, toggle semantics,
   and agility-before-refresh resource recovery.
 - Total authorized mechanics probe is bounded to 8 matches, 0 neural updates.
+
+## Completed base comparison
+
+All six base fixtures completed and were receipt-verified. Each arm won 2/2
+against the fixed scripted opponent; this does not establish a difference
+between the arms. Only two fixtures actually reached melee: together they
+recorded 37 Attack requests and 31 server Harm targets at one tile. Neither
+stun-labelled base fixture produced a stun success. Raw summaries are retained
+in `2026-10-05-melee-harm-results.json`.
+
+The first resource-assisted fixture `ed73efec0c79457490f46f23acdf8b1d` won and
+recorded two server-confirmed stun successes, ten one-tile Harm targets, and
+four insufficient-stamina messages. This validates actual stun use and shows
+resource pressure, not guaranteed success from merely issuing a request.

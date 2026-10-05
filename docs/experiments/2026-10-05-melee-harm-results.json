@@ -1,0 +1,247 @@
+{
+  "status": "complete",
+  "completed": 6,
+  "matches": [
+    {
+      "tactic": "magic",
+      "match_id": "1a73fc42abc04a338a547b8d39bac13e",
+      "won": true,
+      "counts": {},
+      "harm_release_distances": [],
+      "server_harm_target_distances": [],
+      "probe_resources": false,
+      "metrics": {
+        "57": {
+          "casts": 38,
+          "damage": 235,
+          "fizzles": 0,
+          "healing": 326,
+          "potion_throws": 0,
+          "self_damage": 0
+        },
+        "58": {
+          "casts": 37,
+          "damage": 383,
+          "fizzles": 0,
+          "healing": 139,
+          "potion_throws": 5,
+          "self_damage": 0
+        }
+      },
+      "replay": "https://arena.uotavern.com/replay/?replay=1a73fc42abc04a338a547b8d39bac13e"
+    },
+    {
+      "tactic": "punch",
+      "match_id": "b2d40d85dd0e48b9aa661035f27efaac",
+      "won": true,
+      "counts": {},
+      "harm_release_distances": [],
+      "server_harm_target_distances": [],
+      "probe_resources": false,
+      "metrics": {
+        "57": {
+          "casts": 8,
+          "damage": 116,
+          "fizzles": 0,
+          "healing": 124,
+          "potion_throws": 0,
+          "self_damage": 0
+        },
+        "58": {
+          "casts": 9,
+          "damage": 158,
+          "fizzles": 0,
+          "healing": 46,
+          "potion_throws": 2,
+          "self_damage": 28
+        }
+      },
+      "replay": "https://arena.uotavern.com/replay/?replay=b2d40d85dd0e48b9aa661035f27efaac"
+    },
+    {
+      "tactic": "stun",
+      "match_id": "d5936caf35e4424eaf9ff5ac51f492a9",
+      "won": true,
+      "counts": {
+        "Attack": 28,
+        "harm_options_completed": 22
+      },
+      "harm_release_distances": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "server_harm_target_distances": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "probe_resources": false,
+      "metrics": {
+        "57": {
+          "casts": 33,
+          "damage": 183,
+          "fizzles": 0,
+          "healing": 207,
+          "potion_throws": 0,
+          "self_damage": 0
+        },
+        "58": {
+          "casts": 24,
+          "damage": 230,
+          "fizzles": 0,
+          "healing": 83,
+          "potion_throws": 1,
+          "self_damage": 0
+        }
+      },
+      "replay": "https://arena.uotavern.com/replay/?replay=d5936caf35e4424eaf9ff5ac51f492a9"
+    },
+    {
+      "tactic": "magic",
+      "match_id": "5c0f3c6d162b41c5918ed9275f6809fd",
+      "won": true,
+      "counts": {},
+      "harm_release_distances": [],
+      "server_harm_target_distances": [],
+      "probe_resources": false,
+      "metrics": {
+        "57": {
+          "casts": 14,
+          "damage": 109,
+          "fizzles": 0,
+          "healing": 255,
+          "potion_throws": 0,
+          "self_damage": 0
+        },
+        "58": {
+          "casts": 11,
+          "damage": 260,
+          "fizzles": 0,
+          "healing": 0,
+          "potion_throws": 3,
+          "self_damage": 0
+        }
+      },
+      "replay": "https://arena.uotavern.com/replay/?replay=5c0f3c6d162b41c5918ed9275f6809fd"
+    },
+    {
+      "tactic": "punch",
+      "match_id": "786c680572294b77b48e784a2611bd9e",
+      "won": true,
+      "counts": {
+        "Attack": 9,
+        "harm_options_completed": 7
+      },
+      "harm_release_distances": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "server_harm_target_distances": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "probe_resources": false,
+      "metrics": {
+        "57": {
+          "casts": 17,
+          "damage": 93,
+          "fizzles": 0,
+          "healing": 233,
+          "potion_throws": 0,
+          "self_damage": 0
+        },
+        "58": {
+          "casts": 15,
+          "damage": 254,
+          "fizzles": 0,
+          "healing": 0,
+          "potion_throws": 2,
+          "self_damage": 0
+        }
+      },
+      "replay": "https://arena.uotavern.com/replay/?replay=786c680572294b77b48e784a2611bd9e"
+    },
+    {
+      "tactic": "stun",
+      "match_id": "f00bf00fd0ad40b2bbbbb9efb49238e1",
+      "won": true,
+      "counts": {},
+      "harm_release_distances": [],
+      "server_harm_target_distances": [],
+      "probe_resources": false,
+      "metrics": {
+        "57": {
+          "casts": 7,
+          "damage": 71,
+          "fizzles": 0,
+          "healing": 156,
+          "potion_throws": 0,
+          "self_damage": 0
+        },
+        "58": {
+          "casts": 7,
+          "damage": 176,
+          "fizzles": 0,
+          "healing": 0,
+          "potion_throws": 2,
+          "self_damage": 31
+        }
+      },
+      "replay": "https://arena.uotavern.com/replay/?replay=f00bf00fd0ad40b2bbbbb9efb49238e1"
+    }
+  ],
+  "limitation": "Attack packets are not hits. Anonymous damage cannot establish punch hit rate or causal cast interruption. No learned policy improvement claimed."
+}
