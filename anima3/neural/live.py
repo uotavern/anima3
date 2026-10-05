@@ -36,6 +36,7 @@ from ..sparring import (
 )
 from .executor import CombatExecutor
 from .inference import InferenceClient
+from .melee import MeleeProbe
 from .schema import ACTION_NAMES, schema_fingerprint
 
 EPISODE_SCHEMA = "anima3-live-policy-v1"
@@ -123,7 +124,7 @@ class LiveReplayVerifier:
             return False
 
 
-def _actor(body, opponent, worker, log, stop, *, deadline=340, expected_rules=TRAINING_RULES):
+def _actor(body, opponent, worker, log, stop, *, deadline=340, expected_rules=TRAINING_RULES, tactic=None):
     """All access to one BridgeBody belongs to this thread during a match."""
     state, last_state, last_ping = {}, time.monotonic(), 0.0
     match_id = epoch = None
@@ -133,6 +134,7 @@ def _actor(body, opponent, worker, log, stop, *, deadline=340, expected_rules=TR
     events = []
     end = time.monotonic() + deadline
     baseline = None
+    probe = MeleeProbe(tactic) if tactic else None
     view = ObservedBody(body)
     start_times = []
     next_decision = 0.0
@@ -271,7 +273,7 @@ def _actor(body, opponent, worker, log, stop, *, deadline=340, expected_rules=TR
                 executor.reset(opponent, epoch)
                 if worker:
                     worker.reset(epoch)
-                else:
+                elif not probe:
                     baseline = Agent(
                         view,
                         Persona.load("mage_a"),
@@ -292,7 +294,29 @@ def _actor(body, opponent, worker, log, stop, *, deadline=340, expected_rules=TR
                         duel_rules=TRAINING_RULES,
                         playbook="standard",
                     )
-            if worker:
+            if probe:
+                frame = executor.observe(obs, server_state=update, now=now)
+                probe.feedback(obs.new_journal, now)
+                for j in obs.new_journal:
+                    emit({"type": "probe_journal", "serial": j.serial,
+                          "cliloc": j.cliloc, "text": j.text})
+                hands_free = not any(i.container == body_id and i.layer in (1, 2)
+                                     for i in obs.items)
+                packets = probe.packets(executor.view, now, opponent,
+                                        busy=executor.busy, hands_free=hands_free)
+                for packet in packets:
+                    rpc("probe:" + packet["type"], body.act, packet)
+                    emit({"type": "probe_packet", "packet": packet,
+                          "distance": executor.view.distance})
+                if not executor.busy and not packets and now - last_state < 3:
+                    name = probe.choose(executor.view, frame.mask)
+                    executor.start(name, obs, time.monotonic())
+                for packet in executor.tick(obs, time.monotonic()):
+                    rpc("act:" + packet["type"], body.act, packet)
+                for event in executor.drain_events():
+                    emit({**event, "probe_distance": executor.view.distance})
+                rpc("pump", body.pump, 50)
+            elif worker:
                 frame = executor.observe(obs, server_state=update, now=now)
                 # Advance an already committed option even across brief state latency.
                 for packet in executor.tick(obs, time.monotonic()):
@@ -375,11 +399,12 @@ def _actor(body, opponent, worker, log, stop, *, deadline=340, expected_rules=TR
     raise RuntimeError("live match stopped or timed out; no unverified training result emitted")
 
 
-def fight(bodies, workers, log, stop):
+def fight(bodies, workers, log, stop, tactic=None):
     with ThreadPoolExecutor(max_workers=2) as pool:
         ids = [b.observe().player.serial for b in bodies]
         futures = [
-            pool.submit(_actor, b, ids[1 - i], workers[i], log, stop) for i, b in enumerate(bodies)
+            pool.submit(_actor, b, ids[1 - i], workers[i], log, stop,
+                        **({"tactic": tactic} if tactic and i == 0 else {})) for i, b in enumerate(bodies)
         ]
         try:
             result = [None, None]
@@ -395,6 +420,7 @@ def fight(bodies, workers, log, stop):
 
 def add_arguments(ap):
     ap.add_argument("--checkpoint", type=Path, required=True)
+    ap.add_argument("--experimental-tactic", choices=["magic", "punch", "stun"])
     ap.add_argument("--opponent-checkpoint", type=Path)
     ap.add_argument("--opponent", choices=["scripted", "self"], default="scripted")
     ap.add_argument("--host", default="arena.uotavern.com")
@@ -439,7 +465,8 @@ def run(args, stop=None):
         )
 
     try:
-        workers = [InferenceClient(args.checkpoint, deadline_ms=args.deadline_ms).start()]
+        tactic = getattr(args, "experimental_tactic", None)
+        workers = [None if tactic else InferenceClient(args.checkpoint, deadline_ms=args.deadline_ms).start()]
         workers.append(
             InferenceClient(
                 args.opponent_checkpoint or args.checkpoint, deadline_ms=args.deadline_ms
@@ -479,7 +506,9 @@ def run(args, stop=None):
             ids = [p["serial"] for p in players]
             for i, body in enumerate(bodies):
                 label = workers[i].policy_sha[:12] if workers[i] else "fixed-scripted"
-                body.act(say(f"[ArenaAgent neural {label} recurrent"))
+                if i == 0 and tactic:
+                    label = "probe-" + tactic
+                body.act(say(f"[ArenaAgent {'scripted' if tactic else 'neural'} {label} recurrent"))
                 pump(body, 0.5)
             fixture_index = game + getattr(args, "fixture_offset", 0)
             order = [0, 1] if fixture_index % 2 == 0 else [1, 0]
@@ -499,7 +528,7 @@ def run(args, stop=None):
                 raise RuntimeError("invitation differs from expected training fixture")
             receiver.act(say("[DuelAccept " + invite["id"]))
             atomic_json(log / "status.json", {"stage": "fighting", "game": game + 1})
-            actors = fight(bodies, workers, log, stop)
+            actors = fight(bodies, workers, log, stop, **({"tactic": tactic} if tactic else {}))
             match_id = actors[0]["id"]
             meta, rows = receipt_while_pumping(
                 args.web, match_id, [ids[i] for i in order], log, bodies
@@ -540,6 +569,7 @@ def run(args, stop=None):
                 atomic_json(file, episode)
                 files.append(str(file))
             result = {
+                "experimental_tactic": tactic,
                 "game": game + 1,
                 "challenger": ids[order[0]],
                 "match_id": match_id,
