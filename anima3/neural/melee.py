@@ -78,3 +78,29 @@ class MeleeProbe:
             if legal(name):
                 return name
         return 'hold'
+
+
+class CastDumpProbe(MeleeProbe):
+    """Identical spell choices across timing arms; no learned action samples."""
+    def __init__(self, mode):
+        super().__init__('magic')
+        self.dump_mode = mode
+        self.sequence = ('explosion', 'energy_bolt', 'flamestrike')
+        self.index = 0
+
+    def choose(self, view, mask):
+        def legal(name):
+            return mask[ACTION_INDEX[name]]
+        for name, needed in (('cure_potion', view.poisoned), ('cure', view.poisoned),
+                             ('heal_potion', view.hp < 65), ('greater_heal', view.hp < 45)):
+            if needed and legal(name):
+                return name
+        if view.distance > 6 and legal('approach'):
+            return 'approach'
+        spell = self.sequence[self.index % len(self.sequence)]
+        if legal(spell):
+            self.index += 1
+            return spell
+        if view.mana < 40 and legal('meditate'):
+            return 'meditate'
+        return 'hold'

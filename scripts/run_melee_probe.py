@@ -15,7 +15,7 @@ def main():
     ap.add_argument('--accounts-file', type=Path, required=True)
     ap.add_argument('--root', type=Path, required=True)
     ap.add_argument('--probe-resources', action='store_true')
-    ap.add_argument('--modes', nargs='+', choices=['magic', 'punch', 'stun'],
+    ap.add_argument('--modes', nargs='+', choices=['magic', 'punch', 'stun', 'dump-baseline', 'dump-fast', 'dump-held'],
                     default=['magic', 'punch', 'stun', 'magic', 'punch', 'stun'])
     ap.add_argument('--bridge', required=True)
     ap.add_argument('--data-dir', required=True)

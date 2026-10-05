@@ -393,3 +393,61 @@ def test_stdout_reader_records_arrival_before_actor_consumption():
         assert time.monotonic() - decision.received_at >= 0.02
     finally:
         client.close()
+
+
+def test_fast_held_explosion_can_chain_on_ack_without_new_recovery():
+    ex = CombatExecutor(2, fast_timing=True, hold_explosion=True)
+    ex.reset(2, 'dump', 0)
+    obs = observation()
+    ex.observe(obs, {'phase': 'Fighting', 'opponent': 2}, 0)
+    assert ex.start('explosion', obs, 0)
+    assert ex.tick(obs, 0) == [{'type': 'CastSpell', 'spell': 43}]
+    assert ex.tick(observation(cursor=(1, 0, 10)), 1.65) == []
+    assert ex.tick(observation(cursor=(1, 0, 10)), 2.39) == []
+    assert ex.tick(observation(cursor=(1, 0, 10)), 2.40) == [{'type': 'TargetObject', 'serial': 2}]
+    ack = observation(mana=80)
+    assert ex.tick(ack, 2.42) == []
+    assert not ex.busy
+    assert ex.start('energy_bolt', ack, 2.42)
+    assert ex.tick(ack, 2.42) == [{'type': 'CastSpell', 'spell': 42}]
+
+
+def test_fast_immediate_target_still_waits_cursor_based_recovery():
+    ex = CombatExecutor(2, fast_timing=True)
+    ex.reset(2, 'dump', 0)
+    obs = observation()
+    ex.observe(obs, {'phase': 'Fighting', 'opponent': 2}, 0)
+    assert ex.start('harm', obs, 0)
+    ex.tick(obs, 0)
+    assert ex.tick(observation(cursor=(1, 0, 10)), .65) == [{'type': 'TargetObject', 'serial': 2}]
+    ack = observation(mana=94)
+    ex.tick(ack, .70)
+    assert ex.busy
+    assert not ex.start('harm', ack, 1.39)
+    ex.tick(ack, 1.40)
+    assert ex.start('harm', ack, 1.40)
+
+
+def test_fast_does_not_chain_on_local_cursor_clear_without_mana_ack():
+    ex = CombatExecutor(2, fast_timing=True, hold_explosion=True)
+    ex.reset(2, 'dump', 0)
+    obs = observation()
+    ex.observe(obs, {'phase': 'Fighting', 'opponent': 2}, 0)
+    ex.start('explosion', obs, 0)
+    ex.tick(obs, 0)
+    ex.tick(observation(cursor=(1, 0, 10)), 1.65)
+    ex.tick(observation(cursor=(1, 0, 10)), 2.40)
+    ex.tick(observation(), 2.42)
+    assert ex.busy
+
+
+def test_fast_disturbance_has_recovery_guard():
+    ex = CombatExecutor(2, fast_timing=True)
+    ex.reset(2, 'dump', 0)
+    obs = observation()
+    ex.observe(obs, {'phase': 'Fighting', 'opponent': 2}, 0)
+    ex.start('explosion', obs, 0)
+    ex.tick(obs, 0)
+    ex.tick(observation(journal=[Journal(1, '', '', 0, 0, 500641)]), .2)
+    assert not ex.start('harm', observation(), 1.19)
+    assert ex.start('harm', observation(), 1.20)

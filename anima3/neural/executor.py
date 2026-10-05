@@ -84,7 +84,10 @@ class CombatExecutor:
     DuelState gap, so a primed potion is not abandoned in the backpack.
     """
 
-    def __init__(self, opponent_serial: int, emit: Callable[[dict], None] | None = None):
+    def __init__(self, opponent_serial: int, emit: Callable[[dict], None] | None = None,
+                 *, fast_timing=False, hold_explosion=False):
+        self.fast_timing = fast_timing
+        self.hold_explosion = hold_explosion
         self.opponent_serial = int(opponent_serial)
         self.emit = emit
         self.epoch = ""
@@ -214,6 +217,11 @@ class CombatExecutor:
             if journal.cliloc in CAST_VERDICTS:
                 self._verdict_at, self._verdict = now, CAST_VERDICTS[journal.cliloc]
                 self._event("spell_verdict", now, cliloc=journal.cliloc, verdict=self._verdict)
+                if self.fast_timing and journal.cliloc in (500641, 502644):
+                    # A disturbance has variable 0.2..1s recovery; without an
+                    # authoritative server timestamp use its safe upper bound.
+                    delay = 1.0 if journal.cliloc == 500641 else SPELL_RECOVERY
+                    self._recovery_until = max(self._recovery_until, now + delay)
                 if "line of sight" in self._verdict:
                     self._los_refused_until = now + 1.0
 
@@ -678,6 +686,11 @@ class CombatExecutor:
             if _cursor(obs, 2 if self_target else 1, 0):
                 proc.cursor_at = now
                 self._recovery_until = max(self._recovery_until, now + SPELL_RECOVERY)
+                self._event("cast_recovery_clock", now, spell=proc.spell,
+                            cursor_at=now, ready_at=self._recovery_until)
+                if self.hold_explosion and not proc.finisher and proc.spell == "explosion":
+                    self._stage("dump_hold", now, self._recovery_until)
+                    return []
                 if proc.finisher and proc.spell == "explosion" and proc.primed_at is not None:
                     self._stage("spell_hold", now, min(now + 0.65, proc.primed_at + 2.0))
                     return []
@@ -722,6 +735,18 @@ class CombatExecutor:
                 self._finish(now, False, "spell cursor timeout", forced=bool(obs.pending_target))
                 return packets
             return []
+        if proc.stage == "dump_hold":
+            if self._verdict_at > proc.cast_at:
+                self._finish(now, False, self._verdict)
+                return []
+            if now < proc.deadline:
+                return []
+            if not _cursor(obs, 1, 0):
+                self._finish(now, False, "held spell cursor missing")
+                return []
+            proc.target_at = now
+            self._stage("spell_target_wait", now, now + 1.2)
+            return self._wire(target_object(self.opponent_serial), now)
         if proc.stage == "spell_hold":
             enemy = self._opponent(obs)
             if (
@@ -749,7 +774,10 @@ class CombatExecutor:
                 self._finish(now, False, failure)
                 return []
             if not obs.pending_target and obs.player.mana < proc.mana_before:
-                self._stage("recovery", now, self._recovery_until)
+                if self.fast_timing and now >= self._recovery_until:
+                    self._finish(now, True, "spell target and mana acknowledged")
+                else:
+                    self._stage("recovery", now, self._recovery_until)
             elif now >= proc.deadline:
                 if obs.pending_target:
                     packets = self._wire({"type": "TargetCancel"}, now)

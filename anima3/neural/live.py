@@ -36,7 +36,7 @@ from ..sparring import (
 )
 from .executor import CombatExecutor
 from .inference import InferenceClient
-from .melee import MeleeProbe
+from .melee import CastDumpProbe, MeleeProbe
 from .schema import ACTION_NAMES, schema_fingerprint
 
 EPISODE_SCHEMA = "anima3-live-policy-v1"
@@ -129,12 +129,19 @@ def _actor(body, opponent, worker, log, stop, *, deadline=340, expected_rules=TR
     state, last_state, last_ping = {}, time.monotonic(), 0.0
     match_id = epoch = None
     seen = False
-    executor = CombatExecutor(opponent)
+    fast_timing = tactic in ("dump-fast", "dump-held")
+    executor = CombatExecutor(opponent, **({"fast_timing": True,
+                              "hold_explosion": tactic == "dump-held"} if fast_timing else {}))
+    if fast_timing:
+        # Only adjacent path decisions are needed in this non-potion probe.
+        # Avoid rebuilding a full screen terrain grid on every cast poll.
+        body.terrain_radius = 4
     transitions, invalid, latencies = [], set(), []
     events = []
     end = time.monotonic() + deadline
     baseline = None
-    probe = MeleeProbe(tactic, resources=probe_resources) if tactic else None
+    probe = (CastDumpProbe(tactic) if tactic and tactic.startswith("dump-") else
+             MeleeProbe(tactic, resources=probe_resources) if tactic else None)
     view = ObservedBody(body)
     start_times = []
     next_decision = 0.0
@@ -302,6 +309,10 @@ def _actor(body, opponent, worker, log, stop, *, deadline=340, expected_rules=TR
                           "cliloc": j.cliloc, "text": j.text})
                 hands_free = not any(i.container == body_id and i.layer in (1, 2)
                                      for i in obs.items)
+                if fast_timing:
+                    for packet in executor.tick(obs, time.monotonic()):
+                        rpc("act:" + packet["type"], body.act, packet)
+                    frame = executor.observe(obs, now=time.monotonic())
                 packets = probe.resource_packet(executor.view, now, obs.own_pack(),
                                                 busy=executor.busy, hands_free=hands_free)
                 packets = packets or probe.packets(executor.view, now, opponent,
@@ -317,7 +328,7 @@ def _actor(body, opponent, worker, log, stop, *, deadline=340, expected_rules=TR
                     rpc("act:" + packet["type"], body.act, packet)
                 for event in executor.drain_events():
                     emit({**event, "probe_distance": executor.view.distance})
-                rpc("pump", body.pump, 50)
+                rpc("pump", body.pump, 10 if fast_timing else 50)
             elif worker:
                 frame = executor.observe(obs, server_state=update, now=now)
                 # Advance an already committed option even across brief state latency.
@@ -423,7 +434,7 @@ def fight(bodies, workers, log, stop, tactic=None, probe_resources=False):
 def add_arguments(ap):
     ap.add_argument("--checkpoint", type=Path, required=True)
     ap.add_argument("--probe-resources", action="store_true")
-    ap.add_argument("--experimental-tactic", choices=["magic", "punch", "stun"])
+    ap.add_argument("--experimental-tactic", choices=["magic", "punch", "stun", "dump-baseline", "dump-fast", "dump-held"])
     ap.add_argument("--opponent-checkpoint", type=Path)
     ap.add_argument("--opponent", choices=["scripted", "self"], default="scripted")
     ap.add_argument("--host", default="arena.uotavern.com")
