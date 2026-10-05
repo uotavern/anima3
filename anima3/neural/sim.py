@@ -33,7 +33,7 @@ from .schema import (
     legal_mask,
 )
 
-SIM_VERSION = "approximate-pre-aos-options-v5"
+SIM_VERSION = "approximate-pre-aos-options-v6-tactics"
 POTION_FUSE = 3.75
 POTION_FLIGHT = 1.0
 POTION_RADIUS = 2
@@ -62,6 +62,15 @@ class Fighter:
     mana_max: float = 100.0
     stamina: float = 25.0
     stamina_max: float = 25.0
+    refresh_potions: int = 5
+    agility_potions: int = 5
+    resource_until: float = 0.0
+    agility_until: float = 0.0
+    stun_until: float = 0.0
+    frozen_until: float = 0.0
+    melee_until: float = 0.0
+    stun_armed: bool = False
+    melee_active: bool = False
     # ArenaSupplies.StockPotions replenishes five of each type for a duel.
     heal_potions: int = 5
     cure_potions: int = 5
@@ -214,14 +223,20 @@ class DuelSim:
             incoming = -1.0
         potion = self.potions.get(own.active_potion)
         return CombatView(
+            hands_free=True, stun_skilled=True, stun_armed=own.stun_armed,
+            stun_cooldown=max(0, own.stun_until - self.elapsed),
+            melee_cooldown=max(0, own.melee_until - self.elapsed),
+            resource_cooldown=max(0, own.resource_until - self.elapsed),
+            refresh_potions=own.refresh_potions, agility_potions=own.agility_potions,
+            melee_active=own.melee_active,
             hp=own.hp, hp_max=own.hp_max, mana=own.mana, mana_max=own.mana_max,
             stamina=own.stamina, stamina_max=own.stamina_max,
             opponent_hp=other.hp, opponent_hp_max=other.hp_max,
             opponent_health_known=True, dx=other.x - own.x, dy=other.y - own.y,
             distance=self._distance(), poisoned=own.poison_until > self.elapsed,
             opponent_poisoned=other.poison_until > self.elapsed,
-            paralyzed=own.paralyzed_until > self.elapsed,
-            opponent_paralyzed=other.paralyzed_until > self.elapsed,
+            paralyzed=max(own.paralyzed_until, own.frozen_until) > self.elapsed,
+            opponent_paralyzed=max(other.paralyzed_until, other.frozen_until) > self.elapsed,
             cast_remaining=max(0.0, own.cast_until - self.elapsed),
             busy_remaining=max(0.0, own.busy_until - self.elapsed),
             recovery_remaining=max(0.0, own.recovery_until - self.elapsed),
@@ -340,6 +355,25 @@ class DuelSim:
             self._start_cast(side, name)
         elif name.startswith("burst_"):
             self._start_cast(side, "explosion", "energy_bolt" if name == "burst_bolt" else "flamestrike")
+        elif name in ("punch", "stun"):
+            if name == "stun":
+                own.stun_armed = True
+            if not own.melee_active:
+                own.melee_active = True
+                self._schedule(self.elapsed + self.latency, "swing", side)
+            own.melee_until = self.elapsed + 2
+            own.busy_until = self.elapsed + self.dt
+        elif name in ("refresh_potion", "agility_potion"):
+            own.resource_until = self.elapsed + 5
+            own.busy_until = self.elapsed + self.dt
+            if name == "refresh_potion":
+                own.refresh_potions -= 1
+                own.stamina = own.stamina_max
+            else:
+                own.agility_potions -= 1
+                own.agility_until = self.elapsed + 120
+                own.stamina_max = 34 if own.clumsy_until > self.elapsed else 45
+            self._record("resource_potion", side, name=name)
         elif name == "meditate":
             own.meditation_until = self.elapsed + 8.0
             own.busy_until = self.elapsed + 2.0
@@ -422,7 +456,7 @@ class DuelSim:
         reach this path, while Paralyze and beneficial Cure do not.
         """
         victim = self.fighters[target]
-        if victim.cast_until > self.elapsed:
+        if victim.cast_until > self.elapsed and SPELL_CIRCLE.get(victim.cast_spell, 1) > 1:
             # GM caster without Protection. Spell.GetDisturbRecovery imposes a
             # 0.2-second floor and decreases with progress through the cast.
             duration = max(0.05, victim.cast_until - victim.cast_started)
@@ -474,18 +508,37 @@ class DuelSim:
             self._interrupt_cast(1 - side, spell)
             other.paralyzed_until = 0.0
             other.weakened_until = self.elapsed + 120.0
-            other.hp_max = 90.0
+            other.hp_max = 89.0
             other.hp = min(other.hp, other.hp_max)
         elif spell == "clumsy":
             self._interrupt_cast(1 - side, spell)
             other.paralyzed_until = 0.0
             other.clumsy_until = self.elapsed + 120.0
-            other.stamina_max = 15.0
+            other.stamina_max = 34.0 if other.agility_until > self.elapsed else 14.0
             other.stamina = min(other.stamina, other.stamina_max)
 
     def _event(self, kind: str, side: int, payload: Any) -> None:
         own = self.fighters[side]
-        if kind == "damage":
+        if kind == "swing":
+            if own.hp <= 0 or not own.melee_active:
+                return
+            if (self._distance() <= 1 and own.cast_until <= self.elapsed
+                    and max(own.paralyzed_until, own.frozen_until) <= self.elapsed):
+                # Fists.CheckPreAOSMoves runs before hit/miss, costs 15 stamina,
+                # GM Anatomy+Wrestling has 75% stun chance; failure stays armed.
+                if own.stun_armed and own.stun_until <= self.elapsed and own.stamina >= 15:
+                    own.stamina -= 15
+                    own.stun_until = self.elapsed + 10
+                    success = self.rng.random() < 0.75
+                    if success:
+                        own.stun_armed = False
+                        self.fighters[1-side].frozen_until = self.elapsed + 4
+                    self._record("stun_attempt", side, success=success)
+                # Damage/hit chance remain approximate; no hit is promised by Attack.
+                if self.rng.random() < 0.5:
+                    self._hurt(side, 1-side, self.rng.randint(1, 8), "punch")
+            self._schedule(self.elapsed + 15000 / ((own.stamina + 100) * 30), "swing", side)
+        elif kind == "damage":
             target, amount, spell = payload
             self._hurt(side, target, amount, spell)
         elif kind == "cast_complete":
@@ -497,10 +550,17 @@ class DuelSim:
             own.recovery_until = self.elapsed + CAST_RECOVERY
             if combo:
                 self._schedule(self.elapsed + 0.65, "combo_release", side, (spell, token, combo))
+            elif spell == "explosion":
+                own.busy_until = own.recovery_until
+                self._schedule(own.recovery_until, "held_release", side, spell)
             else:
                 own.busy_until = self.elapsed
                 if self._consume_spell(side, spell):
                     self._apply_spell(side, spell)
+        elif kind == "held_release":
+            own.busy_until = self.elapsed
+            if own.hp > 0 and self._consume_spell(side, payload):
+                self._apply_spell(side, payload)
         elif kind == "combo_prime":
             if payload == own.cast_generation and own.hp > 0:
                 self._prime(side)
@@ -563,11 +623,15 @@ class DuelSim:
             own.stamina = min(own.stamina_max, own.stamina + interval / 7.0)
             if not self.showdown and own.poison_until <= self.elapsed:
                 own.hp = min(own.hp_max, own.hp + interval / 11.0)
+            if own.agility_until and own.agility_until <= until:
+                own.agility_until = 0
+                own.stamina_max = 14 if own.clumsy_until > until else 25
+                own.stamina = min(own.stamina, own.stamina_max)
             if own.weakened_until and own.weakened_until <= until:
                 own.hp_max = 100.0
                 own.weakened_until = 0.0
             if own.clumsy_until and own.clumsy_until <= until:
-                own.stamina_max = 25.0
+                own.stamina_max = 45.0 if own.agility_until > until else 25.0
                 own.clumsy_until = 0.0
         self.elapsed = until
 

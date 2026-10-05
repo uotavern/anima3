@@ -1,0 +1,131 @@
+from dataclasses import replace
+
+import pytest
+from test_neural_runtime import executor, observation
+
+from anima3.contract import Journal, Skill
+from anima3.neural.curriculum import DRILLS, STYLES, TacticalTeacher, setup_drill
+from anima3.neural.league import promotion_gate
+from anima3.neural.schema import ACTION_INDEX, CombatView, encode
+from anima3.neural.sim import DuelSim
+
+
+def test_stun_needs_resources_skills_and_ack_before_next_toggle():
+    obs = observation(enemy_x=101)
+    obs.skills = [Skill(1,100,100,100,2), Skill(43,100,100,100,2)]
+    ex = executor(obs)
+    assert ex.start('stun', obs, 0)
+    assert ex.tick(obs, 0) == [{'type':'StunRequest'}, {'type':'Attack','serial':2}]
+    ex.tick(obs, 0.3)
+    obs2 = replace(obs, new_journal=[Journal(1,'','',0,0,1019011)])
+    ex.observe(obs2, {'phase':'Fighting','opponent':2}, 2.1)
+    assert ex.view.stun_armed and not ex.view.stun_pending
+    assert not encode(ex.view).mask[ACTION_INDEX['stun']]
+    obs3 = replace(obs, new_journal=[Journal(1,'','',0,0,1004010)])
+    ex.observe(obs3, {'phase':'Fighting','opponent':2}, 3)
+    assert ex.view.stun_armed and ex.view.stun_cooldown == 10
+    obs4 = replace(obs, new_journal=[Journal(1,'','',0,0,1004013)])
+    ex.observe(obs4, {'phase':'Fighting','opponent':2}, 13)
+    assert not ex.view.stun_armed
+    assert not encode(ex.view).mask[ACTION_INDEX['stun']]
+    frame = ex.observe(obs, {'phase':'Fighting','opponent':2}, 23.1)
+    assert frame.mask[ACTION_INDEX['stun']]
+
+
+def test_unknown_stun_skills_and_stale_state_fail_closed():
+    v = CombatView(hands_free=True, opponent_visible=True, line_of_sight=True,
+                   distance=1, stamina=14, stun_skilled=True)
+    assert not encode(v).mask[ACTION_INDEX['stun']]
+    assert not encode(replace(v, stamina=25, stun_skilled=False)).mask[ACTION_INDEX['stun']]
+    assert encode(replace(v, stamina=25)).mask[ACTION_INDEX['stun']]
+    assert sum(encode(replace(v, fresh=False)).mask) == 1
+
+
+def test_sim_stun_attempt_costs_and_freeze_survives_damage():
+    sim = DuelSim(seed=4, domain_randomization=False)
+    sim.fighters[0].x, sim.fighters[1].x = 0,1
+    sim._perform(0,'stun')
+    sim.step((0,0))
+    event = next(r for r in sim.trace if r['type']=='stun_attempt')
+    assert event['success']
+    assert 10 <= sim.fighters[0].stamina < 10.1
+    assert sim.fighters[0].stun_until == pytest.approx(10.05)
+    assert sim.view(1).paralyzed
+    sim._hurt(0,1,1,'harm')
+    assert sim.view(1).paralyzed  # Freeze differs from Paralyze spell
+
+
+def test_first_circle_damage_does_not_disturb_but_second_does():
+    sim = DuelSim(domain_randomization=False)
+    sim._start_cast(0,'magic_arrow')
+    sim._hurt(1,0,5,'punch')
+    assert sim.fighters[0].interrupted == 0
+    sim._start_cast(0,'harm')
+    sim._hurt(1,0,5,'punch')
+    assert sim.fighters[0].interrupted == 1
+
+
+@pytest.mark.parametrize('drill', DRILLS)
+def test_drills_reseed_and_teachers_only_choose_legal_actions(drill):
+    sim = DuelSim(seed=17, max_steps=100)
+    frames = setup_drill(sim, drill, 0)
+    assert sim._potential_previous == sim._potential()
+    teachers = [TacticalTeacher('pressure'), TacticalTeacher('defensive')]
+    for _ in range(100):
+        actions = [teachers[i].choose(sim.view(i)) for i in (0,1)]
+        assert all(frames[i].mask[actions[i]] for i in (0,1))
+        frames, _, done, info = sim.step(actions)
+        assert not any(info['invalid_actions'])
+        if done:
+            break
+
+
+def report(score, count=20):
+    return {'domain':'servuo','rows':[{'style':style,'seed':i//2,'side':i%2,'score':score}
+            for style in STYLES for i in range(count)]}
+
+
+def test_gate_rejects_small_sample_and_regression_and_mismatched_pairs():
+    assert not promotion_gate(report(0,2),report(1,2))['passed']
+    assert not promotion_gate(report(.5),report(.5))['passed']
+    assert promotion_gate(report(0),report(1))['passed']
+    better = report(1)
+    for row in better['rows'][:20]:
+        row['score'] = 0
+    assert not promotion_gate(report(.5),better)['passed']
+    bad = report(1)
+    bad['rows'].pop()
+    with pytest.raises(ValueError,match='differ'):
+        promotion_gate(report(0),bad)
+
+
+def test_multi_collection_update_uses_one_behavior_and_each_receipt(tmp_path, monkeypatch):
+    import json
+    from types import SimpleNamespace
+
+    from anima3.neural import checkpoints, live, online, train
+    monkeypatch.setattr(checkpoints, 'load_checkpoint', lambda _: SimpleNamespace(policy_sha='same'))
+    verified = []
+    monkeypatch.setattr(live, 'LiveReplayVerifier', lambda root: lambda e: verified.append(root.name) or True)
+    def update(loaded, episodes, **kw):
+        assert len(episodes) == 4
+        assert all(kw['verify_episode'](e) for e in episodes)
+        kw['out'].mkdir()
+        return {'policy_sha':'new'}
+    monkeypatch.setattr(train, 'update_verified_episodes', update)
+    roots=[]
+    for i in range(4):
+        root=tmp_path/str(i)
+        root.mkdir()
+        episode=root/'episode.json'
+        episode.write_text(json.dumps({'policy_sha':'same','eligible':True,'actor':57,
+                                       'verification':{'match_id':str(i)}}))
+        (root/'results.json').write_text(json.dumps({'domain':'servuo',
+            'collection_status':'complete','matches':[{'episodes':[str(episode)]}]}))
+        roots.append(root)
+    result=online.update_collections('seed', roots, tmp_path/'out')
+    assert result['accepted_episodes']==4 and verified==['0','1','2','3']
+    with pytest.raises(ValueError,match='duplicate'):
+        online.update_collections('seed', roots+roots[:1],tmp_path/'dup')
+    with pytest.raises(online.NoEligibleEpisodes):
+        online.update_collections('seed',roots[:3],tmp_path/'small')

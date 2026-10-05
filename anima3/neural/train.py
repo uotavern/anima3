@@ -223,7 +223,7 @@ def _batch(
         episode = episodes[episode_index]
         stop = min(start + length, len(episode))
         size = stop - start
-        burn_start = max(0, start - config.burn_in)
+        burn_start = 0 if targets is None else max(0, start - config.burn_in)
         hidden = torch.tensor([episode.hidden[burn_start]], device=device)
         if burn_start < start:
             with torch.no_grad():
@@ -362,7 +362,11 @@ def collect_simulator(
     teacher_actions: bool = False,
     max_episode_steps: int = 1200,
     shaping_gamma: float = 0.995,
+    drill: str = "full",
+    opponent_styles: tuple[str, ...] = ("balanced",),
+    teacher_style: str = "balanced",
 ) -> tuple[list[Trajectory], dict]:
+    from .curriculum import TacticalTeacher, setup_drill
     from .sim import DuelSim
 
     rng = random.Random(seed)
@@ -373,9 +377,12 @@ def collect_simulator(
         sim = DuelSim(max_steps=max_episode_steps, shaping_gamma=shaping_gamma)
         frames = sim.reset(seed=rng.randrange(1_000_000_000))
         side = len(episodes) % 2
+        frames = setup_drill(sim, drill, side)
+        learner_teacher = TacticalTeacher(teacher_style)
+        opponent_teacher = TacticalTeacher(rng.choice(opponent_styles))
         # Retain a scripted anchor while broadening opponents with frozen snapshots.
         opponent = rng.choice(opponents) if opponents and rng.random() < 0.5 else None
-        label = "frozen_policy" if opponent is not None else "scripted_teacher"
+        label = "frozen_policy" if opponent is not None else opponent_teacher.style
         source_counts[label] = source_counts.get(label, 0) + 1
         hidden = model.initial_state()
         opponent_hidden = opponent.initial_state() if opponent else None
@@ -386,12 +393,12 @@ def collect_simulator(
             features, mask = _input(frame, model.device)
             action, log_prob, value, next_hidden = model.act(features, mask, hidden)
             if teacher_actions:
-                action.fill_(sim.teacher(side))
+                action.fill_(learner_teacher.choose(sim.view(side)))
                 with torch.no_grad():
                     logits, _, _ = model(features.unsqueeze(1), hidden)
                     log_prob = masked_distribution(logits[:, 0], mask).log_prob(action)
             if opponent is None:
-                opponent_action = sim.teacher(1 - side)
+                opponent_action = opponent_teacher.choose(sim.view(1 - side))
             else:
                 opponent_action_tensor, _, _, opponent_hidden = opponent.act(
                     *_input(frames[1 - side], opponent.device), opponent_hidden

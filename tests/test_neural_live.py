@@ -251,7 +251,7 @@ def test_actor_rpc_timing_uses_actual_clock_but_retains_original_observation_age
     body = SimpleNamespace(observe=lambda: obs, act=act, pump=pump)
     monkeypatch.setattr(live.time, "monotonic", lambda: clock[0])
     monkeypatch.setattr(live, "server_state", lambda _: dict(state))
-    monkeypatch.setattr(live, "CombatExecutor", lambda _: executor)
+    monkeypatch.setattr(live, "CombatExecutor", lambda _, **kw: executor)
     result = live._actor(body, 2, worker, tmp_path, threading.Event())
     assert taken == pytest.approx([100.4])
     assert submitted[0] == pytest.approx((100.4, 100.0))

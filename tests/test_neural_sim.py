@@ -39,8 +39,8 @@ def hold_until(sim, seconds):
 def test_schema_is_public_bounded_and_unknown_health_does_not_leak():
     view = supplied(opponent_health_known=False, opponent_hp=10, dx=-100, dy=100)
     frame = encode(view)
-    assert len(frame.features) == len(FEATURE_NAMES) == 65
-    assert len(frame.mask) == len(ACTION_NAMES) == 23
+    assert len(frame.features) == len(FEATURE_NAMES) == 75
+    assert len(frame.mask) == len(ACTION_NAMES) == 27
     assert len(SCHEMA_FINGERPRINT) == 64
     assert all(-1 <= value <= 1 for value in frame.features)
     assert frame == encode(replace(view, opponent_hp=90, opponent_hp_max=150))
@@ -60,7 +60,7 @@ def test_masks_share_resource_cursor_showdown_and_blast_safety_rules():
     assert legal_mask(supplied(mana=51))[action("burst_bolt")]
     for blocking in ({"busy_remaining": 1}, {"cast_remaining": 0.1}, {"potion_fuse": 0.1},
                      {"fresh": False}, {"ready": False}, {"hp": 0}):
-        assert legal_mask(supplied(**blocking)) == [True] + [False] * 22
+        assert legal_mask(supplied(**blocking)) == [True] + [False] * (len(ACTION_NAMES) - 1)
     empty = legal_mask(supplied(reagent_counts=(0,) * 8, mana=0))
     assert not any(empty[5:17])
     assert not empty[action("burst_bolt")]
@@ -223,7 +223,7 @@ def test_paralyze_and_beneficial_cure_do_not_interrupt_existing_enemy_cast(spell
     if spell == "cure":
         sim.fighters[1].poison_until = 30
     sim.step((action("explosion"), action(spell)))
-    hold_until(sim, 4.5)
+    hold_until(sim, 5.5)
     assert sim.fighters[0].interrupted == 0
     assert sim.fighters[0].damage > 0
     if spell == "paralyze":

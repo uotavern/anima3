@@ -30,11 +30,11 @@ from anima3.magic import SPELLS, VERDICTS, WORDS
 
 from .schema import ACTION_INDEX, ACTION_NAMES, REAGENT_GRAPHICS, CombatView, Frame, encode
 
-POTION_GRAPHICS = {"heal_potion": 0x0F0C, "cure_potion": 0x0F07, "explosion_potion": 0x0F0D}
+POTION_GRAPHICS = {"heal_potion": 0x0F0C, "cure_potion": 0x0F07, "explosion_potion": 0x0F0D, "refresh_potion": 0x0F0B, "agility_potion": 0x0F08}
 FUSE_SECONDS = 3.75
 SPELL_RECOVERY = 0.75
 STATE_FRESH_SECONDS = 3.0
-EXECUTOR_VERSION = "pre-aos-options-v4"
+EXECUTOR_VERSION = "pre-aos-options-v5-tactics"
 CAST_VERDICTS = {**VERDICTS, 500641: "concentration disturbed"}
 
 
@@ -114,6 +114,8 @@ class CombatExecutor:
         self._recovery_until = 0.0
         self._cooldowns = {name: 0.0 for name in (*POTION_GRAPHICS, "burst")}
         self._last_action = "hold"
+        self._stun_armed = self._stun_pending = self._melee_active = False
+        self._stun_until = self._melee_until = self._resource_until = 0.0
         self._last_view = CombatView(ready=False, fresh=False)
         self._move_directions: dict[str, int] = {}
 
@@ -166,6 +168,8 @@ class CombatExecutor:
         self._los_refused_until = self._recovery_until = 0.0
         self._cooldowns = {name: 0.0 for name in (*POTION_GRAPHICS, "burst")}
         self._last_action = "hold"
+        self._stun_armed = self._stun_pending = self._melee_active = False
+        self._stun_until = self._melee_until = self._resource_until = 0.0
         self._event("executor_reset", now, opponent=self.opponent_serial)
 
     def _opponent(self, obs: Observation):
@@ -210,6 +214,14 @@ class CombatExecutor:
         while self._damage and now - self._damage[0][0] > 2:
             self._damage.popleft()
         for journal in obs.new_journal:
+            if journal.cliloc == 1019011:
+                self._stun_armed, self._stun_pending = True, False
+            elif journal.cliloc in (1019012, 1004013, 1004008, 1004031):
+                self._stun_armed = self._stun_pending = False
+            if journal.cliloc in (1004013, 1004010):
+                self._stun_until = now + 10
+            if journal.cliloc in (1019011, 1019012, 1004013, 1004010, 1004009):
+                self._event("melee_feedback", now, cliloc=journal.cliloc)
             words = journal.text.casefold().strip()
             if journal.serial == self.opponent_serial and words in WORDS:
                 self._opponent_cast = WORDS[words].casefold().replace(" ", "_")
@@ -336,6 +348,15 @@ class CombatExecutor:
             if estimate >= 0:
                 incoming_explosion = estimate
         self._last_view = CombatView(
+            hands_free=not any(i.container == p.serial and i.layer in (1, 2) for i in obs.items),
+            stun_skilled=all(any(s.id == skill and s.value >= 80 for s in obs.skills)
+                             for skill in (1, 43)),
+            stun_armed=self._stun_armed, stun_pending=self._stun_pending,
+            stun_cooldown=max(0, self._stun_until - now),
+            melee_cooldown=max(0, self._melee_until - now),
+            resource_cooldown=max(0, self._resource_until - now),
+            refresh_potions=potions["refresh_potion"], agility_potions=potions["agility_potion"],
+            melee_active=self._melee_active,
             hp=p.hits,
             hp_max=p.hits_max or 100,
             mana=p.mana,
@@ -640,14 +661,25 @@ class CombatExecutor:
                     return []
                 self._stage("simple_wait", now, now + 0.18)
                 return self._wire(walk(direction, run=True), now)
+            elif proc.name in ("punch", "stun"):
+                self._melee_until = now + 2
+                self._melee_active = True
+                self._stage("simple_wait", now, now + 0.25)
+                packets = []
+                if proc.name == "stun":
+                    self._stun_pending = True
+                    packets += self._wire({"type": "StunRequest"}, now)
+                return packets + self._wire({"type": "Attack", "serial": self.opponent_serial}, now)
             elif proc.name == "meditate":
                 self._stage("simple_wait", now, now + 0.8)
                 return self._wire(use_skill(46), now)
-            elif proc.name in ("heal_potion", "cure_potion"):
+            elif proc.name in ("heal_potion", "cure_potion", "refresh_potion", "agility_potion"):
                 serial = self._item(obs, proc.name)
                 if not serial:
                     self._finish(now, False, "potion missing")
                     return []
+                if proc.name in ("refresh_potion", "agility_potion"):
+                    self._resource_until = now + 5
                 self._cooldowns[proc.name] = now + (10 if proc.name == "heal_potion" else 1)
                 self._stage("simple_wait", now, now + 0.25)
                 return self._wire(use(serial), now)

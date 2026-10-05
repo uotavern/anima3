@@ -12,13 +12,13 @@ import json
 import math
 from dataclasses import dataclass
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 ACTION_NAMES = (
     "hold", "approach", "retreat", "strafe_left", "strafe_right",
     "weaken", "clumsy", "magic_arrow", "harm", "explosion", "energy_bolt",
     "flamestrike", "greater_heal", "heal", "cure", "poison", "paralyze",
     "meditate", "heal_potion", "cure_potion", "explosion_potion",
-    "burst_bolt", "burst_flame",
+    "burst_bolt", "burst_flame", "punch", "stun", "refresh_potion", "agility_potion",
 )
 ACTION_INDEX = {name: index for index, name in enumerate(ACTION_NAMES)}
 SPELL_NAMES = ACTION_NAMES[5:17]
@@ -63,6 +63,10 @@ FEATURE_NAMES = (
     "last_action_move", "last_action_potion",
 )
 
+FEATURE_NAMES += ("hands_free", "stun_skilled", "stun_armed", "stun_pending",
+                  "stun_cooldown", "melee_cooldown", "refresh_potions",
+                  "agility_potions", "resource_cooldown", "melee_active")
+
 
 @dataclass(frozen=True)
 class CombatView:
@@ -75,6 +79,16 @@ class CombatView:
     supply this estimate. ``opponent_cast`` is a public power-word spell key.
     """
 
+    hands_free: bool = False
+    stun_skilled: bool = False
+    stun_armed: bool = False
+    stun_pending: bool = False
+    stun_cooldown: float = 0.0
+    melee_cooldown: float = 0.0
+    refresh_potions: int = 0
+    agility_potions: int = 0
+    resource_cooldown: float = 0.0
+    melee_active: bool = False
     hp: float = 100.0
     hp_max: float = 100.0
     mana: float = 100.0
@@ -195,6 +209,17 @@ def legal_mask(view: CombatView) -> list[bool]:
             and view.mana >= 20 + MANA_COST[finisher] + 11
             and _reagents(view, "explosion", finisher)
         )
+    melee = (targeted and view.distance <= 1 and view.hands_free
+             and not view.paralyzed and view.melee_cooldown <= 0)
+    mask[ACTION_INDEX["punch"]] = melee and not view.melee_active
+    mask[ACTION_INDEX["stun"]] = (melee and view.stun_skilled and view.stamina >= 15
+                                and view.stun_cooldown <= 0 and not view.stun_pending
+                                and not view.stun_armed)
+    resource = view.hands_free and not view.paralyzed and view.resource_cooldown <= 0
+    mask[ACTION_INDEX["refresh_potion"]] = (resource and view.refresh_potions > 0
+                                          and view.stamina < view.stamina_max * 0.8)
+    mask[ACTION_INDEX["agility_potion"]] = (resource and view.agility_potions > 0
+                                          and view.stamina_max < 30)
     return mask
 
 
@@ -234,13 +259,18 @@ def encode(view: CombatView) -> Frame:
         float(view.last_action in ACTION_NAMES[1:5]),
         float(view.last_action in ACTION_NAMES[18:21]),
     ))
+    values.extend((float(view.hands_free), float(view.stun_skilled),
+                   float(view.stun_armed), float(view.stun_pending),
+                   _unit(view.stun_cooldown, 10), _unit(view.melee_cooldown, 5),
+                   _unit(view.refresh_potions, 20), _unit(view.agility_potions, 20),
+                   _unit(view.resource_cooldown, 5), float(view.melee_active)))
     assert len(values) == len(FEATURE_NAMES)
     return Frame(features=values, mask=legal_mask(view))
 
 
 SCHEMA_FINGERPRINT = hashlib.sha256(json.dumps({
     "version": SCHEMA_VERSION, "features": FEATURE_NAMES, "actions": ACTION_NAMES,
-    "normalization": "neural-v1-pre-aos-public-observation",
+    "normalization": "neural-v2-pre-aos-public-tactics",
 }, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
 
 

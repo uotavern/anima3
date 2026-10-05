@@ -172,3 +172,49 @@ def cycle_main(argv=None):
         },
     )
     return 0
+
+
+def update_collections(checkpoint, collections, out, *, seed=0, min_episodes=4):
+    """One frozen behavior policy across independently verified league fixtures."""
+    from .checkpoints import load_checkpoint
+    from .live import LiveReplayVerifier
+    from .train import TrainConfig, update_verified_episodes
+
+    if min_episodes < 1:
+        raise ValueError("positive minimum batch required")
+    loaded = load_checkpoint(checkpoint)
+    episodes, rejected, verifiers = [], [], {}
+    for collection in collections:
+        root = Path(collection).resolve()
+        report = json.loads((root / "results.json").read_text())
+        if report.get("domain") != "servuo" or report.get("collection_status") != "complete":
+            raise ValueError("all collections must have completed normally")
+        verifier = LiveReplayVerifier(root)
+        for match in report["matches"]:
+            for name in match["episodes"]:
+                file = Path(name).resolve()
+                if not file.is_relative_to(root):
+                    raise ValueError("episode escaped collection")
+                episode = json.loads(file.read_text())
+                if episode.get("policy_sha") != loaded.policy_sha:
+                    continue  # historical opponent data is off-policy
+                if not episode.get("eligible"):
+                    rejected.append({"file": str(file), "reasons": episode.get("invalid_reasons")})
+                    continue
+                key = (episode["verification"]["match_id"], episode.get("player_serial", episode.get("actor")))
+                if key in verifiers:
+                    raise ValueError("duplicate episode in batch")
+                verifiers[key] = verifier
+                episodes.append(episode)
+    if len(episodes) < min_episodes:
+        raise NoEligibleEpisodes(rejected + [{"reason": "below minimum batch", "count": len(episodes)}])
+    def verify(episode):
+        return verifiers[(episode["verification"]["match_id"], episode.get("player_serial", episode.get("actor")))](episode)
+    result = update_verified_episodes(
+        loaded, episodes, verify_episode=verify, out=out,
+        config=TrainConfig(learning_rate=1e-4, discount_time_unit=1.0), seed=seed)
+    summary = {"accepted_episodes": len(episodes), "rejected": rejected,
+               "collections": [str(p) for p in collections], "update": result,
+               "automatic_promotion": False}
+    atomic_json(Path(out) / "batch-update.json", summary)
+    return summary

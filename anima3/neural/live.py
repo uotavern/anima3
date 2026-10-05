@@ -124,24 +124,26 @@ class LiveReplayVerifier:
             return False
 
 
-def _actor(body, opponent, worker, log, stop, *, deadline=340, expected_rules=TRAINING_RULES, tactic=None, probe_resources=False):
+def _actor(body, opponent, worker, log, stop, *, deadline=340, expected_rules=TRAINING_RULES, tactic=None, probe_resources=False, opponent_style=None):
     """All access to one BridgeBody belongs to this thread during a match."""
     state, last_state, last_ping = {}, time.monotonic(), 0.0
     match_id = epoch = None
     seen = False
-    fast_timing = tactic in ("dump-fast", "dump-held", "dump-primed")
+    fast_timing = worker is not None or opponent_style is not None or tactic in ("dump-fast", "dump-held", "dump-primed")
     executor = CombatExecutor(opponent, **({"fast_timing": True,
-                              "hold_explosion": tactic in ("dump-held", "dump-primed")} if fast_timing else {}))
+                              "hold_explosion": worker is not None or opponent_style is not None or tactic in ("dump-held", "dump-primed")} if fast_timing else {}))
     if fast_timing:
         # Only adjacent path decisions are needed in this non-potion probe.
         # Avoid rebuilding a full screen terrain grid on every cast poll.
-        body.terrain_radius = 4
+        body.terrain_radius = 10 if worker else 4
     transitions, invalid, latencies = [], set(), []
     events = []
     end = time.monotonic() + deadline
     baseline = None
     probe = (CastDumpProbe(tactic) if tactic and tactic.startswith("dump-") else
              MeleeProbe(tactic, resources=probe_resources) if tactic else None)
+    from .curriculum import TacticalTeacher
+    tactical_teacher = TacticalTeacher(opponent_style) if opponent_style else None
     view = ObservedBody(body)
     start_times = []
     next_decision = 0.0
@@ -329,6 +331,19 @@ def _actor(body, opponent, worker, log, stop, *, deadline=340, expected_rules=TR
                 for event in executor.drain_events():
                     emit({**event, "probe_distance": executor.view.distance})
                 rpc("pump", body.pump, 10 if fast_timing else 50)
+            elif tactical_teacher:
+                frame = executor.observe(obs, server_state=update, now=now)
+                for packet in executor.tick(obs, time.monotonic()):
+                    rpc("act:" + packet["type"], body.act, packet)
+                if not executor.busy:
+                    frame = executor.observe(obs, now=time.monotonic())
+                    action = tactical_teacher.choose(executor.view, frame.mask)
+                    executor.start(action, obs, time.monotonic())
+                for packet in executor.tick(obs, time.monotonic()):
+                    rpc("act:" + packet["type"], body.act, packet)
+                for event in executor.drain_events():
+                    emit(event)
+                rpc("pump", body.pump, 10)
             elif worker:
                 frame = executor.observe(obs, server_state=update, now=now)
                 # Advance an already committed option even across brief state latency.
@@ -412,11 +427,12 @@ def _actor(body, opponent, worker, log, stop, *, deadline=340, expected_rules=TR
     raise RuntimeError("live match stopped or timed out; no unverified training result emitted")
 
 
-def fight(bodies, workers, log, stop, tactic=None, probe_resources=False):
+def fight(bodies, workers, log, stop, tactic=None, probe_resources=False, opponent_style=None):
     with ThreadPoolExecutor(max_workers=2) as pool:
         ids = [b.observe().player.serial for b in bodies]
         futures = [
             pool.submit(_actor, b, ids[1 - i], workers[i], log, stop,
+                        **({"opponent_style": opponent_style} if opponent_style and i == 1 and workers[i] is None else {}),
                         **({"tactic": tactic, "probe_resources": probe_resources} if tactic and i == 0 else {})) for i, b in enumerate(bodies)
         ]
         try:
@@ -435,6 +451,7 @@ def add_arguments(ap):
     ap.add_argument("--checkpoint", type=Path, required=True)
     ap.add_argument("--probe-resources", action="store_true")
     ap.add_argument("--experimental-tactic", choices=["magic", "punch", "stun", "dump-baseline", "dump-fast", "dump-held", "dump-primed"])
+    ap.add_argument("--opponent-style", choices=["balanced", "pressure", "burst", "defensive", "potions"])
     ap.add_argument("--opponent-checkpoint", type=Path)
     ap.add_argument("--opponent", choices=["scripted", "self"], default="scripted")
     ap.add_argument("--host", default="arena.uotavern.com")
@@ -522,7 +539,7 @@ def run(args, stop=None):
                 label = workers[i].policy_sha[:12] if workers[i] else "fixed-scripted"
                 if i == 0 and tactic:
                     label = "probe-" + tactic
-                body.act(say(f"[ArenaAgent {'scripted' if tactic else 'neural'} {label} recurrent"))
+                body.act(say(f"[ArenaAgent {'neural' if workers[i] else 'scripted'} {label} recurrent"))
                 pump(body, 0.5)
             fixture_index = game + getattr(args, "fixture_offset", 0)
             order = [0, 1] if fixture_index % 2 == 0 else [1, 0]
@@ -542,7 +559,7 @@ def run(args, stop=None):
                 raise RuntimeError("invitation differs from expected training fixture")
             receiver.act(say("[DuelAccept " + invite["id"]))
             atomic_json(log / "status.json", {"stage": "fighting", "game": game + 1})
-            actors = fight(bodies, workers, log, stop, **({"tactic": tactic, "probe_resources": getattr(args, "probe_resources", False)} if tactic else {}))
+            actors = fight(bodies, workers, log, stop, **({"opponent_style": args.opponent_style} if getattr(args, "opponent_style", None) else {}), **({"tactic": tactic, "probe_resources": getattr(args, "probe_resources", False)} if tactic else {}))
             match_id = actors[0]["id"]
             meta, rows = receipt_while_pumping(
                 args.web, match_id, [ids[i] for i in order], log, bodies
