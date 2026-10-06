@@ -70,6 +70,17 @@ def dispatch_option(executor, action, frame, obs, now, fresh):
     }
 
 
+def starting_template_verified(rows):
+    if any(p.get("stats") != [100, 25, 100] for p in rows[0].get("players", [])):
+        return False
+    frame = next((r for r in rows if r.get("type") == "frame"), None)
+    return bool(frame and frame.get("phase") == "Countdown"
+                and len(frame.get("players", [])) == 2
+                and all((p.get("hitsMax"), p.get("manaMax"), p.get("stamMax")) == (100, 100, 25)
+                        and p.get("alive") and not p.get("poisoned")
+                        for p in frame["players"]))
+
+
 class LiveReplayVerifier:
     """Revalidate retained server receipts, never trust an episode's boolean.
 
@@ -112,7 +123,7 @@ class LiveReplayVerifier:
                 and actor in participants
                 and episode["opponent"] in participants
                 and (not episode.get("require_base_template") or
-                     all(p.get("stats") == [100, 25, 100] for p in rows[0]["players"]))
+                     starting_template_verified(rows))
                 and actor != episode["opponent"]
                 and result["winner"] == meta["winner"]
                 and result["outcome"] == outcome
@@ -571,8 +582,7 @@ def run(args, stop=None):
             meta, rows = receipt_while_pumping(
                 args.web, match_id, [ids[i] for i in order], log, bodies
             )
-            if getattr(args, "verify_base_stats", False) and any(
-                    p.get("stats") != [100, 25, 100] for p in rows[0]["players"]):
+            if getattr(args, "verify_base_stats", False) and not starting_template_verified(rows):
                 for actor in actors:
                     actor["invalid_reasons"].append("wrong_starting_template")
             files = []

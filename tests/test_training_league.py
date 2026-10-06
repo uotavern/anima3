@@ -163,3 +163,14 @@ def test_resume_archives_only_proven_preparation_failure(tmp_path):
     (p/'challenge-issued.json').write_text('{}')
     with pytest.raises(RuntimeError,match='uncertain'):
         recover_collection(p,'sha')
+
+
+def test_start_template_checks_modified_resources_not_just_raw_header():
+    from anima3.neural.live import starting_template_verified
+    rows=[{'players':[{'stats':[100,25,100]}]*2},
+          {'type':'frame','phase':'Countdown','players':[
+              {'hitsMax':100,'manaMax':100,'stamMax':25,'alive':True,'poisoned':False},
+              {'hitsMax':100,'manaMax':100,'stamMax':25,'alive':True,'poisoned':False}]}]
+    assert starting_template_verified(rows)
+    rows[1]['players'][0]['stamMax']=34
+    assert not starting_template_verified(rows)

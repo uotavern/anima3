@@ -163,6 +163,8 @@ def main(argv=None):
                "side": fixture % 2, "seed": fixture//2}
         history.append(row)
         status('fixture_complete')
+        if not row['template_verified']:
+            raise RuntimeError('Server did not normalize starting resources; fixture counted, stop for repair')
         return log, row
 
     try:
