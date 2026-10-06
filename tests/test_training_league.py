@@ -222,6 +222,7 @@ def test_runner_completes_and_resume_does_not_replay_or_retrain(tmp_path,monkeyp
 
 def test_controller_upgrade_resume_requires_no_challenge(tmp_path):
     import json
+
     from scripts.run_training_league import recover_collection
     p = tmp_path / "fixture-009"
     p.mkdir()

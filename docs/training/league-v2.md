@@ -145,3 +145,45 @@ from 187.09 ms (fixture 5) to 61.04 ms (fixture 9); pump 63.33 to 22.08 ms.
 Training and evaluation use different controller versions, so training win rate
 must not be used as the incumbent evaluation baseline. Compare only the two
 interleaved evaluation arms. Relevant regression suite: 158 tests passed.
+
+### Final live pilot outcome
+
+Completed all **28 unique matches**: 8 collection games and 20 frozen-policy
+evaluation games. The interrupted run reused the single saved PPO update; no
+match or update was repeated. Evidence and replay links are in
+`2026-10-06-live-pilot-results.json`.
+
+| Evaluation arm | Valid games | Wins / losses / draws | Excluded |
+|---|---:|---|---:|
+| Incumbent | 9 | 0 / 9 / 0 | 1 transport failure |
+| PPO candidate | 10 | 0 / 9 / 1 | 0 |
+
+Fixture 25 lost authoritative duel state: the learner's inbound byte count
+remained 73,602, while the opponent received Countdown/Fighting/RoundOver and the
+server recorded a completed loss (zero learner casts/damage). Root cause of the
+receive stall is unresolved. The independently checksummed server receipt was
+recovered, with **empty transitions**, eligible=false, and an explicit audit.
+It counts against the match budget, but is excluded from learning and valid
+performance statistics. No action or likelihood record was reconstructed. Restart
+created fresh connections; fixtures 26–28 then completed normally. Promotion now
+also rejects ineligible evaluation episodes, beyond checking starting templates.
+The gate's raw planned-fixture delta/CI is diagnostic only because of this invalid
+fixture and insufficient sample size; it is not evidence of playing strength.
+
+The candidate was **not selected**. The warmstart remains the experimental
+incumbent. No public agent was replaced. All 20 evaluation fixtures used the same
+executor fingerprint; each arm kept exactly one policy SHA. The trial established
+working collection, exclusion, batched PPO, frozen inference, resume, and rejection
+of an unsupported model—not a stronger real-server policy.
+
+Median observe RPC: training 175.98 ms, incumbent evaluation 64.11 ms, candidate
+64.77 ms. Pump: 63.25 ms down to about 21.2 ms. Across learner logs, 19 successful
+stun messages and 722 spell requests were recorded. These execution counts are
+not win-rate evidence. Frequent hold/meditate choices warrant action-mask and
+mana-management diagnosis against the server's skill cooldowns before more live
+training. Simulator/real-server mismatch remains a limitation; next experiments
+should prioritize real-server teacher demonstrations and scenario calibration.
+
+Final verification: 159 focused tests passed; 28 unique server receipts and
+checkpoint hashes audited; one PPO update; evaluation service exited successfully;
+no anima-bridge processes remained; arena-shard stayed active.
