@@ -20,7 +20,7 @@ from anima3.arena_learning import atomic_json
 from anima3.neural.checkpoints import load_checkpoint
 from anima3.neural.curriculum import STYLES
 from anima3.neural.league import promotion_gate
-from anima3.neural.live import run
+from anima3.neural.live import run, starting_template_verified
 from anima3.neural.online import NoEligibleEpisodes, update_collections
 
 
@@ -155,12 +155,21 @@ def main(argv=None):
         match = report['matches'][0]
         # Actor 0 is always learner even when challenger order is reversed.
         episode = json.loads(Path(match['episodes'][0]).read_text())
+        frames = []
+        for line in (log/match['match_id']/'replay.jsonl').read_text().splitlines():
+            frame = json.loads(line)
+            frames.append(frame)
+            if frame.get('type') == 'frame':
+                break
         row = {"stage": stage, "style": style if not opponent else "historical",
                "match_id": match['match_id'], "replay": match['replay'],
                "checkpoint": str(checkpoint), "policy_sha": episode['policy_sha'],
                "eligible": episode['eligible'], "invalid_reasons": episode['invalid_reasons'],
+               "template_verified": starting_template_verified(frames),
                "score": (episode['final_result']['outcome']+1)/2,
                "side": fixture % 2, "seed": fixture//2}
+        if any(r["match_id"] == row["match_id"] for r in history):
+            raise RuntimeError("Duplicate receipted match in experiment")
         history.append(row)
         status('fixture_complete')
         if not row['template_verified']:

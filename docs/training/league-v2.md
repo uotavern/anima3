@@ -100,3 +100,18 @@ rare combo examples. Repeated training with new seeds, 16,384 demonstration step
 Final simulator W/L/D: initial 1/86/13, BC 8/35/57, PPO 11/30/59.
 Most of the improvement is survival/draw conversion; it is not a 36.5% win rate.
 The historical 100-duel experiment finished all fixtures before this live pilot.
+
+### Resume and stat verification repair
+
+The live pilot stopped after two verified games because a displayed DEX of 34
+(buff/curse affected) was mistaken for an incorrect base build. Preparation now
+reads the ordinary stat-ball dialog's RawStr/RawDex/RawInt fields, cancels the
+read-only dialog, and independently checks the replay's first Countdown frame
+for 100 HP / 100 mana / 25 stamina maxima. Bad starting templates are excluded
+and stop the runner for repair. No server permissions or stat-check bypass is used.
+
+Use the same command with `--resume`. Receipted fixtures are revalidated and
+counted without playing them again. A known pre-challenge preparation failure is
+archived before retry. Unknown in-match failures stop for audit. Settings and
+checkpoint hash are pinned in `plan.json`; changing the budget on resume fails.
+Completed batch checkpoints are hash checked and reused, not updated twice.

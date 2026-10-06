@@ -174,3 +174,47 @@ def test_start_template_checks_modified_resources_not_just_raw_header():
     assert starting_template_verified(rows)
     rows[1]['players'][0]['stamMax']=34
     assert not starting_template_verified(rows)
+
+
+def test_runner_completes_and_resume_does_not_replay_or_retrain(tmp_path,monkeypatch):
+    import json
+    from types import SimpleNamespace
+
+    from scripts import run_training_league as runner
+    counter={'games':0,'updates':0}
+    monkeypatch.setattr(runner,'load_checkpoint',lambda *a:SimpleNamespace(policy_sha='same'))
+    def collect(args,stop):
+        counter['games']+=1
+        log=args.log_dir;log.mkdir()
+        match_id=f'{counter["games"]:032x}'
+        folder=log/match_id;folder.mkdir()
+        episode=folder/'episode.json'
+        episode.write_text(json.dumps({'policy_sha':'same','eligible':True,
+                    'invalid_reasons':[],'final_result':{'outcome':1}}))
+        frames=[{'players':[{'stats':[100,25,100]}]*2},
+                {'type':'frame','phase':'Countdown','players':[
+                    {'hitsMax':100,'manaMax':100,'stamMax':25,'alive':True}]*2}]
+        (folder/'replay.jsonl').write_text('\n'.join(json.dumps(f) for f in frames))
+        report={'collection_status':'complete','matches':[{'match_id':match_id,
+                    'episodes':[str(episode)],'replay':'local-test'}]}
+        (log/'results.json').write_text(json.dumps(report))
+    def update(checkpoint,collections,out,**kwargs):
+        counter['updates']+=1;out.mkdir()
+        summary={'update':{'parent_policy_sha':'same','policy_sha':'same'}}
+        (out/'batch-update.json').write_text(json.dumps(summary))
+        return summary
+    monkeypatch.setattr(runner,'run',collect)
+    monkeypatch.setattr(runner,'update_collections',update)
+    monkeypatch.setattr(runner,'recover_collection',lambda p,sha:
+                        json.loads((p/'results.json').read_text()) if p.exists() else None)
+    accounts=tmp_path/'accounts.json';accounts.write_text(json.dumps({'test_a':'a','test_b':'b'}))
+    argv=['--out',str(tmp_path/'run'),'--checkpoint',str(tmp_path/'seed'),
+          '--accounts-file',str(accounts),'--bridge','unused','--data-dir','unused',
+          '--user-a','test_a','--user-b','test_b']
+    assert runner.main(argv)==0
+    assert counter=={'games':28,'updates':1}
+    assert runner.main(argv+['--resume'])==0
+    assert counter=={'games':28,'updates':1}
+    status=json.loads((tmp_path/'run/status.json').read_text())
+    assert status['completed']==28 and status['status']=='complete'
+    assert not status['gate']['passed']  # Pilot remains below evidence threshold.
