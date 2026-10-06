@@ -83,8 +83,9 @@ def promotion_gate(before, after, *, min_games_per_style=20, max_regression=0.10
     enough = set(by_style) == set(STYLES) and all(len(v) >= min_games_per_style for v in by_style.values())
     regressions = {k: sum(v)/len(v) for k, v in by_style.items()}
     templates = all(r.get("template_verified", True) for r in (*a.values(), *b.values()))
-    passed = templates and enough and lower > 0 and min(regressions.values()) >= -max_regression
-    return {"passed": passed, "enough_evidence": enough, "valid_templates": templates, "paired_delta": sum(deltas)/len(deltas),
+    episodes_valid = all(r.get("eligible", True) for r in (*a.values(), *b.values()))
+    passed = episodes_valid and templates and enough and lower > 0 and min(regressions.values()) >= -max_regression
+    return {"passed": passed, "enough_evidence": enough, "valid_templates": templates, "valid_episodes": episodes_valid, "paired_delta": sum(deltas)/len(deltas),
             "delta_ci95": [lower, samples[1949]], "style_deltas": regressions,
             "reason": "improved" if passed else "retain incumbent: insufficient or regressed evidence",
             "domain": before["domain"], "public_deployment": False}

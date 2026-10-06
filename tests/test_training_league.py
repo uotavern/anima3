@@ -233,3 +233,10 @@ def test_controller_upgrade_resume_requires_no_challenge(tmp_path):
     (p / "challenge-issued.json").unlink()
     assert recover_collection(p, "sha") is None
     assert p.with_name("fixture-009-preparation-attempt-1").exists()
+
+
+def test_gate_rejects_transport_invalid_episode():
+    before, after = report(0), report(1)
+    before['rows'][0]['eligible'] = False
+    gate = promotion_gate(before, after)
+    assert not gate['passed'] and not gate['valid_episodes']
