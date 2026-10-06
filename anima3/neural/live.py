@@ -146,9 +146,9 @@ def _actor(body, opponent, worker, log, stop, *, deadline=340, expected_rules=TR
     executor = CombatExecutor(opponent, **({"fast_timing": True,
                               "hold_explosion": worker is not None or opponent_style is not None or tactic in ("dump-held", "dump-primed")} if fast_timing else {}))
     if fast_timing:
-        # Only adjacent path decisions are needed in this non-potion probe.
+        # Adjacent movement and safe potion disposal fit within four tiles.
         # Avoid rebuilding a full screen terrain grid on every cast poll.
-        body.terrain_radius = 10 if worker else 4
+        body.terrain_radius = 4
     transitions, invalid, latencies = [], set(), []
     events = []
     end = time.monotonic() + deadline
@@ -420,7 +420,7 @@ def _actor(body, opponent, worker, log, stop, *, deadline=340, expected_rules=TR
                     )
                     next_decision = time.monotonic() + 0.25
                 drain_worker_events()
-                rpc("pump", body.pump, 50)
+                rpc("pump", body.pump, 10)
             elif now - last_state < 3:
                 baseline.memory["showdown"] = state.get("showdown") is True
                 view.pending = obs

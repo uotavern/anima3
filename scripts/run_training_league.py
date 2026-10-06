@@ -61,7 +61,11 @@ def recover_collection(log: Path, expected_sha: str):
         "Server has not confirmed 100/25/100 stats after debuff recovery",
         "Could not verify base stats from Arena stat dialog",
         "Previously verified base stats changed"))
-    if ((log / "challenge-issued.json").exists() or not known_preparation
+    marker = log / "preparation-interrupted.json"
+    interruption = json.loads(marker.read_text()) if marker.exists() else {}
+    interrupted = (interruption.get("reason") == "controller_upgrade_before_challenge"
+                   and interruption.get("match_started") is False)
+    if ((log / "challenge-issued.json").exists() or not (known_preparation or interrupted)
             or any(p.is_dir() and len(p.name) == 32 for p in log.iterdir())):
         raise RuntimeError("Unfinished fixture has uncertain match status; refusing replay")
     attempt = 1

@@ -34,7 +34,7 @@ POTION_GRAPHICS = {"heal_potion": 0x0F0C, "cure_potion": 0x0F07, "explosion_poti
 FUSE_SECONDS = 3.75
 SPELL_RECOVERY = 0.75
 STATE_FRESH_SECONDS = 3.0
-EXECUTOR_VERSION = "pre-aos-options-v5-tactics"
+EXECUTOR_VERSION = "pre-aos-options-v6-local-terrain"
 CAST_VERDICTS = {**VERDICTS, 500641: "concentration disturbed"}
 
 
@@ -522,7 +522,7 @@ class CombatExecutor:
         # a reliable throw destination. Target refusal remains a visible failure.
         candidates: list[tuple[int, int]] = []
         if obs.terrain:
-            for radius in (6, 7, 8, 9, 10):
+            for radius in (6, 7, 8, 9, 10, 4):
                 for dx, dy in DIRECTION_DELTAS:
                     x, y = p.x + dx * radius, p.y + dy * radius
                     if obs.terrain.walkable(x, y) is not True:

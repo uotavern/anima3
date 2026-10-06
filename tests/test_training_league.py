@@ -218,3 +218,18 @@ def test_runner_completes_and_resume_does_not_replay_or_retrain(tmp_path,monkeyp
     status=json.loads((tmp_path/'run/status.json').read_text())
     assert status['completed']==28 and status['status']=='complete'
     assert not status['gate']['passed']  # Pilot remains below evidence threshold.
+
+
+def test_controller_upgrade_resume_requires_no_challenge(tmp_path):
+    import json
+    from scripts.run_training_league import recover_collection
+    p = tmp_path / "fixture-009"
+    p.mkdir()
+    marker = {"reason": "controller_upgrade_before_challenge", "match_started": False}
+    (p / "preparation-interrupted.json").write_text(json.dumps(marker))
+    (p / "challenge-issued.json").write_text("{}")
+    with pytest.raises(RuntimeError, match="uncertain"):
+        recover_collection(p, "sha")
+    (p / "challenge-issued.json").unlink()
+    assert recover_collection(p, "sha") is None
+    assert p.with_name("fixture-009-preparation-attempt-1").exists()

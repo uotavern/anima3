@@ -451,3 +451,16 @@ def test_fast_disturbance_has_recovery_guard():
     ex.tick(observation(journal=[Journal(1, '', '', 0, 0, 500641)]), .2)
     assert not ex.start('harm', observation(), 1.19)
     assert ex.start('harm', observation(), 1.20)
+
+
+def test_local_terrain_can_dispose_potion_outside_blast_and_away_from_mobiles():
+    obs=observation(enemy_x=101)
+    obs=replace(obs,terrain=Terrain((96,96),9,'.'*81))
+    ex=executor(obs)
+    target=ex._safe_throw_target(obs)
+    assert target['type']=='TargetGround'
+    assert max(abs(target['x']-100),abs(target['y']-100))==4
+    assert all(max(abs(target['x']-m.pos.x),abs(target['y']-m.pos.y))>3 for m in obs.mobiles)
+    # Unknown/blocked terrain still cannot authorize a guessed disposal tile.
+    blocked=replace(obs,terrain=Terrain((96,96),9,'#'*81))
+    assert ex._safe_throw_target(blocked) is None
