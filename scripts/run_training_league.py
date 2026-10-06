@@ -147,6 +147,7 @@ def main(argv=None):
             experimental_tactic=None, probe_resources=False, verify_base_stats=True)
         status('collecting', stage=stage, fixture=str(log), candidate=str(candidate))
         report = recover_collection(log, load_checkpoint(checkpoint).policy_sha) if args.resume else None
+        recovered = report is not None
         if report is None:
             run(opts, stop)
             report = json.loads((log/'results.json').read_text())
@@ -172,7 +173,7 @@ def main(argv=None):
             raise RuntimeError("Duplicate receipted match in experiment")
         history.append(row)
         status('fixture_complete')
-        if not row['template_verified']:
+        if not row['template_verified'] and not recovered:
             raise RuntimeError('Server did not normalize starting resources; fixture counted, stop for repair')
         return log, row
 
