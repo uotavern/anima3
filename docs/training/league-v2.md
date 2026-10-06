@@ -115,3 +115,33 @@ counted without playing them again. A known pre-challenge preparation failure is
 archived before retry. Unknown in-match failures stop for audit. Settings and
 checkpoint hash are pinned in `plan.json`; changing the budget on resume fails.
 Completed batch checkpoints are hash checked and reused, not updated twice.
+
+### Live pilot repairs and first batch
+
+The direct training challenge did not belong to ArenaService.Sessions, so its
+PrepareFighter skipped clearing stat modifiers. ServUO fix d843b12c8 applies the
+reset to training matches and clears armed stun/disarm. A SHA-pinned Cecil patch
+changed only PrepareFighter among 103,614 method bodies; original DLL and saves
+are retained. Fixtures 5–8 all start at HP/mana/stamina maxima 100/100/25, including
+fixtures whose lobby snapshots were still buffed or cursed.
+
+Eight training games completed: 1 win, 7 losses, with fixture 4 excluded for a bad
+starting template. PPO consumed 8 eligible actor episodes from 7 valid matches
+(the historical opponent in fixture 8 used the identical frozen policy). Two
+actor episodes from fixture 4 were rejected. One batch update used 955 rollout
+steps, 3,820 optimized steps / 1,092 policy steps. New candidate SHA:
+`ec9b2a7ce9f62256bb0701aca8bb031572255b8146104d4f8738925314a6b2e9`.
+
+Before any evaluation challenge, execution was paused with fixture 9 still
+connecting, no challenge marker, no match directory, no connected agents. The
+watcher's kill returned an auxiliary-process error after killing the main process;
+this was audited before archiving that preparation attempt. Resume reused all
+8 receipts and the existing PPO update.
+
+All 20 evaluation fixtures use executor v6: terrain radius 4 and 10 ms pump for
+both models. Safe potion disposal retains walkability/path checks and >3 tile
+clearance from visible mobiles. In initial live measurements, observe median fell
+from 187.09 ms (fixture 5) to 61.04 ms (fixture 9); pump 63.33 to 22.08 ms.
+Training and evaluation use different controller versions, so training win rate
+must not be used as the incumbent evaluation baseline. Compare only the two
+interleaved evaluation arms. Relevant regression suite: 158 tests passed.
