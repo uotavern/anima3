@@ -76,6 +76,48 @@ def configured(o):
     )
 
 
+def read_base_stats(body, observation, timeout=35):
+    """Read RawStr/RawDex/RawInt through the ordinary Arena stat-ball dialog.
+
+    Status packets contain modified stats, so waiting for curses/buffs is not
+    proof of the base template. The server dialog explicitly shows raw values.
+    Cancel rather than apply it; no privileges or stat edits are used here.
+    """
+    deadline = time.monotonic() + timeout
+    for gump in observation.get("gumps", []):
+        if "ARENA STATS" in str(gump):
+            body.act({"type": "GumpResponse", "serial": gump["serial"],
+                      "gump_id": gump["gump_id"], "button": 0})
+    requested = float("-inf")
+    while time.monotonic() < deadline:
+        packs = {i["serial"] for i in observation.get("items", [])
+                 if i.get("layer") == 21 and i.get("container") == observation["player"]["serial"]}
+        ball = next((i for i in observation.get("items", [])
+                     if i.get("graphic") == 0xE2D and i.get("hue") == 53
+                     and i.get("container") in packs), None)
+        if ball:
+            body.act(use(ball["serial"]))
+            observation = pump(body, 1)
+            gump = next((g for g in observation.get("gumps", []) if "ARENA STATS" in str(g)), None)
+            if gump:
+                entries = {e.get("id"): e.get("s") for e in gump.get("elements", [])
+                           if e.get("type") == "entry"}
+                body.act({"type": "GumpResponse", "serial": gump["serial"],
+                          "gump_id": gump["gump_id"], "button": 0})
+                pump(body, .5)
+                try:
+                    return [int(entries[i]) for i in range(3)]
+                except (KeyError, TypeError, ValueError) as exc:
+                    raise RuntimeError("Arena stat dialog lacks three base stats") from exc
+        elif time.monotonic() - requested >= 5:
+            body.act(say("[Arena stats"))
+            requested = time.monotonic()
+            for pack in packs:
+                body.act(use(pack))
+        observation = pump(body, 1)
+    raise RuntimeError("Could not verify base stats from Arena stat dialog")
+
+
 def wait_prepared_stats(body, observation, timeout=125):
     """A previous pre-AOS Weaken/Clumsy can outlive the match by up to 120s."""
     deadline = time.monotonic() + timeout
@@ -88,7 +130,7 @@ def wait_prepared_stats(body, observation, timeout=125):
     return observation
 
 
-def prepare(body, previously_configured=False):
+def prepare(body, previously_configured=False, verify_base_stats=False):
     """Use the same public commands and consumable dialogs as a human player."""
     for command in (
         "[Arena leave",
@@ -107,6 +149,16 @@ def prepare(body, previously_configured=False):
     o = pump(body, 1)
     if configured(o):
         return o["player"]
+    if verify_base_stats:
+        bases = {s.get("id", n): s["base"] for n, s in enumerate(o.get("skills", []))}
+        skills_ok = all(bases.get(n) == 100 for n in SKILLS) and sum(bases.values()) == 700
+        if skills_ok:
+            raw_stats = read_base_stats(body, o)
+            if raw_stats == [100, 25, 100]:
+                return {**o["player"], "base_stat_verification": {
+                    "source": "ArenaStatsGump", "values": raw_stats}}
+            if previously_configured:
+                raise RuntimeError(f"Previously verified base stats changed: {raw_stats}")
     if previously_configured:
         # A verified earlier match establishes the base build. Stat curses are
         # temporary; requesting fresh balls can be refused while combat clears.

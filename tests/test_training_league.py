@@ -145,3 +145,21 @@ def test_gate_rejects_nonfinite_scores():
     after['rows'][0]['score']=float('inf')
     with pytest.raises(ValueError,match='scores'):
         promotion_gate(before,after)
+
+
+def test_resume_archives_only_proven_preparation_failure(tmp_path):
+    import json
+
+    from scripts.run_training_league import recover_collection
+    p=tmp_path/'fixture-003';p.mkdir()
+    (p/'status.json').write_text(json.dumps({'stage':'stopped', 'error':
+        'Server has not confirmed 100/25/100 stats after debuff recovery: [100, 34, 100]'}))
+    assert recover_collection(p,'sha') is None
+    assert not p.exists() and p.with_name('fixture-003-preparation-attempt-1').exists()
+    p.mkdir()
+    (p/'status.json').write_text(json.dumps({'stage':'stopped','error':'connection lost'}))
+    with pytest.raises(RuntimeError,match='uncertain'):
+        recover_collection(p,'sha')
+    (p/'challenge-issued.json').write_text('{}')
+    with pytest.raises(RuntimeError,match='uncertain'):
+        recover_collection(p,'sha')

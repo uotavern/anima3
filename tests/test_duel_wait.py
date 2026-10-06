@@ -90,3 +90,37 @@ def test_previously_verified_build_waits_without_requesting_new_balls(monkeypatc
     monkeypatch.setattr(duel_wait, "wait_prepared_stats", recover)
     assert duel_wait.prepare(Body(), previously_configured=True)["strength"] == 100
     assert not any(a.get("text") in ("[Arena skills", "[Arena stats") for a in actions)
+
+
+def test_raw_stat_dialog_verifies_base_without_applying_or_accepting_buff(monkeypatch):
+    from types import SimpleNamespace
+
+    from anima3 import duel_wait
+    actions=[]
+    observation={'player':{'serial':1,'strength':100,'dexterity':34,'intelligence':100},
+                 'items':[{'serial':2,'container':1,'layer':21},
+                          {'serial':3,'container':2,'graphic':0xE2D,'hue':53}], 'gumps':[]}
+    dialog={'serial':1,'gump_id':123,'layout':'ARENA STATS',
+            'elements':[{'type':'entry','id':i,'s':str(v)} for i,v in enumerate((100,25,100))]}
+    monkeypatch.setattr(duel_wait,'pump',lambda *a:{**observation,'gumps':[dialog]})
+    body=SimpleNamespace(act=actions.append)
+    assert duel_wait.read_base_stats(body,observation)==[100,25,100]
+    assert actions[-1]['type']=='GumpResponse' and actions[-1]['button']==0
+
+
+def test_verified_base_build_does_not_wait_for_modified_stats(monkeypatch):
+    from types import SimpleNamespace
+
+    from anima3 import duel_wait
+    o={'player':{'serial':1,'strength':100,'dexterity':34,'intelligence':100},
+       'skills':[{'id':i,'base':100} for i in duel_wait.SKILLS],
+       'items':[{'serial':2,'container':1,'layer':21}]}
+    monkeypatch.setattr(duel_wait,'pump',lambda *a:o)
+    monkeypatch.setattr(duel_wait,'read_base_stats',lambda *a:[100,25,100])
+    body=SimpleNamespace(act=lambda a:None,observe_raw=lambda:o)
+    result=duel_wait.prepare(body,previously_configured=True,verify_base_stats=True)
+    assert result['base_stat_verification']['values']==[100,25,100]
+    monkeypatch.setattr(duel_wait,'read_base_stats',lambda *a:[100,50,75])
+    import pytest
+    with pytest.raises(RuntimeError,match='base stats changed'):
+        duel_wait.prepare(body,previously_configured=True,verify_base_stats=True)

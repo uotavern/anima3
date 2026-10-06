@@ -111,6 +111,8 @@ class LiveReplayVerifier:
                 and len(participants) == 2
                 and actor in participants
                 and episode["opponent"] in participants
+                and (not episode.get("require_base_template") or
+                     all(p.get("stats") == [100, 25, 100] for p in rows[0]["players"]))
                 and actor != episode["opponent"]
                 and result["winner"] == meta["winner"]
                 and result["outcome"] == outcome
@@ -529,11 +531,15 @@ def run(args, stop=None):
                 players = list(
                     pool.map(
                         lambda b, configured=configured_before: prepare(
-                            b, previously_configured=configured
+                            b, previously_configured=configured,
+                                **({"verify_base_stats": True} if getattr(args, "verify_base_stats", False) else {})
                         ),
                         bodies,
                     )
                 )
+            if stop.is_set():
+                break
+            atomic_json(log / "prepared-builds.json", {"players": players})
             ids = [p["serial"] for p in players]
             for i, body in enumerate(bodies):
                 label = workers[i].policy_sha[:12] if workers[i] else "fixed-scripted"
@@ -544,6 +550,7 @@ def run(args, stop=None):
             fixture_index = game + getattr(args, "fixture_offset", 0)
             order = [0, 1] if fixture_index % 2 == 0 else [1, 0]
             challenger, receiver = [bodies[i] for i in order]
+            atomic_json(log / "challenge-issued.json", {"challenger": ids[order[0]], "opponent": ids[order[1]]})
             challenger.act(say(f"[Challenge 0x{ids[order[1]]:X} 1 standard7-explosion-training"))
             pump(challenger, 0.6)
             invite = None
@@ -564,6 +571,10 @@ def run(args, stop=None):
             meta, rows = receipt_while_pumping(
                 args.web, match_id, [ids[i] for i in order], log, bodies
             )
+            if getattr(args, "verify_base_stats", False) and any(
+                    p.get("stats") != [100, 25, 100] for p in rows[0]["players"]):
+                for actor in actors:
+                    actor["invalid_reasons"].append("wrong_starting_template")
             files = []
             for i, actor in enumerate(actors):
                 if workers[i] is None:
@@ -582,6 +593,7 @@ def run(args, stop=None):
                     "executor_sha256": EXECUTION_FINGERPRINT,
                     "collector_version": "fixed-cadence-options-v4",
                     "schema_fingerprint": schema_fingerprint(),
+                    "require_base_template": getattr(args, "verify_base_stats", False),
                     "eligible": bool(transitions) and not actor["invalid_reasons"],
                     "transitions": transitions,
                     "verification": {
