@@ -1,0 +1,115 @@
+{
+  "match": {
+    "checkpoint": "/opt/uoarena/anima3-training-skill-clock-20261007/warmstart",
+    "eligible": true,
+    "invalid_reasons": [],
+    "match_id": "28d7cb6b255c4672a0e0caeb3d22071e",
+    "policy_sha": "0c6ca921e8bfd19fbaab3fa353d11819b2ba523cd1a810c2c4782447b7a5f56d",
+    "replay": "https://arena.uotavern.com/replay/?replay=28d7cb6b255c4672a0e0caeb3d22071e",
+    "score": 0.5,
+    "seed": 0,
+    "side": 0,
+    "stage": "train-1",
+    "style": "balanced",
+    "template_verified": true
+  },
+  "first_combat_potions": {
+    "heal_potions": 5,
+    "explosion_potions": 5,
+    "refresh_potions": 5
+  },
+  "actions": {
+    "approach": 11,
+    "hold": 860,
+    "weaken": 1,
+    "burst_bolt": 1,
+    "agility_potion": 3,
+    "harm": 2,
+    "explosion": 4,
+    "refresh_potion": 5,
+    "heal_potion": 5,
+    "explosion_potion": 4,
+    "greater_heal": 9,
+    "energy_bolt": 3,
+    "heal": 4,
+    "magic_arrow": 42,
+    "meditate": 20,
+    "retreat": 11
+  },
+  "next_match_supplies": {
+    "players": [
+      {
+        "counts": {
+          "0xf07": 5,
+          "0xf08": 5,
+          "0xf0b": 5,
+          "0xf0c": 5,
+          "0xf0d": 5,
+          "0xf7a": 100,
+          "0xf7b": 100,
+          "0xf84": 100,
+          "0xf85": 100,
+          "0xf86": 100,
+          "0xf88": 100,
+          "0xf8c": 100,
+          "0xf8d": 100
+        },
+        "required": {
+          "0xf07": 5,
+          "0xf08": 5,
+          "0xf0b": 5,
+          "0xf0c": 5,
+          "0xf0d": 5,
+          "0xf7a": 100,
+          "0xf7b": 100,
+          "0xf84": 100,
+          "0xf85": 100,
+          "0xf86": 100,
+          "0xf88": 100,
+          "0xf8c": 100,
+          "0xf8d": 100
+        },
+        "serial": 57,
+        "verified": true,
+        "weight": 200,
+        "weight_max": 390
+      },
+      {
+        "counts": {
+          "0xf07": 5,
+          "0xf08": 5,
+          "0xf0b": 5,
+          "0xf0c": 5,
+          "0xf0d": 5,
+          "0xf7a": 100,
+          "0xf7b": 100,
+          "0xf84": 100,
+          "0xf85": 100,
+          "0xf86": 100,
+          "0xf88": 100,
+          "0xf8c": 100,
+          "0xf8d": 100
+        },
+        "required": {
+          "0xf07": 5,
+          "0xf08": 5,
+          "0xf0b": 5,
+          "0xf0c": 5,
+          "0xf0d": 5,
+          "0xf7a": 100,
+          "0xf7b": 100,
+          "0xf84": 100,
+          "0xf85": 100,
+          "0xf86": 100,
+          "0xf88": 100,
+          "0xf8c": 100,
+          "0xf8d": 100
+        },
+        "serial": 58,
+        "verified": true,
+        "weight": 201,
+        "weight_max": 390
+      }
+    ]
+  }
+}

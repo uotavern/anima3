@@ -281,3 +281,16 @@ first combat observations for five potions (not just preparation). Poll real
 unit before reacting. Continue controlled model improvement; prior queued40-game
 imitation comparison stays canceled. Reconsider real-teacher fine-tuning only
 with properly supplied training data and new validation matches.
+
+## First actual round and repeated replenishment verified
+
+Verified wait on MainPID257858 through the first live match. It completed as a
+300-second draw against balanced. First recorded neural observation contains
+5 heal/5 explosion/5 refresh potions. The agent used5 heal and5 refresh potions,
+independent explosion throws and a burst_bolt sequence. Fixture002's pre-challenge
+supply audit again confirms all required counts and weights200/201. Thus the fix
+works after actual consumption, not only repeated idle refill. Evidence:
+`2026-10-07-first-replenishment-proof.json`, replay28d7cb6b255c4672a0e0caeb3d22071e.
+One draw does not prove learned improvement. Continue the active28-game run;
+collect only correctly supplied teacher data for future training. No additional
+model/runner mutations were made during this verified wait.
