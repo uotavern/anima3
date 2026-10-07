@@ -1,0 +1,47 @@
+{
+  "training_fixtures": [
+    1,
+    2,
+    3,
+    5
+  ],
+  "validation_fixtures": [
+    6,
+    7
+  ],
+  "excluded": [
+    {
+      "file": ".logs/live-supply-fixed-copy/fixture-006/2fd8489145564a83b35072db5ed18a9c/demonstration-58.json",
+      "reason": "invalid or incompatible demonstration",
+      "invalid_reasons": [
+        "teacher_action_rejected"
+      ]
+    },
+    {
+      "file": ".logs/live-supply-fixed-copy/fixture-007/dd22597d56cd4924908a3ac5f1c8add0/demonstration-58.json",
+      "reason": "invalid or incompatible demonstration",
+      "invalid_reasons": [
+        "teacher_action_rejected"
+      ]
+    }
+  ],
+  "accepted": [],
+  "real_server_strength_established": false,
+  "parent": {
+    "episodes": 0,
+    "free_choices": 0,
+    "cross_entropy": null,
+    "accuracy": null,
+    "per_action": {},
+    "real_server_strength_established": false
+  },
+  "candidate": {
+    "episodes": 0,
+    "free_choices": 0,
+    "cross_entropy": null,
+    "accuracy": null,
+    "per_action": {},
+    "real_server_strength_established": false
+  },
+  "candidate_sha": "5e56ab6879b253dc7b6f4b6482e06b43fb4dc3a8b5788e756a8e2424f1d7f8d0"
+}

@@ -378,3 +378,17 @@ latency no longer poisons the whole demonstration.29 related tests and lint pass
 not deployed into current fixed run. Need valid held-out007 or new independent
 collection before asserting generalization. Remote unit259838 still active at
 last check, completed6 collecting007. Live improvement remains unproven.
+
+## Next executor staged; held-out teacher validation unavailable
+
+Remote isolated /opt/uoarena/anima3-training-v8-20261007 contains git snapshot
+59fb090 and candidate-bc SHA5e56ab6879b253dc7b6f4b6482e06b43fb4dc3a8b5788e756a8e2424f1d7f8d0.
+Verified import/checkpoint hash and executor pre-aos-options-v8-last-seen-approach
+on server. No process launched there; current v7 run unchanged.
+
+Current unit259838 completed7 and started008 (historical neural opponent).
+Both intended BC validation teacher records006/007 are invalid with rejected
+actions; loader correctly excludes both, so no held-out imitation metric exists.
+Do not mistake empty metrics for a pass. Evidence supply-fixed-validation.json.
+Need a new valid independent teacher record, with corrected collector if the
+current run yields none. Full real playing strength evaluation still pending.
