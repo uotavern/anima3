@@ -318,3 +318,23 @@ IMPORTANT: v8 is local only. Active remote28-game trial remains v7 to preserve
 its fixed comparison conditions. Validate v8 in a separate subsequent experiment
 with the same code for both comparison arms; actual reacquisition and playing
 strength remain unverified. Do not promote on these unit tests alone.
+
+## Reconnection, audited resume, and demonstration supply provenance
+
+On reconnect the original supply-fixed unit had failed after three completed
+matches (one draw, two losses), before fixture004 challenge. Its progress showed
+player58 Idle but no fresh DuelState from57 for30seconds. Shard active, online0,
+live empty, no bridge processes; fixture004 contained only pre-match status and
+progress, no challenge marker or match directory. Archived that attempt with
+recovery-audit.json as fixture-004-handshake-attempt-1 and resumed original code,
+checkpoint, seed and28-match budget using --resume in unit
+arena-training-supply-fixed-resume-20261007. Completed receipts are revalidated;
+no completed match is rerun. This is recovery of a transport/handshake failure,
+not evidence that its underlying cause is resolved.
+
+Offline demonstration import now requires the adjacent prepared-supplies.json
+with exact participant IDs, verified counts and finite within-limit weight.
+All three fresh corrected demos accepted (989,736,762 steps); three sampled
+legacy supply-confounded demos rejected for absent audit. Nineteen targeted
+tests pass including missing/wrong supplies, overweight and participant mismatch.
+This local importer hardening is not deployed into the ongoing fixed experiment.

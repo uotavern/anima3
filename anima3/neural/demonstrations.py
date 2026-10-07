@@ -6,6 +6,7 @@ import math
 from pathlib import Path
 
 from anima3 import replay
+from anima3.duel_wait import TRAINING_SUPPLIES
 from anima3.sparring import TRAINING_RULES
 
 from .checkpoints import schema_fingerprint
@@ -29,6 +30,19 @@ def load_demonstration(path: Path, hidden_size: int) -> Trajectory:
             or meta['rules'] != TRAINING_RULES or not starting_template_verified(rows)
             or len(ids) != 2 or set(ids) != {data['actor'], data['opponent']}):
         raise ValueError('demonstration receipt differs')
+    supply_file = path.parent.parent / 'prepared-supplies.json'
+    if not supply_file.exists():
+        raise ValueError('missing pre-challenge supply verification; legacy data is retired')
+    supplies = json.loads(supply_file.read_text()).get('players', [])
+    expected = {hex(k): v for k,v in TRAINING_SUPPLIES.items()}
+    if (len(supplies) != 2 or {x.get('serial') for x in supplies} != set(ids)
+            or any(x.get('verified') is not True or x.get('counts') != expected
+                   or not isinstance(x.get('weight'), (int,float))
+                   or not isinstance(x.get('weight_max'), (int,float))
+                   or not math.isfinite(x['weight']) or not math.isfinite(x['weight_max'])
+                   or not 0 <= x['weight'] <= x['weight_max'] or x['weight_max'] <= 0
+                   for x in supplies)):
+        raise ValueError('invalid pre-challenge supply verification')
     trajectory = Trajectory(info={'domain': 'servuo-demonstration', 'ppo_eligible': False,
                                  'match_id': meta['id'], 'actor': data['actor']})
     previous = None

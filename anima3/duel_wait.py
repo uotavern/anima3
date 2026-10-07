@@ -20,6 +20,8 @@ from .strategy import add_arguments, build_session
 
 RULES = "7x-magic-explosion-classic"
 SKILLS = [25, 16, 46, 26, 43, 1, 0]
+TRAINING_SUPPLIES = {g: 100 for g in (0xF7A,0xF7B,0xF84,0xF85,0xF86,0xF88,0xF8D,0xF8C)}
+TRAINING_SUPPLIES.update({g: 5 for g in (0xF0C,0xF07,0xF0D,0xF0B,0xF08)})
 
 
 def server_state(obs):
@@ -136,8 +138,7 @@ def training_supply_audit(observation):
     player = observation['player']
     pack = next((i['serial'] for i in observation['items']
                  if i.get('layer') == 21 and i.get('container') == player['serial']), None)
-    required = {g: 100 for g in (0xF7A,0xF7B,0xF84,0xF85,0xF86,0xF88,0xF8D,0xF8C)}
-    required.update({g: 5 for g in (0xF0C,0xF07,0xF0D,0xF0B,0xF08)})
+    required = TRAINING_SUPPLIES
     counts = {g: sum(i.get('amount', 0) for i in observation['items']
                      if pack is not None and i.get('container') == pack and i['graphic'] == g)
               for g in required}

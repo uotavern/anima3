@@ -11,6 +11,15 @@ from anima3.sparring import TRAINING_RULES
 
 
 def make_demo(tmp_path):
+    from anima3.duel_wait import TRAINING_SUPPLIES
+
+    tmp_path = tmp_path / 'fixture' / ('a' * 32)
+    tmp_path.mkdir(parents=True)
+    supplies = {'players': [{'serial': serial, 'verified': True, 'weight': 200,
+                            'weight_max': 390,
+                            'counts': {hex(k):v for k,v in TRAINING_SUPPLIES.items()}}
+                           for serial in (57,58)]}
+    (tmp_path.parent / 'prepared-supplies.json').write_text(json.dumps(supplies))
     mid = 'a' * 32
     rows = [
         {'seq': 0, 't': 0, 'type': 'header', 'schema': 1, 'id': mid,
@@ -106,3 +115,22 @@ def test_balanced_imitation_does_not_count_forced_holds(tmp_path):
     weights = result['action_weights']
     assert weights[1] / weights[0] == pytest.approx(2**.5)
     assert result['bc_updates'] > 0
+
+
+@pytest.mark.parametrize('fault', ['missing', 'potions', 'weight', 'participant'])
+def test_previously_confounded_demonstrations_are_rejected(tmp_path, fault):
+    p, _ = make_demo(tmp_path)
+    file = p.parent.parent / 'prepared-supplies.json'
+    if fault == 'missing':
+        file.unlink()
+    else:
+        audit = json.loads(file.read_text())
+        if fault == 'potions':
+            audit['players'][0]['counts']['0xf0d'] = 0
+        elif fault == 'weight':
+            audit['players'][0]['weight'] = 415
+        else:
+            audit['players'][0]['serial'] = 99
+        file.write_text(json.dumps(audit))
+    with pytest.raises(ValueError, match='supply verification'):
+        load_demonstration(p, 64)
