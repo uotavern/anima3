@@ -77,3 +77,31 @@ Deployed isolated source snapshot e597299, leaving the previous release intact:
    promote merely because training ran.
 6. Increase live evaluation sample counts only after finding a viable candidate.
    Completion requires real-server evidence, not this pilot alone.
+
+## Follow-up: frozen-candidate comparison and first real labels
+
+The next goal turn revalidated systemd MainPID 252504 as active (two bridges)
+and found two completed, eligible losses. This is progress, not evidence of
+playing-strength improvement. First two teacher recordings were downloaded to
+`.logs/live-skill-clock-copy` and independently loaded against replay checksums:
+214 timesteps, 62 free-choice labels. They include one burst_bolt, two stuns,
+13 Harms, five Greater Heals and two explosion-potion choices. More verified
+training-only fixtures are needed before supervised fine-tuning.
+
+Commit d94df5f adds a frozen comparison mode without an intervening PPO update:
+
+```
+PYTHONPATH=. python scripts/run_training_league.py \
+  --checkpoint /path/to/incumbent --candidate-checkpoint /path/to/bc-candidate \
+  --batches 0 --eval-per-style 20 --out /path/to/fresh-evaluation \
+  --accounts-file /private/accounts.json --bridge /path/to/anima-bridge \
+  --data-dir /path/to/assets
+```
+
+This schedules 200 matches: 20 per opponent style per model. Start with a smaller
+pilot if diagnosing execution, but it cannot pass the evidence gate. Both policy
+hashes are pinned for resume. The runner lifecycle regression verifies no PPO
+updates and no duplicate games when an evaluation-only run resumes. Existing
+training-mode resume remains unchanged. Focused runner tests: 18 passed; lint
+passed. This runner change is local only; active live experiment still uses its
+original isolated source snapshot.
