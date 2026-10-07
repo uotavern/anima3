@@ -1,0 +1,125 @@
+{
+  "parent": {
+    "episodes": 1,
+    "free_choices": 15,
+    "cross_entropy": 1.112157517671585,
+    "accuracy": 0.6,
+    "per_action": {
+      "weaken": {
+        "labels": 1,
+        "accuracy": 0.0
+      },
+      "agility_potion": {
+        "labels": 1,
+        "accuracy": 1.0
+      },
+      "clumsy": {
+        "labels": 1,
+        "accuracy": 1.0
+      },
+      "explosion": {
+        "labels": 2,
+        "accuracy": 0.0
+      },
+      "heal_potion": {
+        "labels": 1,
+        "accuracy": 1.0
+      },
+      "energy_bolt": {
+        "labels": 2,
+        "accuracy": 1.0
+      },
+      "hold": {
+        "labels": 4,
+        "accuracy": 1.0
+      },
+      "magic_arrow": {
+        "labels": 3,
+        "accuracy": 0.0
+      }
+    },
+    "real_server_strength_established": false
+  },
+  "unweighted": {
+    "episodes": 1,
+    "free_choices": 15,
+    "cross_entropy": 0.8082551717758178,
+    "accuracy": 0.6666666666666666,
+    "per_action": {
+      "weaken": {
+        "labels": 1,
+        "accuracy": 1.0
+      },
+      "agility_potion": {
+        "labels": 1,
+        "accuracy": 1.0
+      },
+      "clumsy": {
+        "labels": 1,
+        "accuracy": 1.0
+      },
+      "explosion": {
+        "labels": 2,
+        "accuracy": 0.0
+      },
+      "heal_potion": {
+        "labels": 1,
+        "accuracy": 1.0
+      },
+      "energy_bolt": {
+        "labels": 2,
+        "accuracy": 1.0
+      },
+      "hold": {
+        "labels": 4,
+        "accuracy": 1.0
+      },
+      "magic_arrow": {
+        "labels": 3,
+        "accuracy": 0.0
+      }
+    },
+    "real_server_strength_established": false
+  },
+  "balanced": {
+    "episodes": 1,
+    "free_choices": 15,
+    "cross_entropy": 0.9993904034296671,
+    "accuracy": 0.6666666666666666,
+    "per_action": {
+      "weaken": {
+        "labels": 1,
+        "accuracy": 1.0
+      },
+      "agility_potion": {
+        "labels": 1,
+        "accuracy": 1.0
+      },
+      "clumsy": {
+        "labels": 1,
+        "accuracy": 1.0
+      },
+      "explosion": {
+        "labels": 2,
+        "accuracy": 0.0
+      },
+      "heal_potion": {
+        "labels": 1,
+        "accuracy": 1.0
+      },
+      "energy_bolt": {
+        "labels": 2,
+        "accuracy": 1.0
+      },
+      "hold": {
+        "labels": 4,
+        "accuracy": 1.0
+      },
+      "magic_arrow": {
+        "labels": 3,
+        "accuracy": 0.0
+      }
+    },
+    "real_server_strength_established": false
+  }
+}

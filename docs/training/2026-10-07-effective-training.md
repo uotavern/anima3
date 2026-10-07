@@ -163,3 +163,10 @@ It compares parent and both candidates on 100 fresh simulator fixtures each
 (seed3651000000), looking for catastrophic forgetting, not live promotion.
 Re-poll the handle before treating this job as finished. Remote live unit remains
 the original unmodified experiment; new candidates have NOT been deployed.
+
+Fixture006 subsequently completed while the live service remained active. It was
+independently verified and scored without changing either candidate. On its 15
+free-choice labels: parent accuracy .60 / CE1.1122; unweighted .6667 / CE.8083;
+balanced .6667 / CE.9994. This tiny validation sample is insufficient for candidate
+selection. Fixture007 is still reserved for validation. Exact results:
+`2026-10-07-live-imitation-validation-006.json`. No live-strength claim follows.
