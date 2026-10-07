@@ -23,7 +23,10 @@ from .train import TrainConfig, _input, behavioral_clone, collect_simulator, ppo
 
 
 @torch.no_grad()
-def evaluate_suite(model, *, games_per_style=20, seed=3_600_000_000, max_steps=800):
+def evaluate_suite(model, *, games_per_style=20, seed=3_600_000_000, max_steps=800,
+                   sampling="categorical"):
+    if sampling not in ("categorical", "greedy"):
+        raise ValueError("unsupported policy sampling")
     if games_per_style < 2 or games_per_style % 2 or seed < 1_000_000_000:
         raise ValueError("even game count >=2 and held-out seed required")
     rows = []
@@ -41,7 +44,8 @@ def evaluate_suite(model, *, games_per_style=20, seed=3_600_000_000, max_steps=8
             while not sim.done:
                 frames = sim.frames()
                 action, _, _, hidden = model.act(
-                    *_input(frames[side], model.device), hidden, generator=generator)
+                    *_input(frames[side], model.device), hidden, generator=generator,
+                    deterministic=sampling == "greedy")
                 action = int(action.item())
                 name = ACTION_NAMES[action]
                 counts[name] = counts.get(name, 0) + 1
@@ -52,7 +56,7 @@ def evaluate_suite(model, *, games_per_style=20, seed=3_600_000_000, max_steps=8
                          "score": score, "damage": info["damage"][side],
                          "self_damage": info["self_damage"][side],
                          "actions": counts, "elapsed": sim.elapsed})
-    return {"domain": "approximate-pre-aos-simulator", "rows": rows,
+    return {"domain": "approximate-pre-aos-simulator", "sampling": sampling, "rows": rows,
             "games": len(rows), "score": sum(r["score"] for r in rows)/len(rows),
             "real_server_strength_established": False}
 

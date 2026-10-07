@@ -17,6 +17,7 @@ def main():
     p.add_argument('--out', type=Path, required=True)
     p.add_argument('--validation-collections', type=Path, nargs='*', default=[])
     p.add_argument('--epochs', type=int, default=32)
+    p.add_argument('--balance-actions', action='store_true')
     p.add_argument('--seed', type=int, default=20261007)
     a = p.parse_args()
     if not 1 <= a.epochs <= 256 or a.out.exists():
@@ -46,7 +47,7 @@ def main():
               'validation': imitation_metrics(loaded.model, validation)}
     optimizer = torch.optim.Adam(loaded.model.parameters(), lr=1e-4)
     metrics = behavioral_clone(loaded.model, optimizer, episodes, TrainConfig(),
-                               epochs=a.epochs, seed=a.seed)
+                               epochs=a.epochs, seed=a.seed, balance_actions=a.balance_actions)
     after = {'train': imitation_metrics(loaded.model, episodes),
              'validation': imitation_metrics(loaded.model, validation)}
     provenance = {'before': before, 'after': after,

@@ -458,10 +458,21 @@ def behavioral_clone(
     *,
     epochs: int = 4,
     seed: int = 0,
+    balance_actions: bool = False,
 ) -> dict:
     chunks = _chunks(episodes, config.sequence_length)
     rng = random.Random(seed)
     metrics = []
+    action_weights = torch.ones(model.config.action_dim, device=model.device)
+    if balance_actions:
+        counts = torch.zeros_like(action_weights)
+        for episode in episodes:
+            for action, mask in zip(episode.actions, episode.masks, strict=True):
+                if sum(mask) > 1:
+                    counts[action] += 1
+        present = counts > 0
+        if bool(present.any()):
+            action_weights[present] = (counts.sum() / (present.sum() * counts[present])).sqrt().clamp(0.25, 4)
     model.train()
     for _ in range(epochs):
         rng.shuffle(chunks)
@@ -476,7 +487,8 @@ def behavioral_clone(
             valid = batch["valid"] & (batch["masks"].sum(-1) > 1)
             if not bool(valid.any()):
                 continue
-            loss = -log_prob[valid].mean()
+            weights = action_weights[batch["actions"][valid]]
+            loss = (-log_prob[valid] * weights).sum() / weights.sum()
             optimizer.zero_grad(set_to_none=True)
             loss.backward()
             torch.nn.utils.clip_grad_norm_(model.parameters(), config.max_grad_norm)
@@ -484,6 +496,8 @@ def behavioral_clone(
             metrics.append(float(loss.detach()))
     model.eval()
     return {
+        "balance_actions": balance_actions,
+        "action_weights": action_weights.cpu().tolist(),
         "bc_updates": len(metrics),
         "bc_loss_first": metrics[0] if metrics else None,
         "bc_loss_last": metrics[-1] if metrics else None,

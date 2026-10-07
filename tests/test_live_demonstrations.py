@@ -84,3 +84,25 @@ def test_imitation_metrics_excludes_forced_holds(tmp_path):
     assert metrics['cross_entropy'] > 5
     assert 'hold' not in metrics['per_action']
     assert imitation_metrics(model, [])['accuracy'] is None
+
+
+def test_balanced_imitation_does_not_count_forced_holds(tmp_path):
+    import torch
+
+    from anima3.neural.model import PolicyConfig, RecurrentPolicy
+    from anima3.neural.train import behavioral_clone
+
+    p, d = make_demo(tmp_path)
+    template = d['steps'][0]
+    d['steps'] = [{**template, 'at': float(i)} for i in range(20)]
+    for i, action in enumerate((0, 0, 1), 20):
+        d['steps'].append({**template, 'at': float(i), 'action': action,
+                          'mask': [True,True]+[False]*(len(ACTION_NAMES)-2)})
+    p.write_text(json.dumps(d))
+    episode = load_demonstration(p, 8)
+    model = RecurrentPolicy(PolicyConfig(len(FEATURE_NAMES), len(ACTION_NAMES), 8, 8))
+    result = behavioral_clone(model, torch.optim.Adam(model.parameters()), [episode],
+                              TrainConfig(), epochs=1, balance_actions=True)
+    weights = result['action_weights']
+    assert weights[1] / weights[0] == pytest.approx(2**.5)
+    assert result['bc_updates'] > 0
