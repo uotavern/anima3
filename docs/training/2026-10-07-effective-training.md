@@ -423,3 +423,19 @@ random missing records. Preserve exclusions, report zero accepted validation,
 and collect fresh held-out games after terminal-context fix. Do not evaluate
 imitation generalization using only surviving/winning teachers. The PPO learner
 records for these matches remain independently eligible and receipt-verified.
+
+## First PPO evaluation invalidated by observation-consumption latency
+
+Completed10, unit259838 active; fixture011 started. Fixture010 PPO lost to
+balanced, replay81fb446e370f4d31a304ecd2cfb435d6 duration232409ms, normal receipt,
+BUT episode ineligible with deadline. Must not present this as valid paired
+strength evidence; current gate should fail closed even if later scores improve.
+
+Exact rejected request9: observed866756.197545216, submitted866756.364342802,
+received866756.379713137, consumed866757.20125142. Inference response ~15ms;
+observation age1003.706ms exceeded1000ms deadline, response waited821.538ms.
+Nearby observe RPC took662.980ms (previous452.859ms), pump30.493ms, state RPC31.763ms.
+This is actor/bridge consumption latency, not demonstrated model inference
+slowness. Keep deadline intact. Next investigate observation RPC and cgroup CPU
+throttling (current150% quota includes bridges/workers); do not alter conditions
+mid-comparison. Remote cpu.stat SSH query pending local exec session20679.
