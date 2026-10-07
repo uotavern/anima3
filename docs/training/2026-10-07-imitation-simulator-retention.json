@@ -1,0 +1,23 @@
+{
+  "parent": {
+    "policy_sha": "0c6ca921e8bfd19fbaab3fa353d11819b2ba523cd1a810c2c4782447b7a5f56d",
+    "score": 0.645,
+    "wins": 56,
+    "losses": 27,
+    "draws": 17
+  },
+  "unweighted": {
+    "policy_sha": "03b06cc71b859adf8394e37467f5e9f3e1df8996a576d417cf8c00264d819544",
+    "score": 0.565,
+    "wins": 23,
+    "losses": 10,
+    "draws": 67
+  },
+  "balanced": {
+    "policy_sha": "d0096ef90098f589c36194e3638dccdf087125159106b0b89fc6e496d1c8cf0a",
+    "score": 0.63,
+    "wins": 34,
+    "losses": 8,
+    "draws": 58
+  }
+}

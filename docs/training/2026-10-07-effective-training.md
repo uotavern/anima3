@@ -170,3 +170,40 @@ free-choice labels: parent accuracy .60 / CE1.1122; unweighted .6667 / CE.8083;
 balanced .6667 / CE.9994. This tiny validation sample is insufficient for candidate
 selection. Fixture007 is still reserved for validation. Exact results:
 `2026-10-07-live-imitation-validation-006.json`. No live-strength claim follows.
+
+## Follow-up: retention result and queued frozen live comparison
+
+Local diagnostic session50127 finished successfully. On 100 fixtures/model:
+parent56W/27L/17D (score.645), unweighted23W/10L/67D (.565),
+balanced34W/8L/58D (.630). Both candidates convert losses to draws but lose wins;
+this does not establish improvement. Summaries are in
+`2026-10-07-imitation-simulator-retention.json`.
+
+Reserved fixture007 was independently verified after completion. On 120 free
+choices, parent accuracy .4667/CE2.0796, unweighted .55/CE2.7764, balanced
+.5583/CE2.3979. Accuracy increases but cross entropy worsens: some wrong choices
+have become more confident. Neither candidate has passed a deployment gate.
+No weights were changed after these validation results. Balanced is selected
+only for the next screening experiment, due to better simulator retention than
+unweighted, not for public promotion.
+
+Queued isolated next experiment:
+- code `/opt/uoarena/anima3-live-imitation-eval-20261007` (snapshot0431a3b)
+- unit `arena-imitation-frozen-eval-20261007.service`
+- launcher `/opt/uoarena/anima3-live-imitation-eval-20261007/queue-evaluation.py`
+- out `.logs/frozen-comparison`
+- baseline SHA0c6ca921e8bfd19fbaab3fa353d11819b2ba523cd1a810c2c4782447b7a5f56d
+- candidate SHAd0096ef90098f589c36194e3638dccdf087125159106b0b89fc6e496d1c8cf0a
+- frozen evaluation only, 4 games/style/model = 40 unique matches; seed20261008
+- no PPO updates; public promotion remains disabled, sample size below gate
+- launcher waits for current `arena-training-skill-clock-20261007.service` to
+  terminate and requires complete28/28 unique matches; predecessor failure stops
+  the queue rather than silently creating another run. Same account lock applies.
+- current 28-game run plus this 40-game screen is a bounded68-match plan.
+- queue max5h waiting; unit max10h total; Restart=no, CPU150%, memory3G.
+
+Next: verify actual systemd handles; do not infer completion from this ledger.
+If the predecessor fails, audit its last fixture before resuming. After successful
+completion, inspect the 40-game comparison and validate model hashes remain fixed.
+Only expand to a 200-game confirmation if live screening warrants it; otherwise
+use observed errors and training/validation mismatch to revise the next candidate.
