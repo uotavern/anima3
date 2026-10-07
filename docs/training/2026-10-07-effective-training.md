@@ -338,3 +338,18 @@ All three fresh corrected demos accepted (989,736,762 steps); three sampled
 legacy supply-confounded demos rejected for absent audit. Nineteen targeted
 tests pass including missing/wrong supplies, overweight and participant mismatch.
 This local importer hardening is not deployed into the ongoing fixed experiment.
+
+## Four completed corrected fixtures; teacher-data threshold enforced
+
+Resumed unit MainPID259838 remains active and completed fixture004. Fixture004
+is a frozen historical neural opponent by design (every fourth training game),
+so it yields PPO data but no scripted-teacher demonstration. A local attempt to
+fit fixtures001..004 was correctly refused: only three teacher records exist;
+no candidate was created. Keep planned BC split001/002/003/005, validation006/007.
+Parent diagnostic on the three accepted demonstrations is saved locally in
+.logs/live-supply-fixed-copy/parent-imitation-diagnostics.json; this measures
+imitation agreement, not strength. Need fixture005 before fitting live BC.
+
+Local commit6dec2a0 adds maximum two pre-challenge idle-timeout retries, preserves
+attempt directories and refuses retry with any challenge/results/match evidence.
+Twenty league tests pass. Current running remote code remains unchanged.
