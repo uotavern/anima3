@@ -351,7 +351,10 @@ def _actor(body, opponent, worker, log, stop, *, deadline=340, expected_rules=TR
                 for packet in executor.tick(obs, time.monotonic()):
                     rpc("act:" + packet["type"], body.act, packet)
                 decision_at = time.monotonic()
-                if decision_at >= next_decision and decision_at - last_state < 3:
+                # Death can arrive before the final DuelState receipt. There is
+                # no decision to label outside a fresh, living combat context.
+                if (decision_at >= next_decision and decision_at - last_state < 3
+                        and executor.view.ready and executor.view.fresh):
                     frame = executor.observe(obs, now=decision_at)
                     action = tactical_teacher.choose(executor.view, frame.mask)
                     accepted = executor.busy and action == 0

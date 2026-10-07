@@ -362,3 +362,19 @@ Artifact .logs/supply-fixed-imitation-20261007-8epochs, fit summary
 live evaluation pending; not deployed and no strength claim. This short8epoch
 candidate limits initial fitting compared with the retired32epoch candidates;
 selection must still rely on held-out and real matches.
+
+## Corrected BC retention and terminal teacher collection defect
+
+100 simulator games each, fresh seed3652000000/max1200: parent and8epochBC both
+score0.735. Paired delta0, CI[-0.1,0.105]; balanced style delta-0.175. No simulator
+improvement claim or promotion. Full outcomes in supply-fixed-retention JSON.
+
+Fixture006 teacher record is INVALID (teacher_action_rejected): exactly final
+steps137/138 have self_hp0, ready0 and hold-only mask. Executor correctly refuses
+action in dead context, but collector was still labeling decisions before the
+final DuelState arrived. Keep old receipt/record unchanged and excluded. Local
+collector now requires fresh/ready view before teacher decision, so normal death
+latency no longer poisons the whole demonstration.29 related tests and lint pass;
+not deployed into current fixed run. Need valid held-out007 or new independent
+collection before asserting generalization. Remote unit259838 still active at
+last check, completed6 collecting007. Live improvement remains unproven.
