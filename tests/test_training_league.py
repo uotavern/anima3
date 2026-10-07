@@ -176,7 +176,8 @@ def test_start_template_checks_modified_resources_not_just_raw_header():
     assert not starting_template_verified(rows)
 
 
-def test_runner_completes_and_resume_does_not_replay_or_retrain(tmp_path,monkeypatch):
+@pytest.mark.parametrize("evaluation_only", [False, True])
+def test_runner_completes_and_resume_does_not_replay_or_retrain(tmp_path,monkeypatch,evaluation_only):
     import json
     from types import SimpleNamespace
 
@@ -211,12 +212,15 @@ def test_runner_completes_and_resume_does_not_replay_or_retrain(tmp_path,monkeyp
     argv=['--out',str(tmp_path/'run'),'--checkpoint',str(tmp_path/'seed'),
           '--accounts-file',str(accounts),'--bridge','unused','--data-dir','unused',
           '--user-a','test_a','--user-b','test_b']
+    if evaluation_only:
+        argv += ['--batches','0','--candidate-checkpoint',str(tmp_path/'frozen')]
+    expected = {'games':20,'updates':0} if evaluation_only else {'games':28,'updates':1}
     assert runner.main(argv)==0
-    assert counter=={'games':28,'updates':1}
+    assert counter==expected
     assert runner.main(argv+['--resume'])==0
-    assert counter=={'games':28,'updates':1}
+    assert counter==expected
     status=json.loads((tmp_path/'run/status.json').read_text())
-    assert status['completed']==28 and status['status']=='complete'
+    assert status['completed']==expected['games'] and status['status']=='complete'
     assert not status['gate']['passed']  # Pilot remains below evidence threshold.
 
 

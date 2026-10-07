@@ -88,13 +88,17 @@ def main(argv=None):
     p.add_argument("--user-b", default="arena_train_b")
     p.add_argument("--batches", type=int, default=1)
     p.add_argument("--batch-matches", type=int, default=8)
+    p.add_argument("--candidate-checkpoint", type=Path,
+                   help="Frozen candidate for evaluation-only mode (--batches 0)")
     p.add_argument("--eval-per-style", type=int, default=2)
     p.add_argument("--resume", action="store_true")
     p.add_argument("--seed", type=int, default=20261006)
     args = p.parse_args(argv)
-    if not (1 <= args.batches <= 10 and 4 <= args.batch_matches <= 32
+    if not (0 <= args.batches <= 10 and 4 <= args.batch_matches <= 32
             and 2 <= args.eval_per_style <= 40 and args.eval_per_style % 2 == 0):
         p.error("invalid bounded training/evaluation budgets")
+    if (args.batches == 0) != (args.candidate_checkpoint is not None):
+        p.error("evaluation-only mode requires --batches 0 and --candidate-checkpoint")
     total_budget = args.batches*args.batch_matches + len(STYLES)*args.eval_per_style*2
     lock_id = hashlib.sha256((args.host + '/'+ '/'.join(sorted((args.user_a, args.user_b)))).encode()).hexdigest()[:16]
     lock = open('/tmp/anima3-league-'+lock_id+'.lock', 'a')  # noqa: SIM115 -- process lifetime lock
@@ -113,6 +117,8 @@ def main(argv=None):
             "batch_matches": args.batch_matches, "eval_per_style": args.eval_per_style,
             "host": args.host, "web": args.web, "user_a": args.user_a, "user_b": args.user_b,
             "seed": args.seed, "budget": total_budget}
+    if args.candidate_checkpoint is not None:
+        plan["candidate_sha"] = load_checkpoint(args.candidate_checkpoint).policy_sha
     plan_path = root / "plan.json"
     if plan_path.exists() and json.loads(plan_path.read_text()) != plan:
         raise RuntimeError("Resume configuration differs from pinned experiment")
@@ -123,7 +129,8 @@ def main(argv=None):
             raise RuntimeError("Legacy pilot configuration differs")
         atomic_json(root / "status-before-resume.json", prior)
     atomic_json(plan_path, plan)
-    candidate, snapshots = original, [original]
+    candidate = args.candidate_checkpoint.resolve() if args.candidate_checkpoint else original
+    snapshots = [original]
     history, updates = [], []
     stop = threading.Event()
     for sig in (signal.SIGTERM, signal.SIGINT):
