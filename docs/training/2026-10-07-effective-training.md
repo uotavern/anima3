@@ -250,3 +250,34 @@ Next required work (do not restart the old queue):
    candidates learned partly from resource-starved teachers; do not treat their
    queued comparison as ready or their validations as proof of strategy quality.
 5. Continue training and controlled evaluation toward actual live improvement.
+
+## Supply correction deployed and fresh controlled run started
+
+ServUO source commit32c2c2b81 banks exact empty Bottle items before public supply
+refill, preserving serials/amounts. Current deployed Scripts.dll SHA
+b30c89378266c7b0a7a2f55a162d979afecc5d7084ebc1782f338c91074012f9.
+Pinned patch checked103614 existing methods: only Refill changed, one helper
+added. Full DLL/Saves backup at `/opt/uoarena/supply-bottles-release-20261007`.
+Shard was empty during restart; REPLAY_RELEASE.json provenance updated.
+
+Normal-client acceptance twice per account: all8 reagents100, all5 modeled
+potions5, zero backpack bottles, weight200/201 versus max390. Repeat refill is
+idempotent. Evidence `2026-10-07-supply-acceptance.json`. Related client preparation,
+collector and runner tests:51 passed. This fixes resources, not a learned-policy
+strength claim.
+
+Fresh run (do not resume either confounded previous unit):
+- code `/opt/uoarena/anima3-training-supply-fixed-20261007`, snapshotbc3f10b
+- unit `arena-training-supply-fixed-20261007.service`, confirmed MainPID257858
+- run `.logs/live-pilot`, seed20261009,8 training+20 evaluation=28 matches
+- parent is the original v3 simulator BC0c6ca921..., NOT any candidate trained
+  on the confounded/starved live teacher data
+- accounts unchanged, new pre-challenge exact supplies/weight guard enabled
+- first prepared-supplies.json confirms both verified at weights200/201
+- initial verified state: active, completed0, train-1
+
+Next: verify repeated replenishment after actual potion consumption and inspect
+first combat observations for five potions (not just preparation). Poll real
+unit before reacting. Continue controlled model improvement; prior queued40-game
+imitation comparison stays canceled. Reconsider real-teacher fine-tuning only
+with properly supplied training data and new validation matches.
