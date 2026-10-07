@@ -34,7 +34,7 @@ POTION_GRAPHICS = {"heal_potion": 0x0F0C, "cure_potion": 0x0F07, "explosion_poti
 FUSE_SECONDS = 3.75
 SPELL_RECOVERY = 0.75
 STATE_FRESH_SECONDS = 3.0
-EXECUTOR_VERSION = "pre-aos-options-v7-meditation-clock"
+EXECUTOR_VERSION = "pre-aos-options-v8-last-seen-approach"
 CAST_VERDICTS = {**VERDICTS, 500641: "concentration disturbed"}
 
 
@@ -105,6 +105,8 @@ class CombatExecutor:
         self._observed_at = 0.0
         self._last_hp: float | None = None
         self._last_enemy_hp: float | None = None
+        self._last_seen_position: Pos | None = None
+        self._last_seen_at = -math.inf
         self._damage: deque[tuple[float, float, float]] = deque()
         self._opponent_cast = ""
         self._opponent_spell_at = -math.inf
@@ -163,6 +165,8 @@ class CombatExecutor:
         self._orphan_attempts = 0
         self._orphan_sent_at = -math.inf
         self._last_hp = self._last_enemy_hp = None
+        self._last_seen_position = None
+        self._last_seen_at = -math.inf
         self._damage.clear()
         self._opponent_cast = ""
         self._opponent_spell_at = self._verdict_at = -math.inf
@@ -200,6 +204,9 @@ class CombatExecutor:
                 target_type=current_cursor[3],
             )
         enemy = self._opponent(obs)
+        if enemy is not None:
+            self._last_seen_position = Pos(enemy.pos.x, enemy.pos.y, enemy.pos.z)
+            self._last_seen_at = now
         received = max(0.0, (self._last_hp or obs.player.hits) - obs.player.hits)
         dealt = 0.0
         if enemy is not None and enemy.hits_max > 0:
@@ -241,16 +248,22 @@ class CombatExecutor:
 
     def _movements(self, obs: Observation) -> dict[str, int]:
         enemy = self._opponent(obs)
-        if enemy is None or obs.terrain is None or obs.player.paralyzed or obs.player.stam <= 0:
+        target = enemy.pos if enemy else (
+            self._last_seen_position if self._observed_at - self._last_seen_at <= 30 else None)
+        if target is None or obs.terrain is None or obs.player.paralyzed or obs.player.stam <= 0:
             return {}
         p = obs.player.pos
-        preferred = direction_toward(p, enemy.pos)
+        preferred = direction_toward(p, target)
         wants = {
             "approach": preferred,
             "retreat": (preferred + 4) % 8,
             "strafe_left": (preferred - 2) % 8,
             "strafe_right": (preferred + 2) % 8,
         }
+        if enemy is None:
+            # Pursue only public last-seen coordinates. Never target hidden state
+            # or allow an unseen opponent to drive retreat/strafe directions.
+            wants = {"approach": preferred}
         occupied = {(mobile.pos.x, mobile.pos.y) for mobile in obs.mobiles if not mobile.hidden}
         valid = []
         for direction, (dx, dy) in enumerate(DIRECTION_DELTAS):
@@ -269,7 +282,7 @@ class CombatExecutor:
                 continue
             valid.append(direction)
         result = {}
-        distance = chebyshev(p, enemy.pos)
+        distance = chebyshev(p, target)
         for name, want in wants.items():
             candidates = [
                 direction
@@ -286,7 +299,7 @@ class CombatExecutor:
                                 p.x + DIRECTION_DELTAS[direction][0],
                                 p.y + DIRECTION_DELTAS[direction][1],
                             ),
-                            enemy.pos,
+                            target,
                         )
                         < distance
                         if name == "approach"
@@ -295,7 +308,7 @@ class CombatExecutor:
                                 p.x + DIRECTION_DELTAS[direction][0],
                                 p.y + DIRECTION_DELTAS[direction][1],
                             ),
-                            enemy.pos,
+                            target,
                         )
                         > distance
                     )

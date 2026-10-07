@@ -294,3 +294,27 @@ works after actual consumption, not only repeated idle refill. Evidence:
 One draw does not prove learned improvement. Continue the active28-game run;
 collect only correctly supplied teacher data for future training. No additional
 model/runner mutations were made during this verified wait.
+
+## Follow-up: a distinct visibility deadlock diagnosed and fixed locally
+
+The active supply-corrected unit was revalidated (MainPID257858); completed2
+matches, currently collecting. No running code or budget was changed.
+First corrected match had equal damage459/459 and5 potion throws each. Replay
+showed both drifting beyond view after ~222s, then no more casts: by290s learner
+had100mana but remained at13HP. Actor trajectory confirms256 unseen decisions,
+ALL with movement actions masked. Cause: CombatExecutor._movements returned no
+moves whenever opponent was absent. Simulator opponents are always visible.
+This is an execution/environment mismatch, not simply poor mana strategy.
+
+Local executor v8 remembers only an opponent's publicly seen position for up to
+30seconds. When no longer visible, only approach toward that location is offered;
+spell targeting remains disabled, terrain/collision checks still apply, hidden
+mobile coordinates are never read, round reset clears the memory. Regression
+covers hidden opponent at a different position, correct last-seen movement,
+no spell/retreat, timeout and round reset. Runtime tests25 pass, lint passes.
+Evidence `2026-10-07-visibility-diagnosis.json`.
+
+IMPORTANT: v8 is local only. Active remote28-game trial remains v7 to preserve
+its fixed comparison conditions. Validate v8 in a separate subsequent experiment
+with the same code for both comparison arms; actual reacquisition and playing
+strength remain unverified. Do not promote on these unit tests alone.

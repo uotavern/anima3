@@ -476,3 +476,23 @@ def test_live_meditation_reuse_matches_ten_second_server_cooldown():
     assert not frame.mask[ACTION_INDEX["meditate"]]
     frame = ex.observe(observation(mana=55), {"phase": "Fighting", "opponent": 2}, 10)
     assert frame.mask[ACTION_INDEX["meditate"]]
+
+
+def test_lost_opponent_can_be_reacquired_without_hidden_position_leak():
+    seen = observation(enemy_x=103)
+    ex = executor(seen)
+    hidden = replace(seen.mobiles[0], pos=Pos(80,100,0), hidden=True)
+    lost = replace(observation(), mobiles=[hidden])
+    f = ex.observe(lost, {'phase':'Fighting','opponent':2}, 1)
+    assert not ex.view.opponent_visible
+    assert f.mask[ACTION_INDEX['approach']]
+    assert not f.mask[ACTION_INDEX['retreat']]
+    assert not f.mask[ACTION_INDEX['energy_bolt']]
+    assert ex.start('approach',lost,1)
+    assert ex.tick(lost,1) == [{'type':'Walk','dir':2,'run':True}]
+    ex.tick(replace(lost),1.3)
+    f = ex.observe(replace(lost), {'phase':'Fighting','opponent':2}, 31)
+    assert not f.mask[ACTION_INDEX['approach']]
+    ex.reset(2,'next-round',32)
+    f = ex.observe(replace(lost), {'phase':'Fighting','opponent':2}, 32)
+    assert not f.mask[ACTION_INDEX['approach']]
