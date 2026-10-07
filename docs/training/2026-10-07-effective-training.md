@@ -392,3 +392,20 @@ actions; loader correctly excludes both, so no held-out imitation metric exists.
 Do not mistake empty metrics for a pass. Evidence supply-fixed-validation.json.
 Need a new valid independent teacher record, with corrected collector if the
 current run yields none. Full real playing strength evaluation still pending.
+
+## Supply-corrected live PPO update completed; frozen evaluation started
+
+Eight training matches complete. Ten eligible on-policy actor episodes (two
+historical self matches contribute both actors),5357 rollout steps, four PPO
+epochs/21428 optimized steps/8528 free policy steps. No rejected episodes.
+Parent0c6ca921 -> candidate3d0f7b454607590cb0ff1eca5278ee5a7cac1521ee72e1b5e1c10e040df85b03.
+KL0.00401, clip fraction0.03154, no KL early stop. Actual immutable checkpoint
+copied locally to .logs/supply-fixed-ppo-20261007 and hash checked on load.
+Summary2026-10-08-supply-fixed-ppo-update.json (Korea date).
+
+Same100-game simulator retention seed3652000000: PPOscore0.730 vsparent0.735,
+paired delta-0.005,CI[-0.105,0.095]. No established improvement or promotion.
+Retention JSON saved. Unit259838 active, fixture009 evaluation-incumbent,
+replay5a927bf676144e94b7bcde57a5b225aa live at30seconds. Twenty fixed-model live
+comparison games now running, both models/executor unchanged. The BC candidate
+5e56ab... is separate and is NOT what this current live comparison evaluates.

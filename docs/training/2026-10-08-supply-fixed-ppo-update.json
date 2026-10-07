@@ -1,0 +1,33 @@
+{
+  "accepted_episodes": 10,
+  "automatic_promotion": false,
+  "collections": [
+    "/opt/uoarena/anima3-training-supply-fixed-20261007/.logs/live-pilot/fixture-001",
+    "/opt/uoarena/anima3-training-supply-fixed-20261007/.logs/live-pilot/fixture-002",
+    "/opt/uoarena/anima3-training-supply-fixed-20261007/.logs/live-pilot/fixture-003",
+    "/opt/uoarena/anima3-training-supply-fixed-20261007/.logs/live-pilot/fixture-004",
+    "/opt/uoarena/anima3-training-supply-fixed-20261007/.logs/live-pilot/fixture-005",
+    "/opt/uoarena/anima3-training-supply-fixed-20261007/.logs/live-pilot/fixture-006",
+    "/opt/uoarena/anima3-training-supply-fixed-20261007/.logs/live-pilot/fixture-007",
+    "/opt/uoarena/anima3-training-supply-fixed-20261007/.logs/live-pilot/fixture-008"
+  ],
+  "rejected": [],
+  "update": {
+    "automatic_promotion": false,
+    "episodes": 10,
+    "metrics": {
+      "approximate_kl": 0.0040076625173037315,
+      "clip_fraction": 0.031543152083775575,
+      "entropy": 0.34881686192271466,
+      "grad_norm": 1.7413294856169341,
+      "kl_early_stop": false,
+      "optimized_steps": 21428,
+      "policy_loss": -0.0050321070615759805,
+      "policy_optimized_steps": 8528,
+      "rollout_steps": 5357,
+      "value_loss": 0.08029249264753135
+    },
+    "parent_policy_sha": "0c6ca921e8bfd19fbaab3fa353d11819b2ba523cd1a810c2c4782447b7a5f56d",
+    "policy_sha": "3d0f7b454607590cb0ff1eca5278ee5a7cac1521ee72e1b5e1c10e040df85b03"
+  }
+}
