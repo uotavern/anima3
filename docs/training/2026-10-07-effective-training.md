@@ -439,3 +439,8 @@ This is actor/bridge consumption latency, not demonstrated model inference
 slowness. Keep deadline intact. Next investigate observation RPC and cgroup CPU
 throttling (current150% quota includes bridges/workers); do not alter conditions
 mid-comparison. Remote cpu.stat SSH query pending local exec session20679.
+CPU query completed:4logicalCPUs, load1.15/1.36/1.32, unit cpu.stat nr_periods11912,
+nr_throttled6052, throttled_usec81046315, usage_usec1518441126. Quota throttling
+is present (~51% periods), but this cumulative counter does not prove causality
+for request9. Next isolated trial can use200% for both arms and measure RPC p95/
+p99 plus deadline counts; current fixed150% run remains unchanged.
