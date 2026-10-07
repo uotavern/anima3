@@ -124,3 +124,23 @@ def test_verified_base_build_does_not_wait_for_modified_stats(monkeypatch):
     import pytest
     with pytest.raises(RuntimeError,match='base stats changed'):
         duel_wait.prepare(body,previously_configured=True,verify_base_stats=True)
+
+
+def test_training_supplies_reject_missing_potions_and_overweight():
+    from anima3.duel_wait import training_supply_audit
+
+    required = {g:100 for g in (0xF7A,0xF7B,0xF84,0xF85,0xF86,0xF88,0xF8D,0xF8C)}
+    required.update({g:5 for g in (0xF0C,0xF07,0xF0D,0xF0B,0xF08)})
+    o = {'player': {'serial':57, 'dead':False, 'weight':180, 'weight_max':390},
+         'items':[{'serial':1000,'container':57,'layer':21,'graphic':0xE75}] +
+                  [{'serial':2000+g,'container':1000,'graphic':g,'amount':n}
+                   for g,n in required.items()]}
+    assert training_supply_audit(o)['verified']
+    o['player']['weight'] = 415
+    assert not training_supply_audit(o)['verified']
+    o['player']['weight'] = 180
+    o['items'][-1]['amount'] = 0
+    assert not training_supply_audit(o)['verified']
+    o['items'][-1]['amount'] = 5
+    o['items'][-1]['container'] = 999
+    assert not training_supply_audit(o)['verified']

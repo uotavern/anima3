@@ -207,3 +207,46 @@ If the predecessor fails, audit its last fixture before resuming. After successf
 completion, inspect the 40-game comparison and validate model hashes remain fixed.
 Only expand to a 200-game confirmation if live screening warrants it; otherwise
 use observed errors and training/validation mismatch to revise the next candidate.
+
+## CRITICAL: supply/weight confound found — both experiments halted
+
+Latest diagnosis invalidates using this trial as a controlled strength comparison.
+From recorded first learner features, fixtures001/002/003 had only ONE heal potion
+and ZERO explosion/refresh potions; scripted opponent initially had five each.
+By fixtures005–007 opponent supplies were also depleted. Prepared players later
+weighed423 with weight_max390. An actual ordinary-client backpack inspection after
+stopping found player57 has247 empty bottles and player58 has241; both weigh415.
+Inventory audits and execution diagnostics are in `.logs/supply-audit-20261007/`.
+Server Bottle.cs sets weight1; BasePotion adds a Bottle on consumption. Refill
+uses PlaceInBackpack, which can fail capacity/weight checks; it nevertheless
+announces refill. Learner lacking explosion potions also masks every burst option.
+This is a material simulation/live and between-player condition confound.
+
+Actions taken:
+- Stopped queued `arena-imitation-frozen-eval-20261007` before it began ANY match.
+- Waited for a safe boundary in active trial, stopped after11 completed matches,
+  before fixture012 issued a challenge. SIGSTOP/recheck/SIGKILL used; auxiliary
+  systemd kill returned an error but MainPID0 confirmed termination. Audit saved
+  `experiment-halted.json`, match_started=false. No ongoing match interrupted.
+- status.json now explicitly stopped with unequal-supplies reason, not complete.
+- Both units MainPID0, no anima-bridge processes; arena-shard active.
+- Added local exact training-supply audit: 100 of each reagent, 5 of each modeled
+  potion, alive player, open own pack, weight<=weight_max. Collector writes
+  prepared-supplies.json and refuses to challenge on failure. Not yet deployed.
+- 26 relevant preparation/collector tests and lint pass.
+- Live meditation request gaps ARE >=10 seconds, confirming skill-clock repair.
+
+Next required work (do not restart the old queue):
+1. Fix bottle accumulation while preserving items, e.g. stock service stores
+   empty bottles in the player's bank before refill. Inspect current production
+   Scripts.dll SHA and use isolated/pinned deployment as in training-reset fix;
+   never replace unrelated newer shard changes. Server source worktree is
+   `/Users/dkkang/dev/uo/arena-worktrees/servuo-training-reset`.
+2. Verify via ordinary clients that both accounts receive complete equal supplies
+   and remain comfortably below carry limit over repeated matches.
+3. Deploy new client supply guard to a fresh experiment. Retain old records with
+   confound annotation; don't rewrite them into purported fair results.
+4. Retest the v3 warmstart with equal inventory FIRST. Existing live-imitation
+   candidates learned partly from resource-starved teachers; do not treat their
+   queued comparison as ready or their validations as proof of strategy quality.
+5. Continue training and controlled evaluation toward actual live improvement.

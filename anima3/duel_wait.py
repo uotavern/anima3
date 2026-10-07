@@ -130,6 +130,36 @@ def wait_prepared_stats(body, observation, timeout=125):
     return observation
 
 
+
+def training_supply_audit(observation):
+    """Exact experimental supplies visible in the participant's open backpack."""
+    player = observation['player']
+    pack = next((i['serial'] for i in observation['items']
+                 if i.get('layer') == 21 and i.get('container') == player['serial']), None)
+    required = {g: 100 for g in (0xF7A,0xF7B,0xF84,0xF85,0xF86,0xF88,0xF8D,0xF8C)}
+    required.update({g: 5 for g in (0xF0C,0xF07,0xF0D,0xF0B,0xF08)})
+    counts = {g: sum(i.get('amount', 0) for i in observation['items']
+                     if pack is not None and i.get('container') == pack and i['graphic'] == g)
+              for g in required}
+    valid = (pack is not None and player.get('dead') is False
+             and player.get('weight_max', 0) > 0
+             and 0 <= player.get('weight', -1) <= player['weight_max']
+             and counts == required)
+    return {'serial': player['serial'], 'verified': bool(valid),
+            'weight': player.get('weight'), 'weight_max': player.get('weight_max'),
+            'counts': {hex(g): counts[g] for g in required},
+            'required': {hex(g): required[g] for g in required}}
+
+
+def verify_training_supplies(body):
+    o = body.observe_raw()
+    pack = next((i['serial'] for i in o['items'] if i.get('layer') == 21
+                 and i.get('container') == o['player']['serial']), None)
+    if pack is not None:
+        body.act(use(pack))
+    body.act({'type': 'StatusRequest', 'serial': o['player']['serial']})
+    return training_supply_audit(pump(body, 1))
+
 def prepare(body, previously_configured=False, verify_base_stats=False):
     """Use the same public commands and consumable dialogs as a human player."""
     for command in (

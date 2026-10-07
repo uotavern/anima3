@@ -562,6 +562,12 @@ def run(args, stop=None):
             if stop.is_set():
                 break
             atomic_json(log / "prepared-builds.json", {"players": players})
+            if getattr(args, "verify_base_stats", False):
+                from anima3.duel_wait import verify_training_supplies
+                supplies = [verify_training_supplies(body) for body in bodies]
+                atomic_json(log / "prepared-supplies.json", {"players": supplies})
+                if not all(p["verified"] for p in supplies):
+                    raise RuntimeError("Unequal or incomplete training supplies; no challenge issued")
             ids = [p["serial"] for p in players]
             for i, body in enumerate(bodies):
                 label = workers[i].policy_sha[:12] if workers[i] else "fixed-scripted"
