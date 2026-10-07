@@ -245,3 +245,44 @@ def test_gate_rejects_transport_invalid_episode():
     before['rows'][0]['eligible'] = False
     gate = promotion_gate(before, after)
     assert not gate['passed'] and not gate['valid_episodes']
+
+
+def test_handshake_retry_preserves_attempt_and_same_fixture(tmp_path, monkeypatch):
+    from types import SimpleNamespace
+
+    from anima3.sparring import TrainingIdleTimeout
+    from scripts import run_training_league as runner
+    opts = SimpleNamespace(log_dir=tmp_path / 'fixture-004', fixture_offset=3)
+    calls = []
+    def fake_run(actual, stop):
+        calls.append(actual.fixture_offset)
+        actual.log_dir.mkdir()
+        (actual.log_dir / 'progress.jsonl').write_text('idle timeout evidence')
+        if len(calls) == 1:
+            raise TrainingIdleTimeout('no state')
+        return 'done'
+    stop = SimpleNamespace(is_set=lambda: False, wait=lambda seconds: False)
+    monkeypatch.setattr(runner, 'run', fake_run)
+    assert runner.collect_with_handshake_retry(opts, stop) == 'done'
+    assert calls == [3, 3]
+    assert (tmp_path / 'fixture-004-idle-retry-1/progress.jsonl').exists()
+
+
+def test_handshake_retry_never_repeats_issued_challenge(tmp_path, monkeypatch):
+    from types import SimpleNamespace
+
+    import pytest
+
+    from anima3.sparring import TrainingIdleTimeout
+    from scripts import run_training_league as runner
+    opts = SimpleNamespace(log_dir=tmp_path / 'fixture')
+    opts.log_dir.mkdir()
+    (opts.log_dir / 'challenge-issued.json').write_text('{}')
+    def fake_run(*args):
+        raise TrainingIdleTimeout('late exception')
+    monkeypatch.setattr(runner, 'run', fake_run)
+    stop = SimpleNamespace(is_set=lambda: False, wait=lambda seconds: False)
+    with pytest.raises(TrainingIdleTimeout):
+        runner.collect_with_handshake_retry(opts, stop)
+    assert (opts.log_dir / 'challenge-issued.json').exists()
+    assert not list(tmp_path.glob('*retry*'))

@@ -22,6 +22,7 @@ from anima3.neural.curriculum import STYLES
 from anima3.neural.league import promotion_gate
 from anima3.neural.live import run, starting_template_verified
 from anima3.neural.online import NoEligibleEpisodes, update_collections
+from anima3.sparring import TrainingIdleTimeout
 
 
 def recover_collection(log: Path, expected_sha: str):
@@ -73,6 +74,29 @@ def recover_collection(log: Path, expected_sha: str):
         attempt += 1
     log.rename(log.with_name(log.name + f"-preparation-attempt-{attempt}"))
     return None
+
+
+def collect_with_handshake_retry(opts, stop):
+    """Retry only confirmed pre-challenge idle timeouts, preserving each attempt."""
+    for attempt in range(3):
+        try:
+            return run(opts, stop)
+        except TrainingIdleTimeout:
+            log = opts.log_dir
+            # Fail closed even if a future caller raises this exception later.
+            if (stop.is_set() or attempt == 2
+                    or (log / 'challenge-issued.json').exists()
+                    or (log / 'results.json').exists()
+                    or any(p.is_dir() and len(p.name) == 32 for p in log.iterdir())):
+                raise
+            number = 1
+            archived = log.with_name(log.name + f'-idle-retry-{number}')
+            while archived.exists():
+                number += 1
+                archived = log.with_name(log.name + f'-idle-retry-{number}')
+            log.rename(archived)
+            if stop.wait(5):
+                raise RuntimeError('stopped before handshake retry') from None
 
 
 def main(argv=None):
@@ -160,7 +184,7 @@ def main(argv=None):
         report = recover_collection(log, load_checkpoint(checkpoint).policy_sha) if args.resume else None
         recovered = report is not None
         if report is None:
-            run(opts, stop)
+            collect_with_handshake_retry(opts, stop)
             report = json.loads((log/'results.json').read_text())
         if len(report['matches']) != 1 or report['collection_status'] != 'complete':
             raise RuntimeError('fixture did not complete')
