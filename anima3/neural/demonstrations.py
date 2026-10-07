@@ -54,3 +54,40 @@ def load_demonstration(path: Path, hidden_size: int) -> Trajectory:
     if not trajectory.actions:
         raise ValueError('empty demonstration')
     return trajectory
+
+
+def imitation_metrics(model, episodes: list[Trajectory]) -> dict:
+    """Causal full-prefix score on free choices; forced holds do not inflate accuracy."""
+    import torch
+
+    from .model import masked_distribution
+
+    counts, correct = {}, {}
+    losses, total_correct = [], 0
+    model.eval()
+    with torch.no_grad():
+        for episode in episodes:
+            features = torch.tensor([episode.features], device=model.device)
+            mask = torch.tensor([episode.masks], dtype=torch.bool, device=model.device)
+            actions = torch.tensor([episode.actions], device=model.device)
+            logits, _, _ = model(features, model.initial_state())
+            distribution = masked_distribution(logits, mask)
+            free = mask.sum(-1) > 1
+            if not free.any():
+                continue
+            loss = -distribution.log_prob(actions)[free]
+            predicted = distribution.probs.argmax(-1)[free]
+            expected = actions[free]
+            losses.extend(loss.cpu().tolist())
+            hits = predicted == expected
+            total_correct += int(hits.sum())
+            for action, hit in zip(expected.cpu().tolist(), hits.cpu().tolist(), strict=True):
+                name = ACTION_NAMES[action]
+                counts[name] = counts.get(name, 0) + 1
+                correct[name] = correct.get(name, 0) + int(hit)
+    return {'episodes': len(episodes), 'free_choices': len(losses),
+            'cross_entropy': sum(losses)/len(losses) if losses else None,
+            'accuracy': total_correct/len(losses) if losses else None,
+            'per_action': {name: {'labels': n, 'accuracy': correct[name]/n}
+                           for name,n in counts.items()},
+            'real_server_strength_established': False}

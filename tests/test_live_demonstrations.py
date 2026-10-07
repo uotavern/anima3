@@ -60,3 +60,27 @@ def test_bad_demo_fails_closed(tmp_path, damage):
     p.write_text(json.dumps(d))
     with pytest.raises(ValueError):
         load_demonstration(p, 64)
+
+
+def test_imitation_metrics_excludes_forced_holds(tmp_path):
+    import torch
+
+    from anima3.neural.demonstrations import imitation_metrics
+    from anima3.neural.model import PolicyConfig, RecurrentPolicy
+
+    p, d = make_demo(tmp_path)
+    free = {**d['steps'][0], 'mask': [True, True] + [False]*(len(ACTION_NAMES)-2),
+            'action': 1, 'at': 2.0}
+    d['steps'].append(free)
+    p.write_text(json.dumps(d))
+    model = RecurrentPolicy(PolicyConfig(len(FEATURE_NAMES), len(ACTION_NAMES), 8, 8))
+    with torch.no_grad():
+        model.policy_head.weight.zero_()
+        model.policy_head.bias.zero_()
+        model.policy_head.bias[0] = 5
+    metrics = imitation_metrics(model, [load_demonstration(p, 8)])
+    assert metrics['free_choices'] == 1
+    assert metrics['accuracy'] == 0
+    assert metrics['cross_entropy'] > 5
+    assert 'hold' not in metrics['per_action']
+    assert imitation_metrics(model, [])['accuracy'] is None

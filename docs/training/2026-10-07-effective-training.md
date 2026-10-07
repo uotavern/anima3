@@ -105,3 +105,27 @@ updates and no duplicate games when an evaluation-only run resumes. Existing
 training-mode resume remains unchanged. Focused runner tests: 18 passed; lint
 passed. This runner change is local only; active live experiment still uses its
 original isolated source snapshot.
+
+## Follow-up: imitation diagnostics and match-disjoint validation
+
+The live unit was verified active again; it reached 3 completed games and
+fixture004 Countdown. No restart or budget change was made. While it runs,
+`imitation_metrics` now scores exact causal recurrent predictions against real
+teacher labels, excluding forced holds from accuracy and cross entropy. On the
+first two verified demonstrations the current BC model's argmax agrees on
+41/62 free choices (66.13%, CE 1.059). This is teacher-state agreement, not sampled
+live action agreement or playing strength. Clumsy 0/2 and burst_bolt 0/1 are
+small-sample diagnostic leads; Harm 13/13 and stun 2/2 are also too small to
+establish general competence. Exact metrics are recorded in adjacent JSON.
+
+Supervised cloning now records before/after training and optional validation
+metrics via `--validation-collections`. Whole matches must be disjoint, including
+opposite actors of a match, to avoid leakage. With the first 8 collection fixtures,
+use teacher fixtures 001/002/003/005 for training and 006/007 for validation if all
+are verified (004/008 are historical-policy opponents, so contain no teacher
+records). Do not use the evaluation fixtures for training this candidate.
+
+Diagnostics regression: forced hold frames do not inflate accuracy; a wrong
+free choice gives zero accuracy; empty validation is reported as None, not a
+success. Six demonstration tests and lint passed. Active remote source remains
+unchanged; these additions are offline diagnostics only.

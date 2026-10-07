@@ -6,7 +6,7 @@ import torch
 
 from anima3.arena_learning import atomic_json
 from anima3.neural.checkpoints import load_checkpoint, save_checkpoint
-from anima3.neural.demonstrations import load_demonstration
+from anima3.neural.demonstrations import imitation_metrics, load_demonstration
 from anima3.neural.train import TrainConfig, behavioral_clone
 
 
@@ -15,6 +15,7 @@ def main():
     p.add_argument('--checkpoint', type=Path, required=True)
     p.add_argument('--collections', type=Path, nargs='+', required=True)
     p.add_argument('--out', type=Path, required=True)
+    p.add_argument('--validation-collections', type=Path, nargs='*', default=[])
     p.add_argument('--epochs', type=int, default=32)
     p.add_argument('--seed', type=int, default=20261007)
     a = p.parse_args()
@@ -34,10 +35,23 @@ def main():
         episodes.append(e)
     if len(episodes) < 4:
         p.error('at least four verified demonstrations required')
+    validation_files = sorted({f.resolve() for r in a.validation_collections
+                               for f in r.rglob('demonstration-*.json')})
+    validation = [load_demonstration(f, loaded.model.config.hidden_size) for f in validation_files]
+    # Splitting by timestep or actor can leak the same fight into both sets.
+    train_matches = {e.info['match_id'] for e in episodes}
+    if train_matches & {e.info['match_id'] for e in validation}:
+        raise ValueError('training/validation matches overlap')
+    before = {'train': imitation_metrics(loaded.model, episodes),
+              'validation': imitation_metrics(loaded.model, validation)}
     optimizer = torch.optim.Adam(loaded.model.parameters(), lr=1e-4)
     metrics = behavioral_clone(loaded.model, optimizer, episodes, TrainConfig(),
                                epochs=a.epochs, seed=a.seed)
-    provenance = {'source': 'servuo-supervised-demonstrations', 'parent_sha': loaded.policy_sha,
+    after = {'train': imitation_metrics(loaded.model, episodes),
+             'validation': imitation_metrics(loaded.model, validation)}
+    provenance = {'before': before, 'after': after,
+                  'validation_files': [str(f) for f in validation_files],
+                  'source': 'servuo-supervised-demonstrations', 'parent_sha': loaded.policy_sha,
                   'files': [str(f) for f in files], 'episodes': len(episodes),
                   'seed': a.seed, 'epochs': a.epochs, 'metrics': metrics,
                   'ppo_eligible': False, 'real_server_strength_established': False}

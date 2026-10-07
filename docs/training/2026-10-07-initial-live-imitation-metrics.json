@@ -1,0 +1,73 @@
+{
+  "episodes": 2,
+  "free_choices": 62,
+  "cross_entropy": 1.0590134263038635,
+  "accuracy": 0.6612903225806451,
+  "per_action": {
+    "weaken": {
+      "labels": 2,
+      "accuracy": 0.5
+    },
+    "clumsy": {
+      "labels": 2,
+      "accuracy": 0.0
+    },
+    "burst_bolt": {
+      "labels": 1,
+      "accuracy": 0.0
+    },
+    "agility_potion": {
+      "labels": 2,
+      "accuracy": 0.0
+    },
+    "explosion_potion": {
+      "labels": 2,
+      "accuracy": 0.5
+    },
+    "magic_arrow": {
+      "labels": 2,
+      "accuracy": 0.0
+    },
+    "explosion": {
+      "labels": 3,
+      "accuracy": 0.3333333333333333
+    },
+    "energy_bolt": {
+      "labels": 2,
+      "accuracy": 0.5
+    },
+    "refresh_potion": {
+      "labels": 6,
+      "accuracy": 0.3333333333333333
+    },
+    "approach": {
+      "labels": 8,
+      "accuracy": 0.625
+    },
+    "heal_potion": {
+      "labels": 2,
+      "accuracy": 1.0
+    },
+    "greater_heal": {
+      "labels": 5,
+      "accuracy": 0.6
+    },
+    "punch": {
+      "labels": 1,
+      "accuracy": 1.0
+    },
+    "harm": {
+      "labels": 13,
+      "accuracy": 1.0
+    },
+    "stun": {
+      "labels": 2,
+      "accuracy": 1.0
+    },
+    "hold": {
+      "labels": 9,
+      "accuracy": 1.0
+    }
+  },
+  "real_server_strength_established": false
+}
