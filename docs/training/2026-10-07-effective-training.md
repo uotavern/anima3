@@ -129,3 +129,37 @@ Diagnostics regression: forced hold frames do not inflate accuracy; a wrong
 free choice gives zero accuracy; empty validation is reported as None, not a
 success. Six demonstration tests and lint passed. Active remote source remains
 unchanged; these additions are offline diagnostics only.
+
+## Follow-up: actual real-server imitation training completed
+
+Live collection reached 5 completed fixtures. Verified training demonstrations
+001/002/003/005 are the only input to the following two candidates; future
+006/007 remain validation and the live evaluation fixtures remain unused.
+
+Both start from v3 BC SHA 0c6ca921..., train for 32 epochs at learning rate 1e-4,
+seed 20261007. They are stored separately:
+- `.logs/live-imitation-20261007-unweighted`
+- `.logs/live-imitation-20261007-balanced`
+
+Training-label argmax accuracy: parent .47155, unweighted .93217, balanced .84573.
+Training CE: 2.55141 → .37295 / .56070 respectively. These are fitting diagnostics,
+NOT held-out improvement or live strength. Full provenance and hashes are in
+`2026-10-07-live-imitation-fit.json`. Balanced loss uses inverse-square-root label
+frequency clipped to [.25,4], counting free choices only. The motivation is the
+third demo's 335 free hold labels versus only one burst_bolt. Seven demonstration
+tests pass, including forced holds not altering class-frequency weights.
+
+A separate inference-mode ablation on the same v3 warmstart, 100 games per mode,
+fresh diagnostic seeds 3650000000, found categorical 66W/20L/14D versus greedy
+12W/53L/35D. Do not switch live inference to greedy on this evidence. Per-fixture
+results are `.logs/curriculum-league-20261007-skill-clock/sampling-ablation-*.json`.
+This is simulator-only evidence, and these seeds are now development data.
+
+Active local diagnostic handle: exec session 50127 runs
+`/tmp/anima3-live-imitation-simulator-check.py`, log
+`/tmp/anima3-live-imitation-simulator-check.log`, output
+`.logs/live-imitation-20261007-diagnostics/simulator-*.json`.
+It compares parent and both candidates on 100 fresh simulator fixtures each
+(seed3651000000), looking for catastrophic forgetting, not live promotion.
+Re-poll the handle before treating this job as finished. Remote live unit remains
+the original unmodified experiment; new candidates have NOT been deployed.

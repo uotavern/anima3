@@ -1,0 +1,492 @@
+{
+  "unweighted": {
+    "policy_sha": "03b06cc71b859adf8394e37467f5e9f3e1df8996a576d417cf8c00264d819544",
+    "training": {
+      "after": {
+        "train": {
+          "accuracy": 0.9321663019693655,
+          "cross_entropy": 0.37294863102472586,
+          "episodes": 4,
+          "free_choices": 914,
+          "per_action": {
+            "agility_potion": {
+              "accuracy": 0.0,
+              "labels": 5
+            },
+            "approach": {
+              "accuracy": 0.625,
+              "labels": 8
+            },
+            "burst_bolt": {
+              "accuracy": 0.5,
+              "labels": 2
+            },
+            "clumsy": {
+              "accuracy": 0.75,
+              "labels": 4
+            },
+            "energy_bolt": {
+              "accuracy": 0.45454545454545453,
+              "labels": 11
+            },
+            "explosion": {
+              "accuracy": 0.8,
+              "labels": 5
+            },
+            "explosion_potion": {
+              "accuracy": 1.0,
+              "labels": 2
+            },
+            "greater_heal": {
+              "accuracy": 0.7777777777777778,
+              "labels": 9
+            },
+            "harm": {
+              "accuracy": 0.8461538461538461,
+              "labels": 13
+            },
+            "heal": {
+              "accuracy": 0.125,
+              "labels": 8
+            },
+            "heal_potion": {
+              "accuracy": 0.5454545454545454,
+              "labels": 11
+            },
+            "hold": {
+              "accuracy": 0.9908814589665653,
+              "labels": 658
+            },
+            "magic_arrow": {
+              "accuracy": 0.9813084112149533,
+              "labels": 107
+            },
+            "meditate": {
+              "accuracy": 0.925,
+              "labels": 40
+            },
+            "punch": {
+              "accuracy": 0.0,
+              "labels": 1
+            },
+            "refresh_potion": {
+              "accuracy": 0.5454545454545454,
+              "labels": 11
+            },
+            "retreat": {
+              "accuracy": 0.07692307692307693,
+              "labels": 13
+            },
+            "stun": {
+              "accuracy": 1.0,
+              "labels": 2
+            },
+            "weaken": {
+              "accuracy": 1.0,
+              "labels": 4
+            }
+          },
+          "real_server_strength_established": false
+        },
+        "validation": {
+          "accuracy": null,
+          "cross_entropy": null,
+          "episodes": 0,
+          "free_choices": 0,
+          "per_action": {},
+          "real_server_strength_established": false
+        }
+      },
+      "before": {
+        "train": {
+          "accuracy": 0.47155361050328226,
+          "cross_entropy": 2.5514117688331877,
+          "episodes": 4,
+          "free_choices": 914,
+          "per_action": {
+            "agility_potion": {
+              "accuracy": 0.4,
+              "labels": 5
+            },
+            "approach": {
+              "accuracy": 0.625,
+              "labels": 8
+            },
+            "burst_bolt": {
+              "accuracy": 0.0,
+              "labels": 2
+            },
+            "clumsy": {
+              "accuracy": 0.0,
+              "labels": 4
+            },
+            "energy_bolt": {
+              "accuracy": 0.45454545454545453,
+              "labels": 11
+            },
+            "explosion": {
+              "accuracy": 0.4,
+              "labels": 5
+            },
+            "explosion_potion": {
+              "accuracy": 0.5,
+              "labels": 2
+            },
+            "greater_heal": {
+              "accuracy": 0.6666666666666666,
+              "labels": 9
+            },
+            "harm": {
+              "accuracy": 1.0,
+              "labels": 13
+            },
+            "heal": {
+              "accuracy": 0.0,
+              "labels": 8
+            },
+            "heal_potion": {
+              "accuracy": 0.5454545454545454,
+              "labels": 11
+            },
+            "hold": {
+              "accuracy": 0.4756838905775076,
+              "labels": 658
+            },
+            "magic_arrow": {
+              "accuracy": 0.4392523364485981,
+              "labels": 107
+            },
+            "meditate": {
+              "accuracy": 0.55,
+              "labels": 40
+            },
+            "punch": {
+              "accuracy": 1.0,
+              "labels": 1
+            },
+            "refresh_potion": {
+              "accuracy": 0.2727272727272727,
+              "labels": 11
+            },
+            "retreat": {
+              "accuracy": 0.15384615384615385,
+              "labels": 13
+            },
+            "stun": {
+              "accuracy": 1.0,
+              "labels": 2
+            },
+            "weaken": {
+              "accuracy": 0.25,
+              "labels": 4
+            }
+          },
+          "real_server_strength_established": false
+        },
+        "validation": {
+          "accuracy": null,
+          "cross_entropy": null,
+          "episodes": 0,
+          "free_choices": 0,
+          "per_action": {},
+          "real_server_strength_established": false
+        }
+      },
+      "episodes": 4,
+      "epochs": 32,
+      "files": [
+        "/Users/dkkang/dev/uo/arena-worktrees/anima3-training-league/.logs/live-skill-clock-copy/fixture-001/37e9f67db7cf4592b85e3842b27b2cc4/demonstration-58.json",
+        "/Users/dkkang/dev/uo/arena-worktrees/anima3-training-league/.logs/live-skill-clock-copy/fixture-002/576f723c7dd540a7af557b77ba55d9c2/demonstration-58.json",
+        "/Users/dkkang/dev/uo/arena-worktrees/anima3-training-league/.logs/live-skill-clock-copy/fixture-003/c1eb5a2b243848daa337fe2b2a54f9d4/demonstration-58.json",
+        "/Users/dkkang/dev/uo/arena-worktrees/anima3-training-league/.logs/live-skill-clock-copy/fixture-005/e1483992967c418dac852e6689a00df7/demonstration-58.json"
+      ],
+      "metrics": {
+        "action_weights": [
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "balance_actions": false,
+        "bc_loss_first": 1.9853709936141968,
+        "bc_loss_last": 0.4168094992637634,
+        "bc_updates": 128,
+        "teacher_steps": 1743
+      },
+      "parent_sha": "0c6ca921e8bfd19fbaab3fa353d11819b2ba523cd1a810c2c4782447b7a5f56d",
+      "ppo_eligible": false,
+      "real_server_strength_established": false,
+      "seed": 20261007,
+      "source": "servuo-supervised-demonstrations",
+      "validation_files": []
+    }
+  },
+  "balanced": {
+    "policy_sha": "d0096ef90098f589c36194e3638dccdf087125159106b0b89fc6e496d1c8cf0a",
+    "training": {
+      "after": {
+        "train": {
+          "accuracy": 0.8457330415754923,
+          "cross_entropy": 0.5606984049733932,
+          "episodes": 4,
+          "free_choices": 914,
+          "per_action": {
+            "agility_potion": {
+              "accuracy": 0.4,
+              "labels": 5
+            },
+            "approach": {
+              "accuracy": 0.75,
+              "labels": 8
+            },
+            "burst_bolt": {
+              "accuracy": 0.5,
+              "labels": 2
+            },
+            "clumsy": {
+              "accuracy": 1.0,
+              "labels": 4
+            },
+            "energy_bolt": {
+              "accuracy": 0.7272727272727273,
+              "labels": 11
+            },
+            "explosion": {
+              "accuracy": 0.8,
+              "labels": 5
+            },
+            "explosion_potion": {
+              "accuracy": 1.0,
+              "labels": 2
+            },
+            "greater_heal": {
+              "accuracy": 1.0,
+              "labels": 9
+            },
+            "harm": {
+              "accuracy": 0.8461538461538461,
+              "labels": 13
+            },
+            "heal": {
+              "accuracy": 0.625,
+              "labels": 8
+            },
+            "heal_potion": {
+              "accuracy": 1.0,
+              "labels": 11
+            },
+            "hold": {
+              "accuracy": 0.8525835866261399,
+              "labels": 658
+            },
+            "magic_arrow": {
+              "accuracy": 0.822429906542056,
+              "labels": 107
+            },
+            "meditate": {
+              "accuracy": 1.0,
+              "labels": 40
+            },
+            "punch": {
+              "accuracy": 0.0,
+              "labels": 1
+            },
+            "refresh_potion": {
+              "accuracy": 0.6363636363636364,
+              "labels": 11
+            },
+            "retreat": {
+              "accuracy": 0.6153846153846154,
+              "labels": 13
+            },
+            "stun": {
+              "accuracy": 1.0,
+              "labels": 2
+            },
+            "weaken": {
+              "accuracy": 1.0,
+              "labels": 4
+            }
+          },
+          "real_server_strength_established": false
+        },
+        "validation": {
+          "accuracy": null,
+          "cross_entropy": null,
+          "episodes": 0,
+          "free_choices": 0,
+          "per_action": {},
+          "real_server_strength_established": false
+        }
+      },
+      "before": {
+        "train": {
+          "accuracy": 0.47155361050328226,
+          "cross_entropy": 2.5514117688331877,
+          "episodes": 4,
+          "free_choices": 914,
+          "per_action": {
+            "agility_potion": {
+              "accuracy": 0.4,
+              "labels": 5
+            },
+            "approach": {
+              "accuracy": 0.625,
+              "labels": 8
+            },
+            "burst_bolt": {
+              "accuracy": 0.0,
+              "labels": 2
+            },
+            "clumsy": {
+              "accuracy": 0.0,
+              "labels": 4
+            },
+            "energy_bolt": {
+              "accuracy": 0.45454545454545453,
+              "labels": 11
+            },
+            "explosion": {
+              "accuracy": 0.4,
+              "labels": 5
+            },
+            "explosion_potion": {
+              "accuracy": 0.5,
+              "labels": 2
+            },
+            "greater_heal": {
+              "accuracy": 0.6666666666666666,
+              "labels": 9
+            },
+            "harm": {
+              "accuracy": 1.0,
+              "labels": 13
+            },
+            "heal": {
+              "accuracy": 0.0,
+              "labels": 8
+            },
+            "heal_potion": {
+              "accuracy": 0.5454545454545454,
+              "labels": 11
+            },
+            "hold": {
+              "accuracy": 0.4756838905775076,
+              "labels": 658
+            },
+            "magic_arrow": {
+              "accuracy": 0.4392523364485981,
+              "labels": 107
+            },
+            "meditate": {
+              "accuracy": 0.55,
+              "labels": 40
+            },
+            "punch": {
+              "accuracy": 1.0,
+              "labels": 1
+            },
+            "refresh_potion": {
+              "accuracy": 0.2727272727272727,
+              "labels": 11
+            },
+            "retreat": {
+              "accuracy": 0.15384615384615385,
+              "labels": 13
+            },
+            "stun": {
+              "accuracy": 1.0,
+              "labels": 2
+            },
+            "weaken": {
+              "accuracy": 0.25,
+              "labels": 4
+            }
+          },
+          "real_server_strength_established": false
+        },
+        "validation": {
+          "accuracy": null,
+          "cross_entropy": null,
+          "episodes": 0,
+          "free_choices": 0,
+          "per_action": {},
+          "real_server_strength_established": false
+        }
+      },
+      "episodes": 4,
+      "epochs": 32,
+      "files": [
+        "/Users/dkkang/dev/uo/arena-worktrees/anima3-training-league/.logs/live-skill-clock-copy/fixture-001/37e9f67db7cf4592b85e3842b27b2cc4/demonstration-58.json",
+        "/Users/dkkang/dev/uo/arena-worktrees/anima3-training-league/.logs/live-skill-clock-copy/fixture-002/576f723c7dd540a7af557b77ba55d9c2/demonstration-58.json",
+        "/Users/dkkang/dev/uo/arena-worktrees/anima3-training-league/.logs/live-skill-clock-copy/fixture-003/c1eb5a2b243848daa337fe2b2a54f9d4/demonstration-58.json",
+        "/Users/dkkang/dev/uo/arena-worktrees/anima3-training-league/.logs/live-skill-clock-copy/fixture-005/e1483992967c418dac852e6689a00df7/demonstration-58.json"
+      ],
+      "metrics": {
+        "action_weights": [
+          0.2703854739665985,
+          2.452174186706543,
+          1.9236435890197754,
+          1.0,
+          1.0,
+          3.467897891998291,
+          3.467897891998291,
+          0.6705086827278137,
+          1.9236435890197754,
+          3.1017820835113525,
+          2.0912210941314697,
+          1.0,
+          2.311931848526001,
+          2.452174186706543,
+          1.0,
+          1.0,
+          1.0,
+          1.0966455936431885,
+          2.0912210941314697,
+          1.0,
+          4.0,
+          4.0,
+          1.0,
+          4.0,
+          4.0,
+          2.0912210941314697,
+          3.1017820835113525
+        ],
+        "balance_actions": true,
+        "bc_loss_first": 1.8793305158615112,
+        "bc_loss_last": 0.5565773248672485,
+        "bc_updates": 128,
+        "teacher_steps": 1743
+      },
+      "parent_sha": "0c6ca921e8bfd19fbaab3fa353d11819b2ba523cd1a810c2c4782447b7a5f56d",
+      "ppo_eligible": false,
+      "real_server_strength_established": false,
+      "seed": 20261007,
+      "source": "servuo-supervised-demonstrations",
+      "validation_files": []
+    }
+  }
+}
