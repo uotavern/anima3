@@ -151,6 +151,7 @@ def _actor(body, opponent, worker, log, stop, *, deadline=340, expected_rules=TR
         body.terrain_radius = 4
     transitions, invalid, latencies = [], set(), []
     events = []
+    teacher_steps = []
     end = time.monotonic() + deadline
     baseline = None
     probe = (CastDumpProbe(tactic) if tactic and tactic.startswith("dump-") else
@@ -277,6 +278,7 @@ def _actor(body, opponent, worker, log, stop, *, deadline=340, expected_rules=TR
                 "actor": body_id,
                 "opponent": opponent,
                 "transitions": transitions,
+                "teacher_steps": teacher_steps,
                 "invalid_reasons": sorted(invalid),
                 "inference_ms": latencies,
                 "policy_sha": worker.policy_sha if worker else None,
@@ -348,10 +350,19 @@ def _actor(body, opponent, worker, log, stop, *, deadline=340, expected_rules=TR
                 frame = executor.observe(obs, server_state=update, now=now)
                 for packet in executor.tick(obs, time.monotonic()):
                     rpc("act:" + packet["type"], body.act, packet)
-                if not executor.busy:
-                    frame = executor.observe(obs, now=time.monotonic())
+                decision_at = time.monotonic()
+                if decision_at >= next_decision and decision_at - last_state < 3:
+                    frame = executor.observe(obs, now=decision_at)
                     action = tactical_teacher.choose(executor.view, frame.mask)
-                    executor.start(action, obs, time.monotonic())
+                    accepted = executor.busy and action == 0
+                    if not executor.busy:
+                        accepted = executor.start(action, obs, decision_at)
+                    if not accepted:
+                        invalid.add("teacher_action_rejected")
+                    teacher_steps.append({"at": decision_at, "features": frame.features,
+                                          "mask": frame.mask, "action": action,
+                                          "accepted": bool(accepted)})
+                    next_decision = decision_at + 0.25
                 for packet in executor.tick(obs, time.monotonic()):
                     rpc("act:" + packet["type"], body.act, packet)
                 for event in executor.drain_events():
@@ -585,9 +596,23 @@ def run(args, stop=None):
             if getattr(args, "verify_base_stats", False) and not starting_template_verified(rows):
                 for actor in actors:
                     actor["invalid_reasons"].append("wrong_starting_template")
-            files = []
+            files, demonstration_files = [], []
             for i, actor in enumerate(actors):
+                teacher_steps = actor.pop("teacher_steps", [])
                 if workers[i] is None:
+                    if teacher_steps:
+                        demo_file = log / match_id / f"demonstration-{ids[i]}.json"
+                        atomic_json(demo_file, {
+                            "schema": "anima3-live-demonstration-v1", "domain": "servuo",
+                            "schema_fingerprint": schema_fingerprint(),
+                            "executor_sha256": EXECUTION_FINGERPRINT,
+                            "ppo_eligible": False, "eligible": not actor["invalid_reasons"],
+                            "invalid_reasons": actor["invalid_reasons"],
+                            "actor": ids[i], "opponent": ids[1-i], "match_id": match_id,
+                            "style": getattr(args, "opponent_style", None),
+                            "replay_sha256": meta["sha256"], "steps": teacher_steps,
+                        })
+                        demonstration_files.append(str(demo_file))
                     continue
                 transitions = actor.pop("transitions")
                 outcome = (
@@ -630,6 +655,7 @@ def run(args, stop=None):
                 "winner": meta["winner"],
                 "metrics": replay.metrics(rows),
                 "episodes": files,
+                "demonstrations": demonstration_files,
                 "replay": f"{args.web.rstrip('/')}/replay/?replay={match_id}",
             }
             results.append(result)

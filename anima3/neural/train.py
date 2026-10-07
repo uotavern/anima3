@@ -257,6 +257,8 @@ def ppo_update(
 ) -> dict:
     if not episodes or not all(len(episode) for episode in episodes):
         raise ValueError("PPO requires non-empty trajectories")
+    if any(e.info.get("ppo_eligible") is False for e in episodes):
+        raise ValueError("Supervised demonstrations are not PPO trajectories")
     targets = _targets(episodes, config)
     chunks = _chunks(episodes, config.sequence_length)
     rng = random.Random(seed)

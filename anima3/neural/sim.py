@@ -33,7 +33,7 @@ from .schema import (
     legal_mask,
 )
 
-SIM_VERSION = "approximate-pre-aos-options-v6-tactics"
+SIM_VERSION = "approximate-pre-aos-options-v7-meditation-clock"
 POTION_FUSE = 3.75
 POTION_FLIGHT = 1.0
 POTION_RADIUS = 2
@@ -92,6 +92,7 @@ class Fighter:
     explosion_potion_until: float = 0.0
     burst_until: float = 0.0
     meditation_until: float = 0.0
+    meditation_ready_at: float = 0.0
     last_action: str = "hold"
     last_spell: str = ""
     last_spell_at: float = -10.0
@@ -227,6 +228,7 @@ class DuelSim:
             stun_cooldown=max(0, own.stun_until - self.elapsed),
             melee_cooldown=max(0, own.melee_until - self.elapsed),
             resource_cooldown=max(0, own.resource_until - self.elapsed),
+            meditation_cooldown=max(0, own.meditation_ready_at - self.elapsed),
             refresh_potions=own.refresh_potions, agility_potions=own.agility_potions,
             melee_active=own.melee_active,
             hp=own.hp, hp_max=own.hp_max, mana=own.mana, mana_max=own.mana_max,
@@ -375,8 +377,13 @@ class DuelSim:
                 own.stamina_max = 34 if own.clumsy_until > self.elapsed else 45
             self._record("resource_potion", side, name=name)
         elif name == "meditate":
-            own.meditation_until = self.elapsed + 8.0
-            own.busy_until = self.elapsed + 2.0
+            # ServUO Meditation.OnUse at GM: chance depends on missing mana.
+            chance = (50 + 2 * (100 - (own.mana_max - own.mana))) / 100
+            success = self.rng.random() < chance
+            own.meditation_ready_at = self.elapsed + 10.0
+            own.meditation_until = math.inf if success else 0.0
+            own.busy_until = self.elapsed + 0.8
+            self._record("meditation", side, success=success)
         elif name == "heal_potion":
             own.heal_potions -= 1
             own.heal_potion_until = self.elapsed + 10.0
@@ -620,6 +627,8 @@ class DuelSim:
                 continue
             meditation = own.meditation_until > self.elapsed
             own.mana = min(own.mana_max, own.mana + interval * self.mana_regen * (2 if meditation else 1))
+            if own.mana >= own.mana_max:
+                own.meditation_until = 0.0
             own.stamina = min(own.stamina_max, own.stamina + interval / 7.0)
             if not self.showdown and own.poison_until <= self.elapsed:
                 own.hp = min(own.hp_max, own.hp + interval / 11.0)

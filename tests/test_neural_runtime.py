@@ -464,3 +464,15 @@ def test_local_terrain_can_dispose_potion_outside_blast_and_away_from_mobiles():
     # Unknown/blocked terrain still cannot authorize a guessed disposal tile.
     blocked=replace(obs,terrain=Terrain((96,96),9,'#'*81))
     assert ex._safe_throw_target(blocked) is None
+
+
+def test_live_meditation_reuse_matches_ten_second_server_cooldown():
+    obs = observation(mana=50)
+    ex = executor(obs)
+    assert ex.start("meditate", obs, 0)
+    assert ex.tick(obs, 0) == [{"type": "UseSkill", "skill": 46}]
+    ex.tick(observation(mana=51), 0.9)
+    frame = ex.observe(observation(mana=52), {"phase": "Fighting", "opponent": 2}, 2)
+    assert not frame.mask[ACTION_INDEX["meditate"]]
+    frame = ex.observe(observation(mana=55), {"phase": "Fighting", "opponent": 2}, 10)
+    assert frame.mask[ACTION_INDEX["meditate"]]

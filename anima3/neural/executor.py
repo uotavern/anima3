@@ -34,7 +34,7 @@ POTION_GRAPHICS = {"heal_potion": 0x0F0C, "cure_potion": 0x0F07, "explosion_poti
 FUSE_SECONDS = 3.75
 SPELL_RECOVERY = 0.75
 STATE_FRESH_SECONDS = 3.0
-EXECUTOR_VERSION = "pre-aos-options-v6-local-terrain"
+EXECUTOR_VERSION = "pre-aos-options-v7-meditation-clock"
 CAST_VERDICTS = {**VERDICTS, 500641: "concentration disturbed"}
 
 
@@ -116,6 +116,7 @@ class CombatExecutor:
         self._last_action = "hold"
         self._stun_armed = self._stun_pending = self._melee_active = False
         self._stun_until = self._melee_until = self._resource_until = 0.0
+        self._meditation_until = 0.0
         self._last_view = CombatView(ready=False, fresh=False)
         self._move_directions: dict[str, int] = {}
 
@@ -170,6 +171,7 @@ class CombatExecutor:
         self._last_action = "hold"
         self._stun_armed = self._stun_pending = self._melee_active = False
         self._stun_until = self._melee_until = self._resource_until = 0.0
+        self._meditation_until = 0.0
         self._event("executor_reset", now, opponent=self.opponent_serial)
 
     def _opponent(self, obs: Observation):
@@ -355,6 +357,7 @@ class CombatExecutor:
             stun_cooldown=max(0, self._stun_until - now),
             melee_cooldown=max(0, self._melee_until - now),
             resource_cooldown=max(0, self._resource_until - now),
+            meditation_cooldown=max(0, self._meditation_until - now),
             refresh_potions=potions["refresh_potion"], agility_potions=potions["agility_potion"],
             melee_active=self._melee_active,
             hp=p.hits,
@@ -671,6 +674,7 @@ class CombatExecutor:
                     packets += self._wire({"type": "StunRequest"}, now)
                 return packets + self._wire({"type": "Attack", "serial": self.opponent_serial}, now)
             elif proc.name == "meditate":
+                self._meditation_until = now + 10.0
                 self._stage("simple_wait", now, now + 0.8)
                 return self._wire(use_skill(46), now)
             elif proc.name in ("heal_potion", "cure_potion", "refresh_potion", "agility_potion"):

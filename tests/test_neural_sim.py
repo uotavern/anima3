@@ -39,7 +39,7 @@ def hold_until(sim, seconds):
 def test_schema_is_public_bounded_and_unknown_health_does_not_leak():
     view = supplied(opponent_health_known=False, opponent_hp=10, dx=-100, dy=100)
     frame = encode(view)
-    assert len(frame.features) == len(FEATURE_NAMES) == 75
+    assert len(frame.features) == len(FEATURE_NAMES) == 76
     assert len(frame.mask) == len(ACTION_NAMES) == 27
     assert len(SCHEMA_FINGERPRINT) == 64
     assert all(-1 <= value <= 1 for value in frame.features)
@@ -348,3 +348,27 @@ def test_teacher_reaches_terminal_outcome_with_only_legal_actions():
         assert rewards[info["winner"]] >= 0.95
         assert rewards[1 - info["winner"]] <= -0.95
     assert info["source"] == "approximate-pre-aos-simulator"
+
+
+def test_meditation_obeys_server_skill_clock_and_continues_past_eight_seconds():
+    sim = DuelSim(seed=7, domain_randomization=False)
+    sim.fighters[0].mana = 60
+    sim.step((action("meditate"), 0))
+    assert sim.fighters[0].meditation_until > 10
+    hold_until(sim, 9)
+    assert not sim.frames()[0].mask[action("meditate")]
+    assert sim.fighters[0].mana >= 78
+    hold_until(sim, 10)
+    assert sim.frames()[0].mask[action("meditate")]
+    sim.step((action("approach"), 0))
+    assert sim.fighters[0].meditation_until == 0
+
+
+def test_meditation_can_fail_at_empty_mana_and_still_has_ten_second_cooldown():
+    sim = DuelSim(seed=0, domain_randomization=False)
+    sim.fighters[0].mana = 0
+    sim.rng.random = lambda: 0.99
+    sim.step((action("meditate"), 0))
+    assert sim.fighters[0].meditation_until == 0
+    hold_until(sim, 3)
+    assert not sim.frames()[0].mask[action("meditate")]

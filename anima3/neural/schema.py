@@ -12,7 +12,7 @@ import json
 import math
 from dataclasses import dataclass
 
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 ACTION_NAMES = (
     "hold", "approach", "retreat", "strafe_left", "strafe_right",
     "weaken", "clumsy", "magic_arrow", "harm", "explosion", "energy_bolt",
@@ -65,7 +65,7 @@ FEATURE_NAMES = (
 
 FEATURE_NAMES += ("hands_free", "stun_skilled", "stun_armed", "stun_pending",
                   "stun_cooldown", "melee_cooldown", "refresh_potions",
-                  "agility_potions", "resource_cooldown", "melee_active")
+                  "agility_potions", "resource_cooldown", "melee_active", "meditation_cooldown")
 
 
 @dataclass(frozen=True)
@@ -88,6 +88,7 @@ class CombatView:
     refresh_potions: int = 0
     agility_potions: int = 0
     resource_cooldown: float = 0.0
+    meditation_cooldown: float = 0.0
     melee_active: bool = False
     hp: float = 100.0
     hp_max: float = 100.0
@@ -190,7 +191,8 @@ def legal_mask(view: CombatView) -> list[bool]:
                 possible = possible and not view.opponent_paralyzed
         mask[ACTION_INDEX[name]] = bool(possible)
     mask[ACTION_INDEX["meditate"]] = (
-        can_cast and not view.poisoned and view.mana < view.mana_max - 2
+        can_cast and view.meditation_cooldown <= 0 and view.hands_free
+        and view.hp >= view.hp_max * 0.1 and not view.poisoned and view.mana < view.mana_max - 2
     )
     mask[ACTION_INDEX["heal_potion"]] = (
         view.heal_potions > 0 and view.heal_potion_cooldown <= 0
@@ -263,14 +265,15 @@ def encode(view: CombatView) -> Frame:
                    float(view.stun_armed), float(view.stun_pending),
                    _unit(view.stun_cooldown, 10), _unit(view.melee_cooldown, 5),
                    _unit(view.refresh_potions, 20), _unit(view.agility_potions, 20),
-                   _unit(view.resource_cooldown, 5), float(view.melee_active)))
+                   _unit(view.resource_cooldown, 5), float(view.melee_active),
+                   _unit(view.meditation_cooldown, 10)))
     assert len(values) == len(FEATURE_NAMES)
     return Frame(features=values, mask=legal_mask(view))
 
 
 SCHEMA_FINGERPRINT = hashlib.sha256(json.dumps({
     "version": SCHEMA_VERSION, "features": FEATURE_NAMES, "actions": ACTION_NAMES,
-    "normalization": "neural-v2-pre-aos-public-tactics",
+    "normalization": "neural-v3-pre-aos-public-skill-clock",
 }, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
 
 
