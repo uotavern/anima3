@@ -409,3 +409,17 @@ Retention JSON saved. Unit259838 active, fixture009 evaluation-incumbent,
 replay5a927bf676144e94b7bcde57a5b225aa live at30seconds. Twenty fixed-model live
 comparison games now running, both models/executor unchanged. The BC candidate
 5e56ab... is separate and is NOT what this current live comparison evaluates.
+
+## First frozen evaluation and teacher-selection bias observation
+
+Unit259838 active, completed9; fixture009 incumbent beat balanced in64727ms,
+valid episode/template. Fixture010 PPOcandidate versus balanced live at79seconds,
+replay81fb446e370f4d31a304ecd2cfb435d6. Single win is not comparative evidence.
+
+Both excluded teacher validation fixtures006/007 have learner57 winning and
+teacher58 dying. Rejection is specifically post-death hold labeling. Thus old
+collector eligibility can systematically omit losing teachers, not merely add
+random missing records. Preserve exclusions, report zero accepted validation,
+and collect fresh held-out games after terminal-context fix. Do not evaluate
+imitation generalization using only surviving/winning teachers. The PPO learner
+records for these matches remain independently eligible and receipt-verified.
