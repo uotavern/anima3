@@ -353,3 +353,12 @@ imitation agreement, not strength. Need fixture005 before fitting live BC.
 Local commit6dec2a0 adds maximum two pre-challenge idle-timeout retries, preserves
 attempt directories and refuses retry with any challenge/results/match evidence.
 Twenty league tests pass. Current running remote code remains unchanged.
+
+Fixture005 subsequently completed (loss to potions); resumed unit moved to006.
+Fresh BC candidate actually trained from001/002/003/005 only:2580 teacher steps,
+8epochs, balanced actions,48optimizer updates, original parent0c6ca921.
+Artifact .logs/supply-fixed-imitation-20261007-8epochs, fit summary
+2026-10-07-supply-fixed-imitation-fit.json. Validation006/007 and independent
+live evaluation pending; not deployed and no strength claim. This short8epoch
+candidate limits initial fitting compared with the retired32epoch candidates;
+selection must still rely on held-out and real matches.
