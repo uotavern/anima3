@@ -516,3 +516,7 @@ bridge-selection.json records provenance. This intentionally supersedes earlier
 4100ecb queued-bridge plan BEFORE any BC evaluation match. Current v7 trial is
 unchanged. Next40games will measure liveRPC/deadlines and v8 execution alongside
 BC-vsparent outcomes; cannot attribute cross-run differences to a single change.
+Transient waiting unit was removed by systemd on stop, so systemctl restart
+returned unit-not-found. Recreated same unit with original resource/environment
+properties via systemd-run and verified its new live MainPID; no match started
+or duplicated during replacement.
