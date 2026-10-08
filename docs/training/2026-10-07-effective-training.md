@@ -840,3 +840,12 @@ then executesfit into freshcandidate-bc. Outputabsent verified. CPU150%,RAM3G,
 Nice10,RuntimeMax10h. Noaccounts/duels run byfitunit and no automaticpublicdeploy.
 Firstunit40screen ->second30collection ->third20train/10holdout fit now chained;
 actualnewmodel and independentliveevaluation remainpending.
+
+## Halfway real evaluation: tied, all records eligible
+
+Verified275277active20complete21collecting. First20matchedgames incumbent6W4L,
+BCcandidate6W4L; no aggregate advantage atthispoint. All20learner records and
+all20teacher demonstrations eligible; teachers9867steps total. Retainthese as
+heldout evaluation, not gradients forqueuedfit. SnapshotJSONlive-twenty-interim
+preservesexactmatchIDs/policyhashes/eligibility andteacherstepcounts. Full40gate
+stillpending; noselectedmodelorpublicdeployment change.
