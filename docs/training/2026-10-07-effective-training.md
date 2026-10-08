@@ -740,3 +740,18 @@ log/tmp/anima3-incumbent-continue-training.log. Starts strongest originalparent
 compares actual originalparent to continuedcandidate. This tests retaining
 existing competence instead of first refitting weaker BC. Trainingongoing.
 Liveunit275277 verifiedactive8completed/40,fixture009collecting; no active-run edits.
+
+## Local interruption recovered; burst cancellations corroborated
+
+Toolsession34549 disappeared; ps inventory showed no training Python, lastupdate5,
+no completed registry. Preserved partialrun with interruption-audit.json. Fresh
+same-seed rerun in .logs/curriculum-incumbent-continue-20261008-retry, detachedPID
+12317(log/tmp/anima3-incumbent-continue-retry.log), no optimizer-resume claim.
+VerifiedPID running and log advancing through16updates; evaluationongoing.
+No duplicate livegames. RemoteBCscreenPID275277 active9complete10collecting.
+
+Fixture007 burst actions end with cliloc500641 concentrationdisturbed. Replay
+first Explosioncast7263ms followed by enemyClumsytarget7350ms; secondcast30273ms
+followedby35damage30434ms. Thus actual adversarial cast interference corroborates
+executor cancellation. Simulator already models debuff/damage interrupts; no
+speculative fix applied. Evidence2026-10-08-live-burst-interruption.json.
