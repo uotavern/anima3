@@ -1016,3 +1016,27 @@ remained fixed throughout. Full evaluation and plan preserved under
 Next action: preregister an independent larger replication with these same
 fixed models and executor; do not train on these evaluation episodes or merge
 interim results to choose a stopping point. No further run launched yet.
+
+## Independent 400-game replication: running, revalidated after reconnect
+
+The subsequent run was preregistered in
+`2026-10-08-recovered-bc-replication-plan.json` before launch. Unit
+`arena-training-recovered-bc-replication-20261008.service` remains active with
+MainPID 388926 on the existing arena host. Output is
+`/opt/uoarena/anima3-demonstrations-7b97aba/.logs/recovered-bc-replication-400`.
+Seed 20261013; 40 games per style per model, 400 total; same frozen models,
+executor, bridge and patched shard as the preceding evaluation. No gradient
+updates or public deployment during this run.
+
+After reconnecting on October 9 (Asia/Seoul), direct systemd and actor-log
+checks confirmed the existing process is live. Latest check: 26 completed
+games, 13 per model, all eligible; fixture 027 is Fighting and its actor log
+was updated 0.01 seconds before inspection. Earlier checks observed the
+transition from fixture 026 to 027. This is verified waiting on the original
+process, not a restarted experiment. These counts establish progress and
+data validity only; no interim performance decision was made.
+
+Use the replication alone for the preregistered promotion gate after all 400
+games finish. Preserve the preceding 200-game result separately and exclude
+both evaluation sets from training. If observation disconnects, inspect this
+same unit before considering any recovery; do not restart a live evaluation.
