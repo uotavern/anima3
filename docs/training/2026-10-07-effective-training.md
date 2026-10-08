@@ -766,3 +766,18 @@ weakness to potion opponents; no claim of learned overall improvement. Original
 SHA0c6ca921... retained. FullJSON2026-10-08-incumbent-continuation.json.
 Next evidence priority is finishing frozen actual ServUO BC comparison; additional
 simulator tuning alone has not demonstrated live strength.
+
+## First ten runtime audit and real last-seen pursuit evidence
+
+Live275277 active,fixture011 fighting with recent journal/health/action updates,
+not hung. First10 learner+teacher all eligible. Observation medians31.19..35.60ms;
+JSON2026-10-08-v8-ten-runtime.json. Four recorded policy cancellations are all
+mask_changed (burst_bolt,approach,harm,approach), observationages61..145ms and
+responseages1.68..1.96ms, not inference deadlines.
+
+Fixture008/0101d318d6274af2be625d9f7a85a8ff:78unseen transitions,11approach choices,
+10visibility-loss spans, all regain visibility. Longest51transitions/14.656sec,
+2approaches; other spans.28..2.67sec. Approach action completion records success.
+This is real evidence v8 can move and reacquire after losing visibility, unlike
+old v7 disabled movement. It does not isolate causality or prove win-rate gain;
+no replay/heldout data used for gradients and frozen comparison unchanged.
