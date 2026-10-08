@@ -555,3 +555,13 @@ started distinct arena-training-v8-bc-screen-20261008.service. Same planned
 40games,seed20261008,CPU200%,v8+optimizedbridge botharms, originalparent0c6ca921
 versus BC5e56ab, no training during comparison. Output .logs/bc-frozen-evaluation
 in /opt/uoarena/anima3-training-v8-20261007. This supersedes FAILED queued unit.
+
+## First live v8/optimized-bridge latency sample
+
+New BCscreen MainPID275277 active, fixture001 in progress, replay
+b9e09bf2328e467da2ab19fa4f8b1c33. Learner observeRPC1954 samples: median34.287ms,
+p9589.277ms,p99126.721ms,no inference_rejected events. Earlier v7/oldbridge150%
+quota trials median54..68ms and p95116..197ms. This is encouraging combined
+runtime evidence, not a randomized bridge-only benchmark:CPU200% also changed,
+and arenas/states differ. No completed match or strength claim yet. Continue
+checking terminal teacher data validity and last-seen pursuit in actual play.
