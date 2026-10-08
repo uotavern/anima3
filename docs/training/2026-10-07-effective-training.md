@@ -649,3 +649,15 @@ same seed/budgets as plainPPO but1BCepoch after each update. Reserved eval seed
 on sameupdatedsim/sameseed, saves evaluation-original-parent/plain-ppo.json there.
 Need compare rehearsal candidate to BOTH warmstart and plainPPO; improvement over
 a regressed PPO alone isn't sufficient. Remote v8BCscreen275277 active,3complete4live.
+
+## Four live v8 matches valid; rehearsal update stream verified
+
+Current BCscreen275277 active,4complete collecting005. Incumbent1W1L,BC1W1L;
+all4learner and all4teacher records eligible, no inference rejection. ObserveRPC
+median31.4..35.6ms,p9588.9..102.1ms. No unseen-opponent decisions in these4matches,
+so do not yet claim live last-seen pursuit success. Runtime audit JSON saved.
+
+Local rehearsal11458 actually executing PPO+BC(reachedupdate3/16, each followup
+BC70optimizer updates over32768 original labels); no errors. Independent matched
+control eval62303completed: originalparent0.665,plainPPO0.575 on3654000000.
+Await newwarmstart/rehearsalcandidate same fixtures for fair comparison.
