@@ -629,3 +629,23 @@ parent independently evaluated under SAME corrected simulator and reserved
 under .logs/curriculum-threat-memory-20261008. Prior0.735 used a different seed;
 do not interpret that difference as regression. Compare with new frozen models
 only once their fitting completes. Baseline evalsession40750 finished normally.
+
+## Threat-memory training completed; controlled PPO+rehearsal experiment started
+
+Session44466 completed. Scores on3653000000/100games: random0.045,newBC0.680,
+newPPO0.575; originalparent sameupdatedsim0.655. BCvsoriginal delta0.025,
+CI[-0.085,0.135] notpassed. PPOvsBC delta-0.105,CI[-0.20,-0.01],regression.
+NewBC SHA772c0fc6f5cacae8e0bd8cde8faf0c51e1fd1094fc76580e08ff982ee29d6232 remains
+experimental, not deployed. JSON2026-10-08-threat-memory-training.json.
+
+Source366ec62 adds optional --bc-rehearsal-epochs0..8(default0) after each PPO
+update. Reuses only original training demonstrations, reconstructs current
+causal prefixes, uses separate Adam moments for BC vsPPO. No evaluation data
+used for gradients.20league tests/lint passed; end-to-end experiment running.
+
+Session11458: .logs/curriculum-rehearsal-20261008, log/tmp/anima3-rehearsal-training.log,
+same seed/budgets as plainPPO but1BCepoch after each update. Reserved eval seed
+3654000000. Session62303 independently scores originalparent and frozen plainPPO
+on sameupdatedsim/sameseed, saves evaluation-original-parent/plain-ppo.json there.
+Need compare rehearsal candidate to BOTH warmstart and plainPPO; improvement over
+a regressed PPO alone isn't sufficient. Remote v8BCscreen275277 active,3complete4live.
