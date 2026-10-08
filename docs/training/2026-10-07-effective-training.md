@@ -801,3 +801,23 @@ absence isn't itself a requirement to cast everyspell. Next imitation experiment
 should collect new disjoint matches balanced across5teacherstyles/bothseats,
 retain current40screen as heldout rather than recycle outcomes into fitting.
 Remote275277active,13complete14collecting;013incumbentpressurewineligible.
+
+## Balanced collection mode staged after frozen screen
+
+Source7b97aba adds --collect-per-style even2..40, requiresbatches0/nocandidate.
+Collects bothseats perstyle percycle; freezes original checkpoint, does no PPO,
+no evaluation and no model registry/promotion. Pins purpose/count in resumeplan;
+existing receipts/retry/accountflock reused. dataset.json declares demonstration
+validation stillrequired by load_demonstration before fitting.24league tests+ruff
+pass; mode test proves20games,balanced5styles*2seats*2repeats,zerooptimizerupdates,
+noevaluation/registry and repeatresume produceszeroadditionalgames.
+
+Remoteisolatedsnapshot /opt/uoarena/anima3-demonstrations-7b97aba CLIhelpchecked.
+Unit arena-training-demonstrations-20261008.service MainPID281665 verifiedactive,
+waiting inqueued-collection.py. Current275277screenstillactive, newcollection
+outputabsent verified. Queue waits actualpriorunitterminal (max5h), thenrequires
+priorstatuscomplete40. Anyfailed/incompleteprior stops withoutnewgames. Starts
+30freshgames (--collect-per-style6), fixedoriginalparent0c6ca921..., v9executor,
+optimized25378fabridge, seed20261010. Sourcev9 applies to bothteacher/learner and
+is explicitnewdataset; not a mutation of ongoingv8screen. CPU200%,RAM3G,Nice5,
+unitRuntimeMax8h. It collects only; fitting/independentv9evaluation stillpending.
