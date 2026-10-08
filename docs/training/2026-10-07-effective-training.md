@@ -534,3 +534,24 @@ stochastic fight dynamics and small sample size remain possible explanations.
 Do not hard-code actions from these evaluation records or count them as new
 training. Use separate new training/confirmation data to investigate survival.
 Current269830 active completed21 collecting022; BCwait272007 active.
+
+## v7 trial terminated at final fixture; next BC screen actually launched
+
+27completed collections;28actual matches. Last fixture028 learner never retained
+trusted match state and actor raised lost authoritative live duel state. Teacher
+saw Fighting then RoundOver. Server replay21c00c4e82964f4d9794f38e82d677d1 verified
+complete, winner58,16853ms,noabort. Saved server replay+meta under028; do NOT
+replay this started match or invent a learner trajectory. Original status stays
+stopped; final-audit.json closes experiment with known invalid final collection.
+
+Valid comparison scores(parent/PPOfrozen,9each): parent7W1L1D; PPO4W4L1D.
+Each arm also has1invalid: PPO010deadline and parent028state loss. No promotion;
+original incumbent retained. Insufficient/invalid evidence for strict gate and
+observed results unfavorable. Two lost records cannot be treated as random.
+
+Waiting BCunit correctly failed on prior experiment not-complete. Audited both
+unitsMainPID0, no bridges, online0/liveempty, pinned bridge SHA verified, then
+started distinct arena-training-v8-bc-screen-20261008.service. Same planned
+40games,seed20261008,CPU200%,v8+optimizedbridge botharms, originalparent0c6ca921
+versus BC5e56ab, no training during comparison. Output .logs/bc-frozen-evaluation
+in /opt/uoarena/anima3-training-v8-20261007. This supersedes FAILED queued unit.
