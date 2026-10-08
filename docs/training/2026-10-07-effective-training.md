@@ -958,3 +958,25 @@ Metadata-only capture arena-training-handoff-metadata-20261008.service PID306056
 active, twohourlimit, remote handoff-metadata-20261008.log. Stop afterdiagnostic.
 Original30collection andfit remainfailed; rebuild training/validation pipeline
 after transport validation. No new learned model or live strength improvement yet.
+
+## Recovered fitting plan, before validation metrics
+
+Diagnostic completed3/10, all eligible, fixture004 active after send patch.
+Supersede the interrupted30-game split with valid original fixtures001..018 as
+training and all10 separate diagnostic fixtures as validation. No validation
+imitation metrics have been examined or used to tune epochs. Fixed8epochs,
+action balancing, seed20261010, original parentSHA unchanged. Training style
+counts are4 each for balanced/pressure/burst/defensive and2 potions; disclose this
+imbalance rather than claiming the original20/10 balanced plan completed.
+Validation is2/style, firstmatch pre-serverpatch, remaining9 postpatch; therefore
+these are offline held-out behavior metrics, not proof of live strength. Need
+fresh parent/candidate live comparison on same patched server after fitting.
+Original failedfixture019 and prior40evaluation never enter gradients.
+
+Queued actual unit arena-training-fit-recovered-20261008.service, code
+/opt/uoarena/anima3-fit-balanced-20261008/queued-recovered-fit.py, waits actual
+handoff-resume unit terminal then requirescomplete10 and originalexact18status,
+allpinnedpolicy/eligible/trainingrows,28uniquematches,freshoutput. Existing clone
+fitter verifies all replay/supply receipts before gradients. Output
+candidate-recovered-bc under samefit directory. CPU150%,RAM3G,Nice10,3hlimit.
+Noaccountsornewduelsrunbythisunit; noauto publicdeploy. Oldfitunit staysfailed.
