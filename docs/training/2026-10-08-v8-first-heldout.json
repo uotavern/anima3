@@ -1,0 +1,144 @@
+{
+  "source": ".logs/v8-bc-copy/fixture-001/b9e09bf2328e467da2ab19fa4f8b1c33/demonstration-58.json",
+  "model_frozen": true,
+  "not_training_data": true,
+  "parent": {
+    "episodes": 1,
+    "free_choices": 419,
+    "cross_entropy": 1.1986346816319555,
+    "accuracy": 0.6252983293556086,
+    "per_action": {
+      "weaken": {
+        "labels": 1,
+        "accuracy": 0.0
+      },
+      "clumsy": {
+        "labels": 1,
+        "accuracy": 0.0
+      },
+      "burst_bolt": {
+        "labels": 1,
+        "accuracy": 0.0
+      },
+      "refresh_potion": {
+        "labels": 5,
+        "accuracy": 0.2
+      },
+      "hold": {
+        "labels": 319,
+        "accuracy": 0.6677115987460815
+      },
+      "magic_arrow": {
+        "labels": 34,
+        "accuracy": 0.5
+      },
+      "explosion": {
+        "labels": 3,
+        "accuracy": 0.3333333333333333
+      },
+      "energy_bolt": {
+        "labels": 3,
+        "accuracy": 0.0
+      },
+      "heal_potion": {
+        "labels": 8,
+        "accuracy": 0.625
+      },
+      "greater_heal": {
+        "labels": 1,
+        "accuracy": 1.0
+      },
+      "explosion_potion": {
+        "labels": 4,
+        "accuracy": 0.75
+      },
+      "meditate": {
+        "labels": 19,
+        "accuracy": 0.6842105263157895
+      },
+      "heal": {
+        "labels": 17,
+        "accuracy": 0.47058823529411764
+      },
+      "agility_potion": {
+        "labels": 1,
+        "accuracy": 0.0
+      },
+      "approach": {
+        "labels": 2,
+        "accuracy": 0.0
+      }
+    },
+    "real_server_strength_established": false
+  },
+  "candidate": {
+    "episodes": 1,
+    "free_choices": 419,
+    "cross_entropy": 0.8919877178060126,
+    "accuracy": 0.6181384248210023,
+    "per_action": {
+      "weaken": {
+        "labels": 1,
+        "accuracy": 0.0
+      },
+      "clumsy": {
+        "labels": 1,
+        "accuracy": 1.0
+      },
+      "burst_bolt": {
+        "labels": 1,
+        "accuracy": 0.0
+      },
+      "refresh_potion": {
+        "labels": 5,
+        "accuracy": 0.6
+      },
+      "hold": {
+        "labels": 319,
+        "accuracy": 0.6520376175548589
+      },
+      "magic_arrow": {
+        "labels": 34,
+        "accuracy": 0.11764705882352941
+      },
+      "explosion": {
+        "labels": 3,
+        "accuracy": 0.3333333333333333
+      },
+      "energy_bolt": {
+        "labels": 3,
+        "accuracy": 0.0
+      },
+      "heal_potion": {
+        "labels": 8,
+        "accuracy": 1.0
+      },
+      "greater_heal": {
+        "labels": 1,
+        "accuracy": 1.0
+      },
+      "explosion_potion": {
+        "labels": 4,
+        "accuracy": 0.75
+      },
+      "meditate": {
+        "labels": 19,
+        "accuracy": 0.7368421052631579
+      },
+      "heal": {
+        "labels": 17,
+        "accuracy": 0.9411764705882353
+      },
+      "agility_potion": {
+        "labels": 1,
+        "accuracy": 0.0
+      },
+      "approach": {
+        "labels": 2,
+        "accuracy": 0.0
+      }
+    },
+    "real_server_strength_established": false
+  },
+  "real_server_strength_established": false
+}

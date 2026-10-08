@@ -565,3 +565,17 @@ quota trials median54..68ms and p95116..197ms. This is encouraging combined
 runtime evidence, not a randomized bridge-only benchmark:CPU200% also changed,
 and arenas/states differ. No completed match or strength claim yet. Continue
 checking terminal teacher data validity and last-seen pursuit in actual play.
+
+## v8 first complete match and genuinely held-out imitation diagnosis
+
+Unit275277 active completed1 collecting002. First fixture replay
+b9e09bf2328e467da2ab19fa4f8b1c33: incumbent57 lost, teacher58won. Both records
+eligible, teacher712steps accepted by supply+receipt importer. Learner had zero
+unseen decisions, so last-seen pursuit wasn't exercised. Teacher survived, so
+post-death exclusion fix remains unverified on a losing teacher in live data.
+
+Frozen BC candidate on this unseen teacher episode419freechoices: parentCE1.19863
+->BC0.89199, argmax agreement0.62530->0.61814. This is mixed imitation evidence,
+not proof of improved play. No parameter updates, no model selection from this
+record; full40game comparison continues with fixed hashes. Evidence
+2026-10-08-v8-first-heldout.json. Do not claim fitting/held-out accuracy both rose.
