@@ -34,7 +34,7 @@ POTION_GRAPHICS = {"heal_potion": 0x0F0C, "cure_potion": 0x0F07, "explosion_poti
 FUSE_SECONDS = 3.75
 SPELL_RECOVERY = 0.75
 STATE_FRESH_SECONDS = 3.0
-EXECUTOR_VERSION = "pre-aos-options-v8-last-seen-approach"
+EXECUTOR_VERSION = "pre-aos-options-v9-explosion-word-memory"
 CAST_VERDICTS = {**VERDICTS, 500641: "concentration disturbed"}
 
 
@@ -110,6 +110,7 @@ class CombatExecutor:
         self._damage: deque[tuple[float, float, float]] = deque()
         self._opponent_cast = ""
         self._opponent_spell_at = -math.inf
+        self._explosion_word_deadlines: list[float] = []
         self._verdict_at = -math.inf
         self._verdict = ""
         self._los_refused_until = 0.0
@@ -170,6 +171,7 @@ class CombatExecutor:
         self._damage.clear()
         self._opponent_cast = ""
         self._opponent_spell_at = self._verdict_at = -math.inf
+        self._explosion_word_deadlines.clear()
         self._los_refused_until = self._recovery_until = 0.0
         self._cooldowns = {name: 0.0 for name in (*POTION_GRAPHICS, "burst")}
         self._last_action = "hold"
@@ -235,6 +237,9 @@ class CombatExecutor:
             if journal.serial == self.opponent_serial and words in WORDS:
                 self._opponent_cast = WORDS[words].casefold().replace(" ", "_")
                 self._opponent_spell_at = now
+                if self._opponent_cast == "explosion":
+                    self._explosion_word_deadlines.append(now + cast_seconds("explosion") + 2.5)
+                    self._explosion_word_deadlines = self._explosion_word_deadlines[-8:]
             if journal.cliloc in CAST_VERDICTS:
                 self._verdict_at, self._verdict = now, CAST_VERDICTS[journal.cliloc]
                 self._event("spell_verdict", now, cliloc=journal.cliloc, verdict=self._verdict)
@@ -357,11 +362,8 @@ class CombatExecutor:
         # Estimate only from public power words, matching the simulator's view.
         # A heard cast can still fizzle, be interrupted, or target somebody else;
         # this is deliberately not an authoritative incoming-damage queue.
-        incoming_explosion = -1.0
-        if self._opponent_cast == "explosion":
-            estimate = cast_seconds("explosion") + 2.5 - (now - self._opponent_spell_at)
-            if estimate >= 0:
-                incoming_explosion = estimate
+        self._explosion_word_deadlines = [t for t in self._explosion_word_deadlines if t >= now]
+        incoming_explosion = min((t - now for t in self._explosion_word_deadlines), default=-1.0)
         self._last_view = CombatView(
             hands_free=not any(i.container == p.serial and i.layer in (1, 2) for i in obs.items),
             stun_skilled=all(any(s.id == skill and s.value >= 80 for s in obs.skills)

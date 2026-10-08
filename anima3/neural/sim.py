@@ -96,6 +96,7 @@ class Fighter:
     last_action: str = "hold"
     last_spell: str = ""
     last_spell_at: float = -10.0
+    explosion_word_deadlines: list[float] = field(default_factory=list)
     completed: set[str] = field(default_factory=set)
     recent_dealt: deque = field(default_factory=deque)
     recent_received: deque = field(default_factory=deque)
@@ -218,10 +219,8 @@ class DuelSim:
         age = self.elapsed - other.last_spell_at
         # This estimate comes from observed power words, not the pending damage
         # event queue. It may remain even when the actual spell fizzles.
-        incoming = (-1.0 if other.last_spell != "explosion" else
-                    cast_seconds("explosion") + 2.5 - age)
-        if incoming < 0:
-            incoming = -1.0
+        incoming = min((t - self.elapsed for t in other.explosion_word_deadlines
+                        if t >= self.elapsed), default=-1.0)
         potion = self.potions.get(own.active_potion)
         return CombatView(
             hands_free=True, stun_skilled=True, stun_armed=own.stun_armed,
@@ -277,6 +276,9 @@ class DuelSim:
         own.cast_until = self.elapsed + cast_seconds(spell) + self.latency
         own.busy_until = own.cast_until
         own.last_spell, own.last_spell_at = spell, self.elapsed
+        if spell == "explosion":
+            own.explosion_word_deadlines.append(self.elapsed + cast_seconds("explosion") + 2.5)
+            own.explosion_word_deadlines = own.explosion_word_deadlines[-8:]
         own.meditation_until = 0.0
         own.casts += 1
         self._record("cast", side, spell=spell)

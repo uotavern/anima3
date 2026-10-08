@@ -214,7 +214,8 @@ def test_public_explosion_word_estimate_expires_without_hidden_queue():
     heard = observation(journal=[Journal(2, "Opponent", "Vas Ort Flam", 0, 0, 0)])
     ex.observe(heard, now=1.0)
     assert abs(ex.view.incoming_explosion_seconds - 4.15) < 1e-9
-    ex.observe(observation(), now=2.0)
+    ex.observe(observation(journal=[Journal(2, "Opponent", "Corp Por", 0, 0, 0)]), now=2.0)
+    assert ex.view.opponent_cast == "energy_bolt"
     assert abs(ex.view.incoming_explosion_seconds - 3.15) < 1e-9
     ex.observe(observation(), now=5.16)
     assert ex.view.incoming_explosion_seconds == -1

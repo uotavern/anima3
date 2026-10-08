@@ -372,3 +372,20 @@ def test_meditation_can_fail_at_empty_mana_and_still_has_ten_second_cooldown():
     assert sim.fighters[0].meditation_until == 0
     hold_until(sim, 3)
     assert not sim.frames()[0].mask[action("meditate")]
+
+
+def test_public_explosion_estimate_survives_followup_and_expires():
+    sim = DuelSim(seed=1)
+    sim._start_cast(1, "explosion")
+    expected = cast_seconds("explosion") + 2.5
+    sim.elapsed = 1.0
+    sim._start_cast(1, "energy_bolt")
+    assert sim.view(0).opponent_cast == "energy_bolt"
+    assert sim.view(0).incoming_explosion_seconds == pytest.approx(expected - 1)
+    # It remains an audible-word estimate, even with no actual queued damage.
+    sim.events.clear()
+    assert sim.view(0).incoming_explosion_seconds == pytest.approx(expected - 1)
+    sim.elapsed = expected + 0.01
+    assert sim.view(0).incoming_explosion_seconds == -1
+    sim.reset()
+    assert sim.view(0).incoming_explosion_seconds == -1

@@ -579,3 +579,27 @@ Frozen BC candidate on this unseen teacher episode419freechoices: parentCE1.1986
 not proof of improved play. No parameter updates, no model selection from this
 record; full40game comparison continues with fixed hashes. Evidence
 2026-10-08-v8-first-heldout.json. Do not claim fitting/held-out accuracy both rose.
+
+## BC opening defeat and delayed-spell cue loss fixed locally
+
+V8fixture002 replay33f309ba6422471e882f4a3cb840c8cb finished15543ms incl countdown,
+candidate0damage/4casts, opponent98damage. Candidate chose four approaches,
+Weaken,Clumsy,AgilityPotion,burst_bolt. No inference rejection;9freechoices.
+Opponent potion30damage at14115ms,26at14483,42lethal at14514 (~399ms). Candidate
+burst's bolt cast was interrupted. This is valid combat failure, not transport.
+
+Observed actual features: incoming_explosion present steps14..23, then drops
+immediately at24 when opponent's CorpPor word replaces Explosion. Delayed
+Explosion damage had not arrived. Found same last-spell-only logic in simulator.
+Local executorv9 keeps up to8 public Explosion-word expiry estimates separately
+from latest spell; nearest unexpired estimate persists through follow-up spells,
+expires naturally and clears on round reset. Simulator uses same public cue
+history, never hidden damage queue; canceled/fizzled spells can still yield an
+estimate as before. Schema dimensions unchanged; execution version incremented.
+61runtime/simulator tests and lint pass, including followup preservation and
+expiry and simulator queue-independent estimate/reset. NOT deployed in active
+v8comparison. Needs retraining/calibration before future experiment.
+
+Do not claim cue loss caused fixture002 defeat: candidate had already committed
+to burst before its cue disappeared, and busy options restrict choices to hold.
+That action granularity and burst-survival training remain distinct limitations.
