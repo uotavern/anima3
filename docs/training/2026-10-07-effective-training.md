@@ -469,3 +469,21 @@ v8 botharms, corrected terminal teacher collector, bounded handshake retries.
 No new training in this evaluation, no public promotion. This40game screen
 cannot establish the strict200game promotion gate; use evidence to choose next
 training/confirmation experiment. The queued process does not log into UO yet.
+
+## Observation survey optimization implemented in separate client worktree
+
+Unit269830 active(completed19/fighting020); queuedBCunit269927 remains waiting.
+Inspected bridge4100ecb: each observation radius4 surveys81tiles; MapTerrain
+walkable_step rebuilds TileScan across World.items for EACH tile. New worktree
+/Users/dkkang/dev/uo/arena-worktrees/anima-client-observation-scan branch
+fix/training-observation-scan builds once per observation and uses same scanned
+planning predicate. No cache persists across network/world updates; door checks
+unchanged. Original MapTerrain/pathfinder unaffected. Not deployed or added to
+already queued fixed experiment.
+
+26session unit tests pass. Added explicit asset-required integration regression:
+3actualmap locations,200synthetic dynamic items,20revisions each with removals,
+positions/doorgraphic/container changes. All60 complete terrain grids match old
+adapter. Warm-map release benchmark total old54892us/new2536us (~21.6x terrain
+survey speedup). This microbenchmark does NOT establish RPC or live-loop gain;
+next deploy/benchmark separately, preserving current comparison conditions.
