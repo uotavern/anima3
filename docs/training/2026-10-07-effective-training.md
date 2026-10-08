@@ -444,3 +444,28 @@ nr_throttled6052, throttled_usec81046315, usage_usec1518441126. Quota throttling
 is present (~51% periods), but this cumulative counter does not prove causality
 for request9. Next isolated trial can use200% for both arms and measure RPC p95/
 p99 plus deadline counts; current fixed150% run remains unchanged.
+
+## Nineteen completed, audited stat-dialog resume, queued BC comparison
+
+Revalidated unit terminal(MainPID0/failed), completed19. Fixture020 had ONLY
+status/progress/run.lock, error Could not verify base stats from Arena stat dialog,
+no challenge; shard online0/liveempty, no bridge. Restarted same --resume unit;
+new MainPID269830, existing known-preparation recovery archives020 automatically.
+No completed match rerun and same v7/150%/checkpoint comparison remains fixed.
+
+Valid intermediate outcomes: balanced parent2W/candidate1L(+1 invalid loss),
+pressure parent2W/candidate2L; burst parent1W/candidate2W, pending other parent.
+PPO candidate not promising; don't promote. Observe RPC median54..68ms, p99149..234ms,
+only one inference deadline across first19learner logs; fixture010max663ms.
+
+Prepared bounded next experiment, remote queued-bc-evaluation.py in
+/opt/uoarena/anima3-training-v8-20261007, snapshot59fb090. Unit
+arena-training-v8-bc-queued-20261008 waits on actual prior systemd state, then
+requires complete28 status and no online/live players, pins parent0c6ca921 and
+BCcandidate5e56ab hashes before launching runner(account flock). Fails if prior
+run fails; no automatic takeover/retry of ambiguous matches. Maximum5h wait,
+10h unit cap,40evaluation games(4/style/model), seed20261008,CPU200% botharms,
+v8 botharms, corrected terminal teacher collector, bounded handshake retries.
+No new training in this evaluation, no public promotion. This40game screen
+cannot establish the strict200game promotion gate; use evidence to choose next
+training/confirmation experiment. The queued process does not log into UO yet.
