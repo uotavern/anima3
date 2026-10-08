@@ -603,3 +603,14 @@ v8comparison. Needs retraining/calibration before future experiment.
 Do not claim cue loss caused fixture002 defeat: candidate had already committed
 to burst before its cue disappeared, and busy options restrict choices to hold.
 That action granularity and burst-survival training remain distinct limitations.
+
+## Threat-memory simulator retraining actually started
+
+Local exec session44466 runs sourceb170aba, output
+.logs/curriculum-threat-memory-20261008, log/tmp/anima3-threat-memory-training.log.
+Same seed20261009 and budget as prior skill-clock experiment:32768teacher steps,
+64BCepochs,16PPOupdates*4096steps,1200step horizon,100evalgames/model. New held-out
+seed3653000000. Four drill collections completed; fitting still running at last
+check. Independent of unchanged live v8BCscreen(unit275277 completed3 collecting4).
+Do not claim improvement until frozen comparisons; old/new evaluations must use
+same updated simulator/seeds before comparing effects of threat-memory change.
