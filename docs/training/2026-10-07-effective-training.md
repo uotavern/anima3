@@ -498,3 +498,21 @@ when interpreting remaining timings. No existing binary overwritten and queued
 BC comparison still references4100ecb. Need completed artifact hash, native
 asset equivalence test, and actual ordinary-client RPC measurement before use.
 Current trial269830 active completed20 collecting021; queuedBC269927 activewait.
+
+## Native Linux optimization validation; apply only to not-yet-started BC screen
+
+Build/test units completed successfully. Linux bridge25378fa SHA256
+3d0af9bae62dd49431885490abeca510c3f313f3d10c7a4003d1e2ae73bb5814 at
+/opt/uoarena/anima-client-survey-25378fa/target/release/anima-bridge.
+Server native map regression60/60equivalent, original307642us/scanned5701us total
+under50%CPUquota; these are quota-affected microbenchmark times, not whole RPC
+or combat improvement evidence. No production binary replaced.
+
+Current trial269830 active completed21 collecting022. Verified queued BC output
+directory absent and prior trial incomplete, stopped only waiting BC unit,
+updated its script to use optimized bridge for BOTH frozen arms, added pinned
+binarySHA check, restarted waiting unit. Original script preserved beside it,
+bridge-selection.json records provenance. This intentionally supersedes earlier
+4100ecb queued-bridge plan BEFORE any BC evaluation match. Current v7 trial is
+unchanged. Next40games will measure liveRPC/deadlines and v8 execution alongside
+BC-vsparent outcomes; cannot attribute cross-run differences to a single change.
