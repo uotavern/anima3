@@ -790,3 +790,14 @@ Interimpaired+.1667CI[-.5,1.0], onlybalanced/pressure represented; gatefails
 insufficientevidence. Balancedcandidate delta-.25,pressure+1.0 basedjust2games/arm,
 not reliable style superiority. Artifact2026-10-08-live-twelve-interim.json
 preservesmatchIDs/hashes/results. No change to models, seeds or40gamebudget.
+
+## Real imitation coverage limits identified
+
+CurrentBCcandidate used4verified episodes/2580steps but1467free-choice labels.
+Hold641(43.7%),approach+retreat516(35.2%),burst_bolt2,punch1,stun9,
+explosion_potion6,greater_heal6. Repeating epochs cannot supply missing combat
+situations. Saved2026-10-08-real-imitation-coverage.json includes absent actions;
+absence isn't itself a requirement to cast everyspell. Next imitation experiment
+should collect new disjoint matches balanced across5teacherstyles/bothseats,
+retain current40screen as heldout rather than recycle outcomes into fitting.
+Remote275277active,13complete14collecting;013incumbentpressurewineligible.
