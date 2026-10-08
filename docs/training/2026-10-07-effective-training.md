@@ -716,3 +716,27 @@ refresh as ignoring available heal. Retreat legal but survival counterfactual
 unproven. JSONlive-low-health-audit preserves features/masks. Noheldout training.
 Local15151 live,BC completed4480optimizer updates;52401 live,originalparent.760
 andper-stepPPO.570 scored on new3656000000 fixtures. Remaining controls pending.
+
+## Time+rehearsal complete; continue strongest incumbent directly
+
+Sessions15151/52401 completed normally. Same3656000000/100games: original.760,
+newBC.690, per-stepPPO.570, per-step+rehearsal.650, timePPO.690,
+time+rehearsal.765(63W10L27D). Last vsoriginal+.005 CI[-.090,.105],pressure-.200,
+notpassed. vsper-stepPPO+.195CI[.095,.285]pass, vsper-step+rehearsal+.115
+CI[.035,.190]pass, but beating weaker baselines doesn't warrant promotion.
+CompleteJSON2026-10-08-time-rehearsal-training.json; publicpolicy untouched.
+
+Sourcee05ee1e adds --start-checkpoint to curriculum. Loads verified existing
+checkpoint, preserves exact weights for initial/warmstart, skips initial BC refit;
+training-only demos still support optional postPPO rehearsal. Parentpath/SHA
+recorded. Actual tiny end-to-end test checks exact incoming PPO weights, absence
+of prePPO BC, postPPO rehearsal ordering, persisted initial/warmstartSHA and
+unchanged parentfile;23league tests+ruffpassed.
+
+Session34549 runs .logs/curriculum-incumbent-continue-20261008,
+log/tmp/anima3-incumbent-continue-training.log. Starts strongest originalparent
+0c6ca921... directly, same seed20261009/budgets65536 PPOsteps/16updates, timeunit1,
+1BCrehearsal epoch/update. Reserved3657000000 expanded40games/style=200/model
+compares actual originalparent to continuedcandidate. This tests retaining
+existing competence instead of first refitting weaker BC. Trainingongoing.
+Liveunit275277 verifiedactive8completed/40,fixture009collecting; no active-run edits.
