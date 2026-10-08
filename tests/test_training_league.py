@@ -176,8 +176,8 @@ def test_start_template_checks_modified_resources_not_just_raw_header():
     assert not starting_template_verified(rows)
 
 
-@pytest.mark.parametrize("evaluation_only", [False, True])
-def test_runner_completes_and_resume_does_not_replay_or_retrain(tmp_path,monkeypatch,evaluation_only):
+@pytest.mark.parametrize("mode", ['train', 'evaluation', 'collection'])
+def test_runner_completes_and_resume_does_not_replay_or_retrain(tmp_path,monkeypatch,mode):
     import json
     from types import SimpleNamespace
 
@@ -212,16 +212,27 @@ def test_runner_completes_and_resume_does_not_replay_or_retrain(tmp_path,monkeyp
     argv=['--out',str(tmp_path/'run'),'--checkpoint',str(tmp_path/'seed'),
           '--accounts-file',str(accounts),'--bridge','unused','--data-dir','unused',
           '--user-a','test_a','--user-b','test_b']
-    if evaluation_only:
+    if mode == 'evaluation':
         argv += ['--batches','0','--candidate-checkpoint',str(tmp_path/'frozen')]
-    expected = {'games':20,'updates':0} if evaluation_only else {'games':28,'updates':1}
+    elif mode == 'collection':
+        argv += ['--batches','0','--collect-per-style','4']
+    expected = {'games':28,'updates':1} if mode == 'train' else {'games':20,'updates':0}
     assert runner.main(argv)==0
     assert counter==expected
     assert runner.main(argv+['--resume'])==0
     assert counter==expected
     status=json.loads((tmp_path/'run/status.json').read_text())
     assert status['completed']==expected['games'] and status['status']=='complete'
-    assert not status['gate']['passed']  # Pilot remains below evidence threshold.
+    if mode == 'collection':
+        from collections import Counter
+        assert not status['fit_performed']
+        assert not (tmp_path/'run/registry.json').exists()
+        assert not list((tmp_path/'run').glob('evaluation-*.json'))
+        assert Counter((r['style'],r['side']) for r in status['matches']) == {
+            (style,side):2 for style in STYLES for side in range(2)}
+        assert all(r['stage']=='training-demonstrations' for r in status['matches'])
+    else:
+        assert not status['gate']['passed']  # Pilot remains below evidence threshold.
 
 
 def test_controller_upgrade_resume_requires_no_challenge(tmp_path):

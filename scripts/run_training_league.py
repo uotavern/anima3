@@ -115,15 +115,22 @@ def main(argv=None):
     p.add_argument("--candidate-checkpoint", type=Path,
                    help="Frozen candidate for evaluation-only mode (--batches 0)")
     p.add_argument("--eval-per-style", type=int, default=2)
+    p.add_argument("--collect-per-style", type=int, default=0,
+                   help="Collect fresh training games only, evenly by style/seat; requires --batches 0")
     p.add_argument("--resume", action="store_true")
     p.add_argument("--seed", type=int, default=20261006)
     args = p.parse_args(argv)
     if not (0 <= args.batches <= 10 and 4 <= args.batch_matches <= 32
             and 2 <= args.eval_per_style <= 40 and args.eval_per_style % 2 == 0):
         p.error("invalid bounded training/evaluation budgets")
-    if (args.batches == 0) != (args.candidate_checkpoint is not None):
+    if args.collect_per_style:
+        if (args.batches != 0 or args.candidate_checkpoint is not None
+                or not 2 <= args.collect_per_style <= 40 or args.collect_per_style % 2):
+            p.error("collection requires --batches 0, no candidate, and even 2..40 games/style")
+    elif (args.batches == 0) != (args.candidate_checkpoint is not None):
         p.error("evaluation-only mode requires --batches 0 and --candidate-checkpoint")
-    total_budget = args.batches*args.batch_matches + len(STYLES)*args.eval_per_style*2
+    total_budget = (len(STYLES)*args.collect_per_style if args.collect_per_style else
+                    args.batches*args.batch_matches + len(STYLES)*args.eval_per_style*2)
     lock_id = hashlib.sha256((args.host + '/'+ '/'.join(sorted((args.user_a, args.user_b)))).encode()).hexdigest()[:16]
     lock = open('/tmp/anima3-league-'+lock_id+'.lock', 'a')  # noqa: SIM115 -- process lifetime lock
     fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
@@ -143,6 +150,9 @@ def main(argv=None):
             "seed": args.seed, "budget": total_budget}
     if args.candidate_checkpoint is not None:
         plan["candidate_sha"] = load_checkpoint(args.candidate_checkpoint).policy_sha
+    if args.collect_per_style:
+        plan["collect_per_style"] = args.collect_per_style
+        plan["purpose"] = "training-demonstrations"
     plan_path = root / "plan.json"
     if plan_path.exists() and json.loads(plan_path.read_text()) != plan:
         raise RuntimeError("Resume configuration differs from pinned experiment")
@@ -213,6 +223,21 @@ def main(argv=None):
         return log, row
 
     try:
+        if args.collect_per_style:
+            # Complete both seats for each style before repeating the cycle.
+            # Freeze the learner: no optimizer updates or evaluation in this mode.
+            for pair in range(args.collect_per_style // 2):
+                for si, style in enumerate(STYLES):
+                    for side in range(2):
+                        fixture = (pair * len(STYLES) + si) * 2 + side
+                        collect(original, style, 'training-demonstrations', fixture)
+            atomic_json(root/'dataset.json', {
+                'purpose': 'training-demonstrations', 'policy_sha': initial.policy_sha,
+                'matches': history, 'fit_performed': False,
+                'demonstration_validation': 'required by load_demonstration before fitting',
+                'public_deployment': False})
+            status('complete', purpose='training-demonstrations', fit_performed=False)
+            return 0
         for batch in range(args.batches):
             collections=[]
             for game in range(args.batch_matches):
