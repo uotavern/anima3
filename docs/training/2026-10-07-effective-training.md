@@ -906,3 +906,21 @@ PID304063 active, RuntimeMax2h, loopback TCP2593, -nn -tt -l, no payload dump.
 Output transport-metadata-20261008.log under the same remote source directory.
 Stop metadata capture after the diagnostic collection ends. No optimizer or
 promotion runs in this diagnostic. Need resume/replace balanced fit afterwards.
+
+## Transport diagnostic reproduced silence before second challenge
+
+Diagnostic run304123 terminal failed after one complete match
+34f743cb25974b839f1ce9b8f910bcd4. Fixture002 contains only status/progress/run.lock,
+no challenge-issued receipt or match folder; error Could not verify base stats
+from Arena stat dialog. This is a recover_collection-supported pre-challenge
+failure, unlike original fixture019. No new duel for fixture002.
+
+Metadata capture on loopback confirms connection client port50810 last server
+payload at UTC epoch1791433446.046840 (length10, server relative seq74903:74913),
+followed by ~43seconds of client requests and server TCP ACKs without application
+payload until client closes at1791433489.078903. Receive window remains open.
+This evidence rules out mere journal parsing as the reason for this event;
+server packet processing/send path needs investigation. It does NOT yet establish
+which server component is responsible, or prove both failures share a root cause.
+Stopped metadata capture service after diagnostic failed; preserve remote log.
+Original18 matches and new diagnostic1 are valid training data; no fitting yet.
