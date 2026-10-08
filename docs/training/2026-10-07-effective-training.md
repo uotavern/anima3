@@ -821,3 +821,22 @@ priorstatuscomplete40. Anyfailed/incompleteprior stops withoutnewgames. Starts
 optimized25378fabridge, seed20261010. Sourcev9 applies to bothteacher/learner and
 is explicitnewdataset; not a mutation of ongoingv8screen. CPU200%,RAM3G,Nice5,
 unitRuntimeMax8h. It collects only; fitting/independentv9evaluation stillpending.
+
+## Prespecified whole-match split and fitting queued
+
+Source2634bd0 scripts/fit_collected_demonstrations.py verifies completed dedicated
+collection, sameparentSHA, exactstatus/dataset rows, uniquematchIDs, balanced even
+styles and alternating seatpairs. Holds out lastpair/style: forplanned30games,
+fixtures001..020train,021..030validation. Neither scores nor outcomes affectsplit.
+Existingclonefitter verifies allreplay/supply receipts and disjointmatchIDs before
+anygradient. EightfixedBCepochs,actionbalancing,seed20261010; no tuning onholdout.
+6split tests pass (exact20/10, nooverlap, rejects incomplete/evaluation/duplicate/
+wrongseat/mixedpolicy). Ruffclean afterliteralcleanup.
+
+Isolatedremote /opt/uoarena/anima3-fit-balanced-20261008 snapshot2634bd0.
+Unit arena-training-fit-balanced-20261008.service MainPID282728 verifiedactive;
+queued-fit.py waits actualcollectionunitterminal(max8h),requirescomplete30,
+then executesfit into freshcandidate-bc. Outputabsent verified. CPU150%,RAM3G,
+Nice10,RuntimeMax10h. Noaccounts/duels run byfitunit and no automaticpublicdeploy.
+Firstunit40screen ->second30collection ->third20train/10holdout fit now chained;
+actualnewmodel and independentliveevaluation remainpending.
