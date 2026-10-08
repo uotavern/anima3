@@ -1,0 +1,92 @@
+{
+  "eval_seed": 3657000000,
+  "models": {
+    "initial": {
+      "games": 200,
+      "score": 0.6375,
+      "wins": 106,
+      "draws": 43,
+      "losses": 51
+    },
+    "candidate": {
+      "games": 200,
+      "score": 0.6375,
+      "wins": 88,
+      "draws": 79,
+      "losses": 33
+    }
+  },
+  "registry": {
+    "bc_gate": {
+      "delta_ci95": [
+        0.0,
+        0.0
+      ],
+      "domain": "approximate-pre-aos-simulator",
+      "enough_evidence": true,
+      "paired_delta": 0.0,
+      "passed": false,
+      "public_deployment": false,
+      "reason": "retain incumbent: insufficient or regressed evidence",
+      "style_deltas": {
+        "balanced": 0.0,
+        "burst": 0.0,
+        "defensive": 0.0,
+        "potions": 0.0,
+        "pressure": 0.0
+      },
+      "valid_episodes": true,
+      "valid_templates": true
+    },
+    "demonstration_steps": 32768,
+    "ppo_gate": {
+      "delta_ci95": [
+        -0.075,
+        0.0725
+      ],
+      "domain": "approximate-pre-aos-simulator",
+      "enough_evidence": true,
+      "paired_delta": 0.0,
+      "passed": false,
+      "public_deployment": false,
+      "reason": "retain incumbent: insufficient or regressed evidence",
+      "style_deltas": {
+        "balanced": 0.0125,
+        "burst": -0.0125,
+        "defensive": 0.1625,
+        "potions": -0.1,
+        "pressure": -0.0625
+      },
+      "valid_episodes": true,
+      "valid_templates": true
+    },
+    "public_deployment": false,
+    "real_server_strength_established": false,
+    "selected_checkpoint": "/Users/dkkang/dev/uo/arena-worktrees/anima3-training-league/.logs/curriculum-incumbent-continue-20261008-retry/initial",
+    "selected_sha": "0c6ca921e8bfd19fbaab3fa353d11819b2ba523cd1a810c2c4782447b7a5f56d",
+    "selection_gate": {
+      "delta_ci95": [
+        -0.075,
+        0.0725
+      ],
+      "domain": "approximate-pre-aos-simulator",
+      "enough_evidence": true,
+      "paired_delta": 0.0,
+      "passed": false,
+      "public_deployment": false,
+      "reason": "retain incumbent: insufficient or regressed evidence",
+      "style_deltas": {
+        "balanced": 0.0125,
+        "burst": -0.0125,
+        "defensive": 0.1625,
+        "potions": -0.1,
+        "pressure": -0.0625
+      },
+      "valid_episodes": true,
+      "valid_templates": true
+    },
+    "selection_scope": "experimental-training-only",
+    "status": "complete",
+    "training_steps": 65536
+  }
+}

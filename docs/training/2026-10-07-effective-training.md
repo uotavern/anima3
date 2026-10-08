@@ -755,3 +755,14 @@ first Explosioncast7263ms followed by enemyClumsytarget7350ms; secondcast30273ms
 followedby35damage30434ms. Thus actual adversarial cast interference corroborates
 executor cancellation. Simulator already models debuff/damage interrupts; no
 speculative fix applied. Evidence2026-10-08-live-burst-interruption.json.
+
+## Direct incumbent continuation completed: no aggregate gain
+
+Detached12317 completed, complete registry verified. 3657000000/200games/model:
+initial and candidate both.6375. Paired0CI[-.075,.0725], no promotion. Style deltas
+balanced+.0125,pressure-.0625,burst-.0125,defensive+.1625,potions-.100.
+Direct continuation reduced prior large pressure regression but transferred
+weakness to potion opponents; no claim of learned overall improvement. Original
+SHA0c6ca921... retained. FullJSON2026-10-08-incumbent-continuation.json.
+Next evidence priority is finishing frozen actual ServUO BC comparison; additional
+simulator tuning alone has not demonstrated live strength.
