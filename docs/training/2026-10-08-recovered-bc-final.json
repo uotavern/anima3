@@ -1,0 +1,76 @@
+{
+  "registry": {
+    "candidate": "/opt/uoarena/anima3-fit-balanced-20261008/candidate-recovered-bc",
+    "gate": {
+      "delta_ci95": [
+        -0.015,
+        0.225
+      ],
+      "domain": "servuo",
+      "enough_evidence": true,
+      "paired_delta": 0.105,
+      "passed": false,
+      "public_deployment": false,
+      "reason": "retain incumbent: insufficient or regressed evidence",
+      "style_deltas": {
+        "balanced": 0.1,
+        "burst": -0.075,
+        "defensive": 0.125,
+        "potions": 0.175,
+        "pressure": 0.2
+      },
+      "valid_episodes": true,
+      "valid_templates": true
+    },
+    "incumbent": "/opt/uoarena/anima3-training-skill-clock-20261007/warmstart",
+    "pairing": "style and challenger order; server RNG uncontrolled",
+    "public_deployment": false,
+    "real_server_strength_established": false,
+    "rollback_checkpoint": "/opt/uoarena/anima3-training-skill-clock-20261007/warmstart",
+    "selected_checkpoint": "/opt/uoarena/anima3-training-skill-clock-20261007/warmstart",
+    "selected_sha": "0c6ca921e8bfd19fbaab3fa353d11819b2ba523cd1a810c2c4782447b7a5f56d"
+  },
+  "models": {
+    "incumbent": {
+      "games": 100,
+      "wins": 52,
+      "losses": 40,
+      "draws": 8,
+      "score": 0.56,
+      "policy_shas": [
+        "0c6ca921e8bfd19fbaab3fa353d11819b2ba523cd1a810c2c4782447b7a5f56d"
+      ],
+      "style_scores": {
+        "balanced": 0.325,
+        "burst": 0.7,
+        "defensive": 0.75,
+        "potions": 0.475,
+        "pressure": 0.55
+      }
+    },
+    "candidate": {
+      "games": 100,
+      "wins": 63,
+      "losses": 30,
+      "draws": 7,
+      "score": 0.665,
+      "policy_shas": [
+        "5e03b62457dec56b80ec8e87c700cae29433a498103ad3f273b7d3fe45cfe0cc"
+      ],
+      "style_scores": {
+        "balanced": 0.425,
+        "burst": 0.625,
+        "defensive": 0.875,
+        "potions": 0.65,
+        "pressure": 0.75
+      }
+    }
+  },
+  "artifact_sha256": {
+    "registry.json": "fda86e819087fb11cf06f681b084288529ee95797406b07326da9db050c237a3",
+    "plan.json": "2751259a67beeace91908639ff62208c1cd3eb8e88924ce996c6eb7506e6cfb6",
+    "evaluation-candidate.json": "7675c8d9367b9d8005cdd8897714ef2f8ff9b52660eadfb6d5bcafe443bd180d",
+    "evaluation-incumbent.json": "fb3402220b22d621221bd300cf02f7bc3a0f2ca3011e74a635674a4480ea0f9e"
+  },
+  "unique_matches": 200
+}

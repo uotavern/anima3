@@ -1001,3 +1001,18 @@ Output /opt/uoarena/anima3-demonstrations-7b97aba/.logs/recovered-bc-evaluation-
 Originalparent0c6ca921... vs recoveredcandidate5e03b624...; no inrunupdates.
 CPU200%,RAM3G,Nice5,RuntimeMax24h. Publicdeploymentfalse, strictpromotiongate.
 Actual live improvement remainsunproven pending thisexperiment.
+
+## Recovered BC: completed 200-game evaluation
+
+Evaluation unit terminated successfully, status complete200, no errors. Audited
+200 unique matches, all eligible and template verified,20/style/model. Parent
+52W40L8D (score .560); recovered BC63W30L7D (.665). Paired delta+.105,
+95% bootstrap CI[-.015,.225]. Style deltas: balanced+.100, burst-.075,
+defensive+.125, potions+.175, pressure+.200. Gate FAILED because positive
+lower confidence bound is not established. Keep incumbent; no public deployment.
+This is promising evidence, not established live strength improvement. Models
+remained fixed throughout. Full evaluation and plan preserved under
+.logs/recovered-bc-final-audit; hashed summary in2026-10-08-recovered-bc-final.json.
+Next action: preregister an independent larger replication with these same
+fixed models and executor; do not train on these evaluation episodes or merge
+interim results to choose a stopping point. No further run launched yet.
