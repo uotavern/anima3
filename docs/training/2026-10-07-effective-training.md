@@ -867,3 +867,26 @@ screen terminated successfully. Verified 1/30 complete and fixture-002 collectin
 This new collection uses the predeclared v9 executor and frozen incumbent, and
 is separate from the 40 held-out evaluation matches. The subsequent 20-game fit
 and 10-game validation remain pending until all 30 collection games complete.
+
+## Balanced collection stopped on fixture 019 transport silence
+
+Collection unit 281665 and dependent fit unit 282728 are now terminal failed,
+MainPID 0. Collection status stopped, completed 18, error `lost authoritative
+live duel state`; no fit output created. All 18 teacher records eligible,
+9028 steps / 5159 free choices. Do not restart the original queue wrappers.
+
+Fixture 019 has a durable challenge-issued receipt but no assigned actor log.
+Both unassigned actors requested state 24 times and received no trusted state.
+After teleport to Yew Abbey, learner bytes_in froze at 82328 and teacher at
+81935 while bytes_out increased; journal cursors stayed 10/11. No pending frame
+or opcode. Thus transport silence, not merely rejected DuelState JSON, is the
+current evidence. Root cause remains unproven.
+
+Server replay 0d0f508eadbc4400b2dea568c4958c3e, SHA
+08f4bd13acaf50d1d2910c04c88f0c15dda659500b9df7a1ed26a5e1d4e23f68,
+started 2026-10-08T04:14:22Z, ended 04:15:15Z, 53020 ms, arena 6.
+Shard journal confirms normal countdown, FIGHT, both disconnected at 04:14:42/43,
+then disconnect forfeit with both HP 100% and attacks 0/0. This is an actual
+19th match, not a safe pre-challenge retry. Exclude it from gradients and
+strength evaluation; preserve its actual match count when recovering.
+Current dataset is incomplete and strict split/fit must remain stopped.
