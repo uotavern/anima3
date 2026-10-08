@@ -520,3 +520,17 @@ Transient waiting unit was removed by systemd on stop, so systemctl restart
 returned unit-not-found. Recreated same unit with original resource/environment
 properties via systemd-run and verified its new live MainPID; no match started
 or duplicated during replacement.
+
+## Paired-observation PPO drift diagnosis
+
+On valid evaluation trajectories009,011..016, replayed identical full causal
+feature/mask prefixes through both frozen models with initial zero hidden.
+Recorded mean categorical probabilities only at free choices, no rejected010.
+Artifact2026-10-08-ppo-policy-drift.json. This is same-input behavior diagnosis,
+not counterfactual win estimation. Largest per-fixture mean changes ~0.0133;
+pressure examples modestly reduce healing/potion probabilities and increase hold.
+Therefore no evidence for a dramatic action-collapse; small probability shifts,
+stochastic fight dynamics and small sample size remain possible explanations.
+Do not hard-code actions from these evaluation records or count them as new
+training. Use separate new training/confirmation data to investigate survival.
+Current269830 active completed21 collecting022; BCwait272007 active.
