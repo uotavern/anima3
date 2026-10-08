@@ -924,3 +924,37 @@ server packet processing/send path needs investigation. It does NOT yet establis
 which server component is responsible, or prove both failures share a root cause.
 Stopped metadata capture service after diagnostic failed; preserve remote log.
 Original18 matches and new diagnostic1 are valid training data; no fitting yet.
+
+## Send completion handoff race repaired and deployed
+
+ServUO worktree commits300366221 (source + deterministic regression), a15af9a0d
+(pinned Cecil deployment and real-socket check). OnSend previously dequeued its
+last gram before acquiring _SendLock to clear _Sending. A concurrent Send could
+enqueue a full gram while _Sending remained true; then OnSend clears it, leaving
+a nonempty pending queue with IsFlushReady false. Actual OnSend and SendQueue
+source harness reproduces stranded queue on old code and sends next gram with
+outer SendLock. Source uses same lock order as Send/Flush.
+
+Deployment wraps original callback in Monitor Enter/Exit with finally; original
+body is cloned into OnSendSerializedCore, and all asynchronous continuations
+still target locked OnSend. Verified7282 existing method fingerprints: only
+OnSend changed, one exact-body helper added. Pinned original exe SHA49fd952b952e11939c194c3cc8fdec03309f14a19e0d7a8a0eece750dbc10898,
+new SHA3a44e60b9edda4c9fb8bba313cb9950c394d2a9d24c6ab315b008549127b3165.
+Patched actual assembly passed reflection invocation with contended lock and
+real local TCP delivery of512bytes. Mono --verify-all crashes during Assembly.LoadFrom
+for BOTH original and patched assemblies; ordinary Mono runtime test passes.
+
+Before restart /duel/ reported online0/live[]. Backup exe, saves, patch and harness
+at /opt/uoarena/send-handoff-release-20261008. Shard restarted PID305915 active;
+HTTPhealth returnedonline0/live[], deployedhashchecked. Scripts.dll unchanged.
+A source-level race is proven; attribution of earlier live stalls remains to be
+verified through subsequent runs, not asserted from the unit test alone.
+
+Resumed diagnostic (same ten-game plan) using --resume. Unit
+arena-training-handoff-resume-20261008.service PID306120 active; completed1,
+fixture002 collecting. Preparation failure archived fixture-002-preparation-attempt-1.
+No repetition of completed firstgame, original19thfailure not retried.
+Metadata-only capture arena-training-handoff-metadata-20261008.service PID306056
+active, twohourlimit, remote handoff-metadata-20261008.log. Stop afterdiagnostic.
+Original30collection andfit remainfailed; rebuild training/validation pipeline
+after transport validation. No new learned model or live strength improvement yet.
