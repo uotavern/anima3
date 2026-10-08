@@ -12,19 +12,19 @@ def dataset(root):
         for style in STYLES:
             for side in range(2):
                 i = len(rows) + 1
-                row = dict(match_id=f'{i:032x}', policy_sha='parent', style=style,
-                           side=side, stage='training-demonstrations')
+                row = {'match_id': f'{i:032x}', 'policy_sha': 'parent', 'style': style,
+                       'side': side, 'stage': 'training-demonstrations'}
                 (root / f'fixture-{i:03d}' / row['match_id']).mkdir(parents=True)
                 rows.append(row)
     return rows
 
 
 def write(root, rows, **overrides):
-    (root/'dataset.json').write_text(json.dumps(dict(
-        purpose='training-demonstrations', policy_sha='parent', matches=rows)))
-    (root/'status.json').write_text(json.dumps(dict(
-        dict(status='complete', matches=rows, completed=len(rows), budget=len(rows)),
-        **overrides)))
+    (root/'dataset.json').write_text(json.dumps({
+        'purpose': 'training-demonstrations', 'policy_sha': 'parent', 'matches': rows}))
+    (root/'status.json').write_text(json.dumps({
+        'status': 'complete', 'matches': rows, 'completed': len(rows), 'budget': len(rows),
+        **overrides}))
 
 
 def test_last_pair_per_style_is_disjoint_validation(tmp_path):
