@@ -98,6 +98,8 @@ def promotion_gate(before, after, *, min_games_per_style=20, max_regression=0.10
 def main(argv=None):
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--out", type=Path, required=True)
+    p.add_argument("--start-checkpoint", type=Path,
+                   help="Continue a verified policy; skip initial BC refit, retain optional rehearsal")
     p.add_argument("--seed", type=int, default=20261006)
     p.add_argument("--bc-steps-per-drill", type=int, default=4096)
     p.add_argument("--bc-epochs", type=int, default=32)
@@ -122,7 +124,9 @@ def main(argv=None):
     root.mkdir(parents=True, exist_ok=False)
     torch.set_num_threads(args.threads)
     torch.manual_seed(args.seed)
-    model = RecurrentPolicy(PolicyConfig(len(FEATURE_NAMES), len(ACTION_NAMES), 64, 64))
+    loaded = load_checkpoint(args.start_checkpoint) if args.start_checkpoint else None
+    model = loaded.model if loaded else RecurrentPolicy(
+        PolicyConfig(len(FEATURE_NAMES), len(ACTION_NAMES), 64, 64))
     optimizer = torch.optim.Adam(model.parameters(), lr=3e-4, eps=1e-5)
     config = TrainConfig(learning_rate=1e-4, epochs=4,
                          discount_time_unit=args.discount_time_unit)
@@ -133,6 +137,9 @@ def main(argv=None):
                 "seed": args.seed, "bc_rehearsal_epochs": args.bc_rehearsal_epochs,
                 "discount_time_unit": config.discount_time_unit, "shaping_gamma": shaping_gamma,
                 "real_server_strength_established": False}
+    if loaded:
+        metadata["parent_policy_sha"] = loaded.policy_sha
+        metadata["parent_checkpoint"] = str(args.start_checkpoint.resolve())
     save_checkpoint(root / "initial", model, training=metadata)
     log = []
 
@@ -157,7 +164,9 @@ def main(argv=None):
         "domain": metadata["domain"], "ppo_eligible": False,
         "episodes": [{"features": e.features, "masks": e.masks, "actions": e.actions}
                      for e in demos]})
-    metrics = behavioral_clone(model, optimizer, demos, config, epochs=args.bc_epochs, seed=args.seed)
+    metrics = ({"skipped": True, "reason": "preserve supplied policy before PPO"}
+               if loaded else behavioral_clone(
+                   model, optimizer, demos, config, epochs=args.bc_epochs, seed=args.seed))
     save_checkpoint(root / "warmstart", model, training={**metadata, "bc": metrics})
     record({"stage": "imitation", **metrics})
     incumbent = copy.deepcopy(model).eval().requires_grad_(False)

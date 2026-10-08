@@ -316,3 +316,45 @@ def test_curriculum_uses_matching_elapsed_discount(tmp_path, monkeypatch, unit):
     meta = json.loads((tmp_path/'run/warmstart/manifest.json').read_text())['training']
     assert meta['discount_time_unit'] == unit
     assert meta['shaping_gamma'] == pytest.approx(expected)
+
+
+def test_curriculum_continues_exact_parent_and_rehearses_only_after_ppo(tmp_path, monkeypatch):
+    import torch
+
+    from anima3.neural import league
+    from anima3.neural.checkpoints import load_checkpoint, save_checkpoint
+    from anima3.neural.model import PolicyConfig, RecurrentPolicy
+    from anima3.neural.schema import ACTION_NAMES, FEATURE_NAMES
+
+    torch.manual_seed(83)
+    parent = tmp_path / 'parent'
+    model = RecurrentPolicy(PolicyConfig(len(FEATURE_NAMES), len(ACTION_NAMES), 64, 64))
+    save_checkpoint(parent, model, training={'fixture': True})
+    original = load_checkpoint(parent)
+    events = []
+    update, clone = league.ppo_update, league.behavioral_clone
+
+    def checked_update(actual, *args, **kwargs):
+        assert all(torch.equal(v, original.model.state_dict()[k])
+                   for k, v in actual.state_dict().items())
+        events.append('ppo')
+        return update(actual, *args, **kwargs)
+
+    def checked_clone(*args, **kwargs):
+        assert events == ['ppo']
+        events.append('rehearsal')
+        return clone(*args, **kwargs)
+
+    monkeypatch.setattr(league, 'ppo_update', checked_update)
+    monkeypatch.setattr(league, 'behavioral_clone', checked_clone)
+    out = tmp_path / 'run'
+    league.main(['--out', str(out), '--start-checkpoint', str(parent),
+                 '--bc-steps-per-drill', '4', '--bc-epochs', '1', '--updates', '1',
+                 '--rollout-steps', '4', '--max-steps', '4', '--eval-games-per-style', '2',
+                 '--bc-rehearsal-epochs', '1', '--threads', '1'])
+    assert events == ['ppo', 'rehearsal']
+    assert load_checkpoint(parent).policy_sha == original.policy_sha
+    for name in ('initial', 'warmstart'):
+        saved = load_checkpoint(out / name)
+        assert saved.policy_sha == original.policy_sha
+        assert saved.manifest['training']['parent_policy_sha'] == original.policy_sha
