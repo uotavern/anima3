@@ -705,3 +705,14 @@ Session52401 evaluates originalparent and three frozen prior PPO checkpoints
 This tests whether rehearsal retains pressure defense with longer-horizon PPO;
 it is an experiment, not an assumed fix. Current live v8 frozen BCscreen unchanged:
 unit275277 active,7complete/40,8collecting; allfirst7eligible.
+
+## Live low-health choice audit
+
+Read-only fixture007 (BC loss,145a73b76b7341b5b09af32d03bb4c47): learner117damage,
+142healing vsopponent234damage/86healing;108eligibletransitions. At2HP index62
+and4HP indices103/104 legal actions onlyhold/movement; index105addsrefresh.
+Healing unavailable due cast recovery +heal potion cooldown. Do not misdiagnose
+refresh as ignoring available heal. Retreat legal but survival counterfactual
+unproven. JSONlive-low-health-audit preserves features/masks. Noheldout training.
+Local15151 live,BC completed4480optimizer updates;52401 live,originalparent.760
+andper-stepPPO.570 scored on new3656000000 fixtures. Remaining controls pending.

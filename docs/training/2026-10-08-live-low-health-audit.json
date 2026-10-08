@@ -1,0 +1,142 @@
+{
+  "match_id": "145a73b76b7341b5b09af32d03bb4c47",
+  "eligible": true,
+  "policy_sha": "5e56ab6879b253dc7b6f4b6482e06b43fb4dc3a8b5788e756a8e2424f1d7f8d0",
+  "analysis": {
+    "57": {
+      "casts": 11,
+      "damage": 117,
+      "fizzles": 0,
+      "healing": 142,
+      "potion_throws": 3,
+      "self_damage": 0
+    },
+    "58": {
+      "casts": 13,
+      "damage": 234,
+      "fizzles": 0,
+      "healing": 86,
+      "potion_throws": 3,
+      "self_damage": 0
+    }
+  },
+  "low_hp_choices": [
+    {
+      "index": 62,
+      "transition_end_elapsed": 18.088933376944624,
+      "action": "hold",
+      "legal_actions": [
+        "hold",
+        "approach",
+        "retreat",
+        "strafe_left",
+        "strafe_right"
+      ],
+      "features": {
+        "self_hp": 0.02247191011235955,
+        "self_stamina": 0.5,
+        "distance": 0.4444444444444444,
+        "recovery_remaining": 0.33106146508362144,
+        "heal_potion_cooldown": 0.04222524010110647,
+        "resource_cooldown": 0.9198553304187953,
+        "heal_potions": 0.2
+      }
+    },
+    {
+      "index": 63,
+      "transition_end_elapsed": 18.348863409948535,
+      "action": "greater_heal",
+      "legal_actions": [
+        "hold",
+        "approach",
+        "retreat",
+        "strafe_left",
+        "strafe_right",
+        "weaken",
+        "clumsy",
+        "magic_arrow",
+        "harm",
+        "explosion",
+        "energy_bolt",
+        "flamestrike",
+        "greater_heal",
+        "heal",
+        "poison"
+      ],
+      "features": {
+        "self_hp": 0.02247191011235955,
+        "self_stamina": 0.5,
+        "distance": 0.4444444444444444,
+        "recovery_remaining": 0.0,
+        "heal_potion_cooldown": 0.008920456795021892,
+        "resource_cooldown": 0.8532457638066262,
+        "heal_potions": 0.2
+      }
+    },
+    {
+      "index": 103,
+      "transition_end_elapsed": 30.040317456936464,
+      "action": "hold",
+      "legal_actions": [
+        "hold",
+        "approach",
+        "retreat",
+        "strafe_left",
+        "strafe_right"
+      ],
+      "features": {
+        "self_hp": 0.0449438202247191,
+        "self_stamina": 0.20588235294117646,
+        "distance": 0.4444444444444444,
+        "recovery_remaining": 0.6991824631113559,
+        "heal_potion_cooldown": 0.08736605680314824,
+        "resource_cooldown": 0.11655725240707397,
+        "heal_potions": 0.15
+      }
+    },
+    {
+      "index": 104,
+      "transition_end_elapsed": 30.44689646200277,
+      "action": "hold",
+      "legal_actions": [
+        "hold",
+        "approach",
+        "retreat",
+        "strafe_left",
+        "strafe_right"
+      ],
+      "features": {
+        "self_hp": 0.0449438202247191,
+        "self_stamina": 0.20588235294117646,
+        "distance": 0.4444444444444444,
+        "recovery_remaining": 0.3834470030851662,
+        "heal_potion_cooldown": 0.05579251080052927,
+        "resource_cooldown": 0.053410160401836035,
+        "heal_potions": 0.15
+      }
+    },
+    {
+      "index": 105,
+      "transition_end_elapsed": 30.692362532019615,
+      "action": "refresh_potion",
+      "legal_actions": [
+        "hold",
+        "approach",
+        "retreat",
+        "strafe_left",
+        "strafe_right",
+        "refresh_potion"
+      ],
+      "features": {
+        "self_hp": 0.0449438202247191,
+        "self_stamina": 0.20588235294117646,
+        "distance": 0.4444444444444444,
+        "recovery_remaining": 0.002803945099003613,
+        "heal_potion_cooldown": 0.017728205001913012,
+        "resource_cooldown": 0.0,
+        "heal_potions": 0.15
+      }
+    }
+  ],
+  "conclusion": "At indices62/103/104/105 healing unavailable by recorded legal mask; hold/refresh choices are not evidence of ignoring an available heal. Retreat legal, no causal claim that retreat would save the duel. Frozen evaluation untouched; no training on these heldout transitions."
+}
