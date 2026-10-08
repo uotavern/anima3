@@ -849,3 +849,21 @@ all20teacher demonstrations eligible; teachers9867steps total. Retainthese as
 heldout evaluation, not gradients forqueuedfit. SnapshotJSONlive-twenty-interim
 preservesexactmatchIDs/policyhashes/eligibility andteacherstepcounts. Full40gate
 stillpending; noselectedmodelorpublicdeployment change.
+
+## Completed 40-game frozen comparison and started balanced collection
+
+The v8 screen ended with status complete, 40/40 matches, and its systemd unit
+inactive with MainPID 0. Incumbent: 14 wins, 5 losses, 1 draw; candidate: 13 wins,
+7 losses. All learner episodes and templates pass the evaluation gate checks.
+Paired score delta is -0.075, bootstrap 95% interval [-0.30, 0.20]. Style deltas:
+balanced -0.25, pressure +0.25, burst -0.25, defensive -0.125, potions 0.0.
+The gate rejects promotion and retains original SHA 0c6ca921e8bfd19fbaab3fa353d11819b2ba523cd1a810c2c4782447b7a5f56d.
+This is no evidence of improved live strength; public deployment remains false.
+Evidence: 2026-10-08-v8-bc-final.json includes all match IDs and source digests.
+Raw final status, registry, evaluations and plan are copied under .logs/v8-bc-final-audit.
+
+The queued collection unit (MainPID 281665) automatically advanced after the
+screen terminated successfully. Verified 1/30 complete and fixture-002 collecting.
+This new collection uses the predeclared v9 executor and frozen incumbent, and
+is separate from the 40 held-out evaluation matches. The subsequent 20-game fit
+and 10-game validation remain pending until all 30 collection games complete.
