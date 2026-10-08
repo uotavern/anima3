@@ -781,3 +781,12 @@ Fixture008/0101d318d6274af2be625d9f7a85a8ff:78unseen transitions,11approach choi
 This is real evidence v8 can move and reacquire after losing visibility, unlike
 old v7 disabled movement. It does not isolate causality or prove win-rate gain;
 no replay/heldout data used for gradients and frozen comparison unchanged.
+
+## Twelve matched live games complete; comparison still underpowered
+
+Verifiedunit275277 active; fixture012 ended aftershowdown,013started normally.
+First12samepairedfixtures: incumbent3W3L,candidate4W2L; all12eligible/templatesvalid.
+Interimpaired+.1667CI[-.5,1.0], onlybalanced/pressure represented; gatefails
+insufficientevidence. Balancedcandidate delta-.25,pressure+1.0 basedjust2games/arm,
+not reliable style superiority. Artifact2026-10-08-live-twelve-interim.json
+preservesmatchIDs/hashes/results. No change to models, seeds or40gamebudget.
