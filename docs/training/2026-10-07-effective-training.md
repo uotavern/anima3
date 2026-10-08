@@ -487,3 +487,14 @@ positions/doorgraphic/container changes. All60 complete terrain grids match old
 adapter. Warm-map release benchmark total old54892us/new2536us (~21.6x terrain
 survey speedup). This microbenchmark does NOT establish RPC or live-loop gain;
 next deploy/benchmark separately, preserving current comparison conditions.
+
+## Linux bridge artifact staged and building
+
+Client25378fa archived to /opt/uoarena/anima-client-survey-25378fa. Separate
+systemd build unit arena-build-survey-25378fa (MainPID270439) running locked
+release cargo build, one job,CPU50%,Memory1G,Nice15,30min cap. This adds bounded
+server load while current fixed trial is active; account for that limitation
+when interpreting remaining timings. No existing binary overwritten and queued
+BC comparison still references4100ecb. Need completed artifact hash, native
+asset equivalence test, and actual ordinary-client RPC measurement before use.
+Current trial269830 active completed20 collecting021; queuedBC269927 activewait.
