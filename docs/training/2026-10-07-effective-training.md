@@ -614,3 +614,18 @@ seed3653000000. Four drill collections completed; fitting still running at last
 check. Independent of unchanged live v8BCscreen(unit275277 completed3 collecting4).
 Do not claim improvement until frozen comparisons; old/new evaluations must use
 same updated simulator/seeds before comparing effects of threat-memory change.
+
+## Losing teacher retained after terminal-context fix
+
+V8BCscreen fixture003 candidate57won. Losing teacher58 demonstration eligible,
+no invalid reasons,783steps pass load_demonstration supply+replay verification.
+This exercises the actual bug that excluded losing teachers in prior006/007,
+so terminal collector repair has live evidence now. First three screening
+outcomes: incumbentL,BC L,BC W; far too few for strength conclusion.
+
+Local corrected-simulator training session44466 still live in BC stage. Original
+parent independently evaluated under SAME corrected simulator and reserved
+3653000000 seed,100games score0.655; artifact evaluation-original-parent.json
+under .logs/curriculum-threat-memory-20261008. Prior0.735 used a different seed;
+do not interpret that difference as regression. Compare with new frozen models
+only once their fitting completes. Baseline evalsession40750 finished normally.
