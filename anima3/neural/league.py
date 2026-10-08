@@ -103,6 +103,8 @@ def main(argv=None):
     p.add_argument("--bc-epochs", type=int, default=32)
     p.add_argument("--bc-rehearsal-epochs", type=int, default=0,
                    help="Bounded teacher rehearsal after each PPO update (0 disables)")
+    p.add_argument("--discount-time-unit", type=float, choices=(0.0, 1.0), default=1.0,
+                   help="Seconds per discount unit; 0 reproduces legacy per-step discount")
     p.add_argument("--updates", type=int, default=8)
     p.add_argument("--rollout-steps", type=int, default=4096)
     p.add_argument("--eval-games-per-style", type=int, default=20)
@@ -122,9 +124,14 @@ def main(argv=None):
     torch.manual_seed(args.seed)
     model = RecurrentPolicy(PolicyConfig(len(FEATURE_NAMES), len(ACTION_NAMES), 64, 64))
     optimizer = torch.optim.Adam(model.parameters(), lr=3e-4, eps=1e-5)
-    config = TrainConfig(learning_rate=1e-4, epochs=4)
+    config = TrainConfig(learning_rate=1e-4, epochs=4,
+                         discount_time_unit=args.discount_time_unit)
+    simulator_dt = DuelSim(seed=args.seed).dt
+    shaping_gamma = (config.gamma ** (simulator_dt / config.discount_time_unit)
+                     if config.discount_time_unit else config.gamma)
     metadata = {"domain": "approximate-pre-aos-simulator", "source": "curriculum-league-v2",
                 "seed": args.seed, "bc_rehearsal_epochs": args.bc_rehearsal_epochs,
+                "discount_time_unit": config.discount_time_unit, "shaping_gamma": shaping_gamma,
                 "real_server_strength_established": False}
     save_checkpoint(root / "initial", model, training=metadata)
     log = []
@@ -142,7 +149,7 @@ def main(argv=None):
             teacher_actions=True, drill=drill,
             teacher_style="pressure" if drill == "melee" else "balanced",
             opponent_styles=STYLES, max_episode_steps=min(args.max_steps, 120 if drill != "full" else 400),
-            shaping_gamma=config.gamma)
+            shaping_gamma=shaping_gamma)
         demos.extend(trajectories)
         record({"stage": "demonstrations", "drill": drill, **summary})
     # Portable labels preserve exact public features/masks/actions for audit.
@@ -163,7 +170,7 @@ def main(argv=None):
         episodes, rollout = collect_simulator(
             model, steps=args.rollout_steps, seed=args.seed + 1000 + update,
             opponents=league, drill=drill, opponent_styles=STYLES,
-            max_episode_steps=args.max_steps, shaping_gamma=config.gamma)
+            max_episode_steps=args.max_steps, shaping_gamma=shaping_gamma)
         metrics = ppo_update(model, optimizer, episodes, config, seed=args.seed + update)
         if args.bc_rehearsal_epochs:
             # Original training demonstrations only; evaluation never feeds gradients.

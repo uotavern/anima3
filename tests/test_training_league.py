@@ -286,3 +286,33 @@ def test_handshake_retry_never_repeats_issued_challenge(tmp_path, monkeypatch):
         runner.collect_with_handshake_retry(opts, stop)
     assert (opts.log_dir / 'challenge-issued.json').exists()
     assert not list(tmp_path.glob('*retry*'))
+
+
+@pytest.mark.parametrize('unit', [0.0, 1.0])
+def test_curriculum_uses_matching_elapsed_discount(tmp_path, monkeypatch, unit):
+    import json
+
+    from anima3.neural import league
+    original_collect, original_update = league.collect_simulator, league.ppo_update
+    discounts, configs = [], []
+
+    def collect(*args, **kwargs):
+        discounts.append(kwargs['shaping_gamma'])
+        return original_collect(*args, **kwargs)
+
+    def update(model, optimizer, episodes, config, **kwargs):
+        configs.append(config)
+        return original_update(model, optimizer, episodes, config, **kwargs)
+
+    monkeypatch.setattr(league, 'collect_simulator', collect)
+    monkeypatch.setattr(league, 'ppo_update', update)
+    league.main(['--out', str(tmp_path/'run'), '--bc-steps-per-drill', '4',
+                 '--bc-epochs', '1', '--updates', '1', '--rollout-steps', '4',
+                 '--max-steps', '4', '--eval-games-per-style', '2',
+                 '--discount-time-unit', str(unit), '--threads', '1'])
+    expected = .995 ** .25 if unit else .995
+    assert len(discounts) == 5 and all(x == pytest.approx(expected) for x in discounts)
+    assert configs[0].discount_time_unit == unit
+    meta = json.loads((tmp_path/'run/warmstart/manifest.json').read_text())['training']
+    assert meta['discount_time_unit'] == unit
+    assert meta['shaping_gamma'] == pytest.approx(expected)
