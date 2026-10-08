@@ -890,3 +890,19 @@ then disconnect forfeit with both HP 100% and attacks 0/0. This is an actual
 19th match, not a safe pre-challenge retry. Exclude it from gradients and
 strength evaluation; preserve its actual match count when recovering.
 Current dataset is incomplete and strict split/fit must remain stopped.
+
+## Transport reproduction collection
+
+Root cause remains unproven after reviewing Rust pump_once and server Send/Flush.
+To distinguish server silence from a receiving client failure, started a separate
+10-game collection (five styles x two seats), same 7b97aba source, frozen original
+checkpoint, bridge 25378fa, seed 20261011. This is fresh diagnostic training data;
+not a replay of failed fixture019 and not held-out strength evaluation.
+Unit arena-training-transport-diagnostic-20261008.service verified active PID304123.
+Output .logs/transport-diagnostic-20261008 under /opt/uoarena/anima3-demonstrations-7b97aba.
+CPU200%, RAM3G, RuntimeMax2h. Original stopped dataset remains untouched.
+Metadata-only tcpdump unit arena-training-transport-metadata-20261008.service
+PID304063 active, RuntimeMax2h, loopback TCP2593, -nn -tt -l, no payload dump.
+Output transport-metadata-20261008.log under the same remote source directory.
+Stop metadata capture after the diagnostic collection ends. No optimizer or
+promotion runs in this diagnostic. Need resume/replace balanced fit afterwards.
