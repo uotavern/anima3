@@ -661,3 +661,25 @@ Local rehearsal11458 actually executing PPO+BC(reachedupdate3/16, each followup
 BC70optimizer updates over32768 original labels); no errors. Independent matched
 control eval62303completed: originalparent0.665,plainPPO0.575 on3654000000.
 Await newwarmstart/rehearsalcandidate same fixtures for fair comparison.
+
+## Rehearsal not sufficient; isolate elapsed-time discount experiment
+
+Session11458 complete. Same3654000000 held-out100games each: original0.665,
+plainPPO0.575,newBC0.625,rehearsalPPO0.590. RehearsalvsBCdelta-0.035
+CI[-0.13,0.06];vsoriginal-0.075 CI[-0.17,0.02];vsplainPPO+0.015CI[-0.08,0.11].
+No candidate promoted. Full artifact2026-10-08-rehearsal-training.json.
+
+Found curriculum driver uses per-decision discount(.995 every0.25sec), while
+live training uses .995 persecond. Both are internally valid objectives, but
+inconsistent temporal horizons:300sec terminal weight .995^1200~.00244 versus
+.995^300~.2223. Don't assert this alone caused regression. Main train CLI already
+supports consistent time units; curriculum now does too(default1second, explicit
+0legacy reproducibility). Potential shaping uses gamma^(sim.dt/unit), matched
+to GAE, not blindly .995.72training/league tests pass, including executing tiny
+whole curriculum in both units and checking rollout/GAE/manifest consistency.
+
+Source95e5d0f local session51251 trains .logs/curriculum-time-discount-20261008,
+log/tmp/anima3-time-discount-training.log. Same seed20261009/budgets,16updates,
+NOrehearsal to isolate temporal-unit change. Eval3655000000. Controlsession76797
+scores originalparent and frozen per-stepPPO on sameeval fixtures. Active live
+BCscreen remainsv8, MainPID275277,completed4collecting5; no deployed mutations.
