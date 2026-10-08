@@ -980,3 +980,24 @@ allpinnedpolicy/eligible/trainingrows,28uniquematches,freshoutput. Existing clon
 fitter verifies all replay/supply receipts before gradients. Output
 candidate-recovered-bc under samefit directory. CPU150%,RAM3G,Nice10,3hlimit.
 Noaccountsornewduelsrunbythisunit; noauto publicdeploy. Oldfitunit staysfailed.
+
+## Recovered BC completed; independent 200-game live evaluation started
+
+Handoff diagnostic completed10/10; nine games after server patch had no transport
+failure. Capture handoff-metadata unit stopped. This supports recovery so far,
+not a guarantee of no further transport defects. Recovered fit unit terminal
+success. Actual18 training episodes,9028 teachersteps,5159freechoices,8epochs,
+152BCupdates. Validation10episodes1476freechoices; noheldoutgradients.
+Train accuracy .42857 -> .69103, CE2.22797 -> .69898.
+Validation accuracy .61992 -> .77439, CE1.36178 -> .71947.
+CandidateSHA5e03b62457dec56b80ec8e87c700cae29433a498103ad3f273b7d3fe45cfe0cc.
+Artifact2026-10-08-recovered-bc-fit.json; full verified localcheckpoint under
+.logs/recovered-bc-20261008. This is supervised improvement, not live strength.
+
+Launched arena-training-recovered-bc-eval-20261008.service, same frozen7b97aba
+executorv9 source and bridge25378fa; bothpolicies on patched ServUO3a44e60b...
+Independent200livegames,20/style/model,alternatingseats;seed20261012,batches0.
+Output /opt/uoarena/anima3-demonstrations-7b97aba/.logs/recovered-bc-evaluation-200.
+Originalparent0c6ca921... vs recoveredcandidate5e03b624...; no inrunupdates.
+CPU200%,RAM3G,Nice5,RuntimeMax24h. Publicdeploymentfalse, strictpromotiongate.
+Actual live improvement remainsunproven pending thisexperiment.
