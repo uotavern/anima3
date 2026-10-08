@@ -101,6 +101,8 @@ def main(argv=None):
     p.add_argument("--seed", type=int, default=20261006)
     p.add_argument("--bc-steps-per-drill", type=int, default=4096)
     p.add_argument("--bc-epochs", type=int, default=32)
+    p.add_argument("--bc-rehearsal-epochs", type=int, default=0,
+                   help="Bounded teacher rehearsal after each PPO update (0 disables)")
     p.add_argument("--updates", type=int, default=8)
     p.add_argument("--rollout-steps", type=int, default=4096)
     p.add_argument("--eval-games-per-style", type=int, default=20)
@@ -110,6 +112,8 @@ def main(argv=None):
     args = p.parse_args(argv)
     if min(args.bc_steps_per_drill, args.updates, args.rollout_steps, args.max_steps, args.threads, args.bc_epochs) < 1:
         p.error("positive bounded budgets required")
+    if not 0 <= args.bc_rehearsal_epochs <= 8:
+        p.error("BC rehearsal epochs must be 0..8")
     if args.eval_games_per_style < 2 or args.eval_games_per_style % 2:
         p.error("evaluation count must be positive and even")
     root = args.out.resolve()
@@ -120,7 +124,8 @@ def main(argv=None):
     optimizer = torch.optim.Adam(model.parameters(), lr=3e-4, eps=1e-5)
     config = TrainConfig(learning_rate=1e-4, epochs=4)
     metadata = {"domain": "approximate-pre-aos-simulator", "source": "curriculum-league-v2",
-                "seed": args.seed, "real_server_strength_established": False}
+                "seed": args.seed, "bc_rehearsal_epochs": args.bc_rehearsal_epochs,
+                "real_server_strength_established": False}
     save_checkpoint(root / "initial", model, training=metadata)
     log = []
 
@@ -152,6 +157,7 @@ def main(argv=None):
     league = [incumbent]
     # New optimizer: supervised moments are not PPO optimizer state.
     optimizer = torch.optim.Adam(model.parameters(), lr=config.learning_rate, eps=1e-5)
+    rehearsal_optimizer = torch.optim.Adam(model.parameters(), lr=1e-4, eps=1e-5)
     for update in range(args.updates):
         drill = DRILLS[min(3, update * 4 // args.updates)]
         episodes, rollout = collect_simulator(
@@ -159,6 +165,13 @@ def main(argv=None):
             opponents=league, drill=drill, opponent_styles=STYLES,
             max_episode_steps=args.max_steps, shaping_gamma=config.gamma)
         metrics = ppo_update(model, optimizer, episodes, config, seed=args.seed + update)
+        if args.bc_rehearsal_epochs:
+            # Original training demonstrations only; evaluation never feeds gradients.
+            # BC reconstructs causal prefixes with current weights. Keep its Adam
+            # moments separate from PPO because these optimize different losses.
+            metrics["rehearsal"] = behavioral_clone(
+                model, rehearsal_optimizer, demos, config,
+                epochs=args.bc_rehearsal_epochs, seed=args.seed + 10000 + update)
         checkpoint = root / "snapshots" / f"update-{update+1:03d}"
         save_checkpoint(checkpoint, model, training={**metadata, "update": update+1,
                                                     "drill": drill, "metrics": metrics})
