@@ -683,3 +683,25 @@ log/tmp/anima3-time-discount-training.log. Same seed20261009/budgets,16updates,
 NOrehearsal to isolate temporal-unit change. Eval3655000000. Controlsession76797
 scores originalparent and frozen per-stepPPO on sameeval fixtures. Active live
 BCscreen remainsv8, MainPID275277,completed4collecting5; no deployed mutations.
+
+## Elapsed-time PPO improves aggregate score, pressure remains a regression
+
+Session51251 completed normally. Same3655000000/100games: original50W24L26D
+(score.630), per-stepPPO40W8L52D(.660), BC52W23L25D(.645), timePPO66W26L8D(.700).
+TimePPO vsoriginal +.070 CI[-.035,.180]; vsBC +.055 CI[-.045,.160];
+vsper-stepPPO +.040 CI[-.070,.145]. All gates fail; no live deployment.
+Pressure-style score original.825, BC.775, per-stepPPO.900, timePPO.575.
+TimePPO approach2053/retreat1639 vsBC1408/1198, stun78 vs86 across20games.
+These are associations, not proof that movement caused losses. JSON time-discount
+training and pressure artifacts preserve outcomes and aggregate actions.
+
+To complete a controlled 2x2 comparison (per-step/elapsed-time x no/with BC
+rehearsal), session15151 runs .logs/curriculum-time-rehearsal-20261008,
+log/tmp/anima3-time-rehearsal-training.log. Source d5cbea0; same20261009 seed,
+32768 BCsteps/64epochs,65536 PPOsteps/16updates, max1200; timeunit1 and1 rehearsal
+epoch per update. Reserved evaluation3656000000,100games/model.
+Session52401 evaluates originalparent and three frozen prior PPO checkpoints
+(per-step,per-step+rehearsal,time) on exactly those fixtures. No heldout gradients.
+This tests whether rehearsal retains pressure defense with longer-horizon PPO;
+it is an experiment, not an assumed fix. Current live v8 frozen BCscreen unchanged:
+unit275277 active,7complete/40,8collecting; allfirst7eligible.
