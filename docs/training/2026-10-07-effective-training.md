@@ -1040,3 +1040,12 @@ Use the replication alone for the preregistered promotion gate after all 400
 games finish. Preserve the preceding 200-game result separately and exclude
 both evaluation sets from training. If observation disconnects, inspect this
 same unit before considering any recovery; do not restart a live evaluation.
+
+## Reconnect checkpoint: replication 222/400
+
+On October 9 (Asia/Seoul), rechecked the same replication unit and PID 388926.
+Observed progress from 221 to 222 completed games without restarting it.
+Both models now have 111 eligible games, zero invalid rows; status error is null.
+Fixture 223 reached Countdown with an actor log age of 0.06 seconds.
+The fixed-policy 400-game protocol remains unchanged. No interim scores were
+used, no training updates were made, and no model was promoted.
