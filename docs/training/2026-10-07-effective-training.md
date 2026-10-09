@@ -1080,3 +1080,9 @@ Audited the original 18 training and 10 validation demonstrations with both froz
 `scripts.clone_live_demonstrations` exposes `--reference-checkpoint PATH --reference-kl-coef VALUE` (both required together) and records the reference checkpoint hash and KL metrics. Receipt validation and match-level train/validation exclusion still occur before fitting. No new fit has been run yet; the 50-game collector remains on immutable source 7b97aba.
 
 Verification: live demonstration tests 12 passed, including an independently frozen reference, partial recurrent chunks, forced holds, finite masked KL, learning with restrained drift, and invalid coefficient rejection. Neural training / demonstration split tests 56 passed; Ruff and diff checks passed. This is a training mechanism, not a claim of improved live strength.
+
+### Automatic fit queued behind the complete 50-match collection
+
+Deployed immutable source d4da520 to `/opt/uoarena/anima3-reference-fit-d4da520`. Unit `arena-training-reference-fit-20261009.service`, PID 535216, is confirmed active with `queued-fit-status.json` = `waiting_for_collection`; collector PID 534093 has 2/50 complete and fixture 003 fighting. The operational wrapper is `/opt/uoarena/anima3-reference-fit-d4da520/queued-fit.py` (local `/tmp/anima3-queued-reference-fit-20261009.py`).
+
+The wrapper checks both checkpoint hashes, the collector's live systemd state, terminal success and exact 50-match budget before fitting. Each fitter independently verifies the complete balanced collection and all replay/supply receipts. It runs sequential 8-epoch fits from the same parent, seed 20261020: `candidate-bc`, then `candidate-reference-bc` with parent-reference KL coefficient 0.5. It stops on collection failure or incomplete data. Queue has an 8-hour wait bound, systemd 9-hour bound, CPU 100%, RAM 2G, Nice 10. Status records the generated checkpoint hashes. No live evaluation or deployment starts automatically from this wrapper.
