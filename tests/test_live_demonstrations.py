@@ -128,6 +128,48 @@ def test_balanced_imitation_does_not_count_forced_holds(tmp_path):
     assert result['bc_updates'] > 0
 
 
+def test_reference_regularization_preserves_distribution_and_reference(tmp_path):
+    import copy
+
+    import torch
+
+    from anima3.neural.demonstrations import imitation_metrics
+    from anima3.neural.model import PolicyConfig, RecurrentPolicy
+    from anima3.neural.train import behavioral_clone
+
+    torch.manual_seed(19)
+    p, d = make_demo(tmp_path)
+    template = d['steps'][0]
+    d['steps'] = [{**template, 'at': float(i), 'action': 1,
+                   'mask': [True, True] + [False]*(len(ACTION_NAMES)-2)} for i in range(7)]
+    # Include a forced hold and a partially padded recurrent chunk.
+    d['steps'].insert(0, {**template, 'at': -1.0})
+    p.write_text(json.dumps(d))
+    episode = load_demonstration(p, 8)
+    reference = RecurrentPolicy(PolicyConfig(len(FEATURE_NAMES), len(ACTION_NAMES), 8, 8))
+    before = copy.deepcopy(reference.state_dict())
+    probabilities = []
+    for coefficient in (0., 10.):
+        student = copy.deepcopy(reference)
+        metrics = behavioral_clone(
+            student, torch.optim.Adam(student.parameters(), lr=.01), [episode],
+            TrainConfig(sequence_length=3), epochs=20, seed=5,
+            reference_model=reference, reference_kl_coef=coefficient)
+        probabilities.append(imitation_metrics(student, [episode])['action_distribution'][ACTION_NAMES[1]]['mean_probability'])
+        if coefficient:
+            assert math.isfinite(metrics['reference_kl_mean'])
+            assert metrics['reference_kl_mean'] >= 0
+        assert all(torch.equal(before[k], v) for k, v in reference.state_dict().items())
+        assert all(p.grad is None for p in reference.parameters())
+    assert probabilities[0] > probabilities[1] + .1
+    assert probabilities[1] > .5  # Still learns the demonstrated action.
+    for coefficient in (-1., float('nan'), float('inf')):
+        with pytest.raises(ValueError, match='finite and nonnegative'):
+            behavioral_clone(reference, None, [], TrainConfig(), reference_kl_coef=coefficient)
+    with pytest.raises(ValueError, match='reference model required'):
+        behavioral_clone(reference, None, [], TrainConfig(), reference_kl_coef=1.)
+
+
 @pytest.mark.parametrize('fault', ['missing', 'potions', 'weight', 'participant'])
 def test_previously_confounded_demonstrations_are_rejected(tmp_path, fault):
     p, _ = make_demo(tmp_path)

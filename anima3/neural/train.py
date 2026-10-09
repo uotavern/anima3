@@ -459,10 +459,25 @@ def behavioral_clone(
     epochs: int = 4,
     seed: int = 0,
     balance_actions: bool = False,
+    reference_model: RecurrentPolicy | None = None,
+    reference_kl_coef: float = 0.0,
 ) -> dict:
+    if not math.isfinite(reference_kl_coef) or reference_kl_coef < 0:
+        raise ValueError("reference KL coefficient must be finite and nonnegative")
+    if reference_kl_coef and reference_model is None:
+        raise ValueError("reference model required for KL regularization")
+    reference = None
+    if reference_kl_coef:
+        if reference_model.config != model.config:
+            raise ValueError("reference model configuration differs")
+        # Independent frozen weights and recurrent prefixes; never reuse student
+        # hidden states for the reference or mutate the caller's reference model.
+        reference = copy.deepcopy(reference_model).to(model.device).eval()
+        reference.requires_grad_(False)
     chunks = _chunks(episodes, config.sequence_length)
     rng = random.Random(seed)
     metrics = []
+    kl_metrics = []
     action_weights = torch.ones(model.config.action_dim, device=model.device)
     if balance_actions:
         counts = torch.zeros_like(action_weights)
@@ -477,18 +492,27 @@ def behavioral_clone(
     for _ in range(epochs):
         rng.shuffle(chunks)
         for offset in range(0, len(chunks), config.batch_sequences):
+            selections = chunks[offset : offset + config.batch_sequences]
             batch = _batch(
-                model, episodes, chunks[offset : offset + config.batch_sequences], config, None
+                model, episodes, selections, config, None
             )
-            log_prob, _, _, _ = model.evaluate_actions(
-                batch["features"], batch["masks"], batch["actions"], batch["hidden"]
-            )
+            logits, _, _ = model(batch["features"], batch["hidden"])
+            distribution = masked_distribution(logits, batch["masks"])
+            log_prob = distribution.log_prob(batch["actions"])
             # Forced hold frames have zero policy loss and dilute the useful labels.
             valid = batch["valid"] & (batch["masks"].sum(-1) > 1)
             if not bool(valid.any()):
                 continue
             weights = action_weights[batch["actions"][valid]]
             loss = (-log_prob[valid] * weights).sum() / weights.sum()
+            if reference is not None:
+                with torch.no_grad():
+                    ref_batch = _batch(reference, episodes, selections, config, None)
+                    ref_logits, _, _ = reference(ref_batch["features"], ref_batch["hidden"])
+                    ref_distribution = masked_distribution(ref_logits, ref_batch["masks"])
+                kl = torch.distributions.kl_divergence(ref_distribution, distribution)[valid].mean()
+                loss = loss + reference_kl_coef * kl
+                kl_metrics.append(float(kl.detach()))
             optimizer.zero_grad(set_to_none=True)
             loss.backward()
             torch.nn.utils.clip_grad_norm_(model.parameters(), config.max_grad_norm)
@@ -497,6 +521,8 @@ def behavioral_clone(
     model.eval()
     return {
         "balance_actions": balance_actions,
+        "reference_kl_coef": reference_kl_coef,
+        "reference_kl_mean": sum(kl_metrics)/len(kl_metrics) if kl_metrics else None,
         "action_weights": action_weights.cpu().tolist(),
         "bc_updates": len(metrics),
         "bc_loss_first": metrics[0] if metrics else None,

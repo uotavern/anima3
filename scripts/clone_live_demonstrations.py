@@ -1,5 +1,6 @@
 """Train a separate supervised candidate from verified server teacher records."""
 import argparse
+import math
 from pathlib import Path
 
 import torch
@@ -18,13 +19,19 @@ def main():
     p.add_argument('--validation-collections', type=Path, nargs='*', default=[])
     p.add_argument('--epochs', type=int, default=32)
     p.add_argument('--balance-actions', action='store_true')
+    p.add_argument('--reference-checkpoint', type=Path)
+    p.add_argument('--reference-kl-coef', type=float, default=0.0)
     p.add_argument('--seed', type=int, default=20261007)
     a = p.parse_args()
     if not 1 <= a.epochs <= 256 or a.out.exists():
         p.error('use bounded epochs and a fresh output directory')
+    if (not math.isfinite(a.reference_kl_coef) or a.reference_kl_coef < 0
+            or bool(a.reference_checkpoint) != (a.reference_kl_coef > 0)):
+        p.error('reference checkpoint and positive finite KL coefficient must be supplied together')
     torch.set_num_threads(2)
     torch.manual_seed(a.seed)
     loaded = load_checkpoint(a.checkpoint)
+    reference = load_checkpoint(a.reference_checkpoint) if a.reference_checkpoint else None
     files = sorted({f.resolve() for r in a.collections for f in r.rglob('demonstration-*.json')})
     episodes, seen = [], set()
     for f in files:
@@ -47,10 +54,13 @@ def main():
               'validation': imitation_metrics(loaded.model, validation)}
     optimizer = torch.optim.Adam(loaded.model.parameters(), lr=1e-4)
     metrics = behavioral_clone(loaded.model, optimizer, episodes, TrainConfig(),
-                               epochs=a.epochs, seed=a.seed, balance_actions=a.balance_actions)
+                               epochs=a.epochs, seed=a.seed, balance_actions=a.balance_actions,
+                               reference_model=reference.model if reference else None,
+                               reference_kl_coef=a.reference_kl_coef)
     after = {'train': imitation_metrics(loaded.model, episodes),
              'validation': imitation_metrics(loaded.model, validation)}
     provenance = {'before': before, 'after': after,
+                  'reference_sha': reference.policy_sha if reference else None,
                   'validation_files': [str(f) for f in validation_files],
                   'source': 'servuo-supervised-demonstrations', 'parent_sha': loaded.policy_sha,
                   'files': [str(f) for f in files], 'episodes': len(episodes),
