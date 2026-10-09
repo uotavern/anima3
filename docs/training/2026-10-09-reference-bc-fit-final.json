@@ -1,0 +1,186 @@
+{
+  "collection": {
+    "matches": 50,
+    "unique_matches": 50,
+    "style_counts": {
+      "balanced": 10,
+      "pressure": 10,
+      "burst": 10,
+      "defensive": 10,
+      "potions": 10
+    },
+    "overlap_with_historical_evaluation": 0,
+    "historical_matches_checked": 640
+  },
+  "models": {
+    "bc": {
+      "sha": "0b3fb0a17657dd7688ae3e20b0ab65601a3a1de8f65ea37b8097aaadd23557d1",
+      "parent_sha": "0c6ca921e8bfd19fbaab3fa353d11819b2ba523cd1a810c2c4782447b7a5f56d",
+      "reference_sha": null,
+      "epochs": 8,
+      "seed": 20261020,
+      "metrics": {
+        "action_weights": [
+          0.31340551376342773,
+          0.6295889616012573,
+          0.5921921133995056,
+          1.0,
+          1.0,
+          3.4224400520324707,
+          3.4224400520324707,
+          0.9034619927406311,
+          1.0663927793502808,
+          3.0611233711242676,
+          2.232553720474243,
+          1.0,
+          2.4352989196777344,
+          1.2353688478469849,
+          1.0,
+          2.2816267013549805,
+          1.0,
+          1.213814377784729,
+          1.6552659273147583,
+          4.0,
+          3.030963897705078,
+          4.0,
+          1.0,
+          4.0,
+          2.664365768432617,
+          1.650447130203247,
+          2.794410467147827
+        ],
+        "balance_actions": true,
+        "bc_loss_first": 1.7221646308898926,
+        "bc_loss_last": 0.62117600440979,
+        "bc_updates": 320,
+        "reference_kl_coef": 0.0,
+        "reference_kl_mean": null,
+        "teacher_steps": 18704
+      },
+      "scores": {
+        "before": {
+          "train": {
+            "episodes": 40,
+            "free_choices": 9839,
+            "accuracy": 0.5035064539079175,
+            "cross_entropy": 1.9762918628291823,
+            "unobserved_label_probability": 0.002640327346273102
+          },
+          "validation": {
+            "episodes": 10,
+            "free_choices": 3282,
+            "accuracy": 0.556672760511883,
+            "cross_entropy": 1.7323249692714784,
+            "unobserved_label_probability": 0.003810730339906034
+          }
+        },
+        "after": {
+          "train": {
+            "episodes": 40,
+            "free_choices": 9839,
+            "accuracy": 0.8458176643967883,
+            "cross_entropy": 0.5265475933164864,
+            "unobserved_label_probability": 0.007203208584710481
+          },
+          "validation": {
+            "episodes": 10,
+            "free_choices": 3282,
+            "accuracy": 0.8409506398537477,
+            "cross_entropy": 0.5070762573188031,
+            "unobserved_label_probability": 0.008729391256717707
+          }
+        }
+      }
+    },
+    "reference-bc": {
+      "sha": "af3cb4ad485e9c55ad647fa54c35c1fa90336166dcfb34ebd96a41efce108175",
+      "parent_sha": "0c6ca921e8bfd19fbaab3fa353d11819b2ba523cd1a810c2c4782447b7a5f56d",
+      "reference_sha": "0c6ca921e8bfd19fbaab3fa353d11819b2ba523cd1a810c2c4782447b7a5f56d",
+      "epochs": 8,
+      "seed": 20261020,
+      "metrics": {
+        "action_weights": [
+          0.31340551376342773,
+          0.6295889616012573,
+          0.5921921133995056,
+          1.0,
+          1.0,
+          3.4224400520324707,
+          3.4224400520324707,
+          0.9034619927406311,
+          1.0663927793502808,
+          3.0611233711242676,
+          2.232553720474243,
+          1.0,
+          2.4352989196777344,
+          1.2353688478469849,
+          1.0,
+          2.2816267013549805,
+          1.0,
+          1.213814377784729,
+          1.6552659273147583,
+          4.0,
+          3.030963897705078,
+          4.0,
+          1.0,
+          4.0,
+          2.664365768432617,
+          1.650447130203247,
+          2.794410467147827
+        ],
+        "balance_actions": true,
+        "bc_loss_first": 1.7221646308898926,
+        "bc_loss_last": 0.8181827068328857,
+        "bc_updates": 320,
+        "reference_kl_coef": 0.5,
+        "reference_kl_mean": 0.2521680536585336,
+        "teacher_steps": 18704
+      },
+      "scores": {
+        "before": {
+          "train": {
+            "episodes": 40,
+            "free_choices": 9839,
+            "accuracy": 0.5035064539079175,
+            "cross_entropy": 1.9762918628291823,
+            "unobserved_label_probability": 0.002640327346273102
+          },
+          "validation": {
+            "episodes": 10,
+            "free_choices": 3282,
+            "accuracy": 0.556672760511883,
+            "cross_entropy": 1.7323249692714784,
+            "unobserved_label_probability": 0.003810730339906034
+          }
+        },
+        "after": {
+          "train": {
+            "episodes": 40,
+            "free_choices": 9839,
+            "accuracy": 0.6765931497103365,
+            "cross_entropy": 0.6884074242099694,
+            "unobserved_label_probability": 0.0035319143287213437
+          },
+          "validation": {
+            "episodes": 10,
+            "free_choices": 3282,
+            "accuracy": 0.706581352833638,
+            "cross_entropy": 0.6463514129920096,
+            "unobserved_label_probability": 0.003954195348476365
+          }
+        }
+      }
+    }
+  },
+  "live_strength_verified": false,
+  "public_deployment": false,
+  "artifact_sha256": {
+    "collection/plan.json": "b6c0692b6cdcc11fa278618b697be03c59a031bc9fa66558ebdf1ff4f4e2f654",
+    "collection/status.json": "7a3cd487a470e2219e6f701f16a1401ea2c353136bef772fc3ca454ef2d29649",
+    "collection/dataset.json": "d71e9c3a4d664edd1ffcf9f1d40984d062290c630611333c0452200b8b8e75f1",
+    "bc/demonstration-training.json": "fd3e11f37ad0819d1fe4ab95db7891eec9e6556b222a01ad6917827d8cca9d91",
+    "bc/manifest.json": "a14c827f44106efc285f13ceb5fefeea1df4293feb2b3cc6c6a8c737ab9b385b",
+    "reference-bc/demonstration-training.json": "e7b99ffdda423d5cf7ef6a0360e259ae814fcb755719c6b73b29f5349f0b919f",
+    "reference-bc/manifest.json": "3c3b2d614e8f5ee429125432b4bf65ac49d0372c4904f4219dfae59b8608ba55"
+  }
+}
