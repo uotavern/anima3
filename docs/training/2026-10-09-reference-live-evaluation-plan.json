@@ -1,6 +1,6 @@
 {
   "purpose": "Fresh live confirmation of the prespecified reference-regularized BC candidate",
-  "status": "prepared_not_launched",
+  "status": "launched",
   "total_games": 200,
   "games_per_model_per_style": 20,
   "seed": 20261021,
@@ -17,5 +17,7 @@
     10
   ],
   "estimate_basis": "Prior actual collection mean cycle approximately 168 seconds; 200 games approximately 9.3 hours; actual match durations vary",
-  "output": "/opt/uoarena/anima3-reference-fit-d4da520/.logs/reference-bc-live-evaluation-200"
+  "output": "/opt/uoarena/anima3-reference-fit-d4da520/.logs/reference-bc-live-evaluation-200",
+  "unit": "arena-training-reference-eval-20261009.service",
+  "runtime_limit_seconds": 57600
 }
