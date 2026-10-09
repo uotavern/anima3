@@ -1,0 +1,78 @@
+{
+  "registry": {
+    "candidate": "/opt/uoarena/anima3-fit-balanced-20261008/candidate-recovered-bc",
+    "gate": {
+      "delta_ci95": [
+        0.0025,
+        0.175
+      ],
+      "domain": "servuo",
+      "enough_evidence": true,
+      "paired_delta": 0.0875,
+      "passed": false,
+      "public_deployment": false,
+      "reason": "retain incumbent: insufficient or regressed evidence",
+      "style_deltas": {
+        "balanced": -0.15,
+        "burst": 0.1125,
+        "defensive": 0.075,
+        "potions": 0.1375,
+        "pressure": 0.2625
+      },
+      "valid_episodes": true,
+      "valid_templates": true
+    },
+    "incumbent": "/opt/uoarena/anima3-training-skill-clock-20261007/warmstart",
+    "pairing": "style and challenger order; server RNG uncontrolled",
+    "public_deployment": false,
+    "real_server_strength_established": false,
+    "rollback_checkpoint": "/opt/uoarena/anima3-training-skill-clock-20261007/warmstart",
+    "selected_checkpoint": "/opt/uoarena/anima3-training-skill-clock-20261007/warmstart",
+    "selected_sha": "0c6ca921e8bfd19fbaab3fa353d11819b2ba523cd1a810c2c4782447b7a5f56d"
+  },
+  "models": {
+    "incumbent": {
+      "games": 200,
+      "wins": 114,
+      "losses": 73,
+      "draws": 13,
+      "score": 0.6025,
+      "policy_shas": [
+        "0c6ca921e8bfd19fbaab3fa353d11819b2ba523cd1a810c2c4782447b7a5f56d"
+      ],
+      "style_scores": {
+        "balanced": 0.5625,
+        "burst": 0.6625,
+        "defensive": 0.7375,
+        "potions": 0.5375,
+        "pressure": 0.5125
+      }
+    },
+    "candidate": {
+      "games": 200,
+      "wins": 132,
+      "losses": 56,
+      "draws": 12,
+      "score": 0.69,
+      "policy_shas": [
+        "5e03b62457dec56b80ec8e87c700cae29433a498103ad3f273b7d3fe45cfe0cc"
+      ],
+      "style_scores": {
+        "balanced": 0.4125,
+        "burst": 0.775,
+        "defensive": 0.8125,
+        "potions": 0.675,
+        "pressure": 0.775
+      }
+    }
+  },
+  "artifact_sha256": {
+    "evaluation-candidate.json": "f16a4e5e7eebf97b791df1bf865bc9000abb70cffc7672bc58f521c7126cb51e",
+    "evaluation-incumbent.json": "a3d43e71869448da718e4558f03ec8dbec24aca7b0a54442a0d84a22e8c01cbe",
+    "plan.json": "867ccdc7672fd5e544c1d0a46a37f915cd3dfd7ec4fe16ec39979ad8187eb5b3",
+    "registry.json": "5246b9b84298397c89d1cbfc0f83e37d350cc1d9243729b15547a97c4d5b41be",
+    "status.json": "9421c8032a8fac16217c0ec6d83c3779ccefafa4c296aa52b09fcac471ab1fd5"
+  },
+  "unique_matches": 400,
+  "prior_200_games_included": false
+}

@@ -1049,3 +1049,12 @@ Both models now have 111 eligible games, zero invalid rows; status error is null
 Fixture 223 reached Countdown with an actor log age of 0.06 seconds.
 The fixed-policy 400-game protocol remains unchanged. No interim scores were
 used, no training updates were made, and no model was promoted.
+
+## 2026-10-09 independent 400-game replication complete
+
+- The preregistered service exited successfully after exactly 400 matches; both models have 200 eligible, template-verified episodes, 40 per style, fixed expected policy hashes, and 400 unique match IDs. No early stopping or gradient updates occurred. Prior 200-game evaluation is excluded from this primary result and remains held out from training.
+- Parent: 114 wins / 73 losses / 13 draws, score 0.6025. Recovered BC: 132 wins / 56 losses / 12 draws, score 0.6900 (win=1, draw=0.5).
+- Paired mean score gain +0.0875, bootstrap 95% interval [0.0025, 0.1750]. This supports aggregate improvement on this fixed opponent panel, not unrestricted playing strength.
+- Style deltas: balanced -0.1500, burst +0.1125, defensive +0.0750, potions +0.1375, pressure +0.2625. Balanced regression exceeds the preregistered -0.10 floor; promotion gate FAILS. Parent retained; no public deployment.
+- Evidence: `2026-10-09-recovered-bc-replication-final.json`; raw final artifacts `.logs/recovered-bc-replication-final-audit/`. Matchup pairing controls style and challenger order, not server RNG.
+- Next: diagnose the balanced-style weakness using evaluation only for failure analysis, collect separate training episodes as needed, improve the training objective/data coverage, and evaluate a new frozen candidate on fresh matches. Do not train on either evaluation set or extend this completed replication to seek a passing result.
