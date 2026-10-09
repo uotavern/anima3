@@ -23,7 +23,7 @@ from .train import TrainConfig, _input, behavioral_clone, collect_simulator, ppo
 
 
 @torch.no_grad()
-def evaluate_suite(model, *, games_per_style=20, seed=3_600_000_000, max_steps=800,
+def evaluate_suite(model, *, games_per_style=20, seed=3_600_000_000, max_steps=1200,
                    sampling="categorical"):
     if sampling not in ("categorical", "greedy"):
         raise ValueError("unsupported policy sampling")
@@ -55,8 +55,13 @@ def evaluate_suite(model, *, games_per_style=20, seed=3_600_000_000, max_steps=8
             rows.append({"style": style, "seed": fixture_seed, "side": side,
                          "score": score, "damage": info["damage"][side],
                          "self_damage": info["self_damage"][side],
-                         "actions": counts, "elapsed": sim.elapsed})
+                         "actions": counts, "elapsed": sim.elapsed,
+                         "terminated": info["terminated"], "truncated": info["truncated"]})
     return {"domain": "approximate-pre-aos-simulator", "sampling": sampling, "rows": rows,
+            "max_steps": max_steps, "step_seconds": sim.dt,
+            "round_limit_seconds": max_steps * sim.dt,
+            "showdown_after_seconds": sim.showdown_after,
+            "draws": sum(r["score"] == 0.5 for r in rows),
             "games": len(rows), "score": sum(r["score"] for r in rows)/len(rows),
             "real_server_strength_established": False}
 
@@ -111,7 +116,8 @@ def main(argv=None):
     p.add_argument("--rollout-steps", type=int, default=4096)
     p.add_argument("--eval-games-per-style", type=int, default=20)
     p.add_argument("--eval-seed", type=int, default=3_600_000_000)
-    p.add_argument("--max-steps", type=int, default=800)
+    p.add_argument("--max-steps", type=int, default=1200,
+                   help="0.25-second simulator steps; default matches the 300-second server limit")
     p.add_argument("--threads", type=int, default=2)
     args = p.parse_args(argv)
     if min(args.bc_steps_per_drill, args.updates, args.rollout_steps, args.max_steps, args.threads, args.bc_epochs) < 1:

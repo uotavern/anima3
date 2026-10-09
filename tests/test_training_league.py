@@ -10,6 +10,31 @@ from anima3.neural.schema import ACTION_INDEX, CombatView, encode
 from anima3.neural.sim import DuelSim
 
 
+def test_default_evaluation_covers_full_server_showdown_window(monkeypatch):
+    import torch
+
+    from anima3.neural.league import evaluate_suite
+
+    class HoldPolicy:
+        device = 'cpu'
+
+        def eval(self):
+            return self
+
+        def initial_state(self):
+            return None
+
+        def act(self, *args, **kwargs):
+            return torch.tensor(0), None, None, None
+
+    monkeypatch.setattr(TacticalTeacher, 'choose', lambda *args: 0)
+    report = evaluate_suite(HoldPolicy(), games_per_style=2)
+    assert report['round_limit_seconds'] == 300
+    assert report['showdown_after_seconds'] == 180
+    assert report['draws'] == 10
+    assert all(r['elapsed'] == 300 and r['terminated'] for r in report['rows'])
+
+
 def test_stun_needs_resources_skills_and_ack_before_next_toggle():
     obs = observation(enemy_x=101)
     obs.skills = [Skill(1,100,100,100,2), Skill(43,100,100,100,2)]
