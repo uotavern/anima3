@@ -78,6 +78,9 @@ def imitation_metrics(model, episodes: list[Trajectory]) -> dict:
 
     counts, correct = {}, {}
     losses, total_correct = [], 0
+    probability_mass = torch.zeros(len(ACTION_NAMES), dtype=torch.float64)
+    predictions = torch.zeros(len(ACTION_NAMES), dtype=torch.int64)
+    legal_counts = torch.zeros(len(ACTION_NAMES), dtype=torch.int64)
     model.eval()
     with torch.no_grad():
         for episode in episodes:
@@ -92,6 +95,9 @@ def imitation_metrics(model, episodes: list[Trajectory]) -> dict:
             loss = -distribution.log_prob(actions)[free]
             predicted = distribution.probs.argmax(-1)[free]
             expected = actions[free]
+            probability_mass += distribution.probs[free].double().sum(0).cpu()
+            predictions += torch.bincount(predicted.cpu(), minlength=len(ACTION_NAMES))
+            legal_counts += mask[free].sum(0).cpu()
             losses.extend(loss.cpu().tolist())
             hits = predicted == expected
             total_correct += int(hits.sum())
@@ -104,4 +110,16 @@ def imitation_metrics(model, episodes: list[Trajectory]) -> dict:
             'accuracy': total_correct/len(losses) if losses else None,
             'per_action': {name: {'labels': n, 'accuracy': correct[name]/n}
                            for name,n in counts.items()},
+            # These describe the policy on teacher states, not live action rates.
+            # A missing teacher label is a coverage gap, not proof of illegality.
+            'action_distribution': {
+                name: {'labels': counts.get(name, 0),
+                       'label_share': counts.get(name, 0)/len(losses) if losses else None,
+                       'mean_probability': float(probability_mass[i])/len(losses) if losses else None,
+                       'argmax_share': int(predictions[i])/len(losses) if losses else None,
+                       'legal_share': int(legal_counts[i])/len(losses) if losses else None}
+                for i, name in enumerate(ACTION_NAMES)},
+            'unobserved_label_probability': (
+                sum(float(probability_mass[i]) for i, name in enumerate(ACTION_NAMES)
+                    if name not in counts)/len(losses) if losses else None),
             'real_server_strength_established': False}

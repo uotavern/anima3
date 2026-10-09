@@ -1,5 +1,6 @@
 import hashlib
 import json
+import math
 
 import pytest
 
@@ -92,7 +93,17 @@ def test_imitation_metrics_excludes_forced_holds(tmp_path):
     assert metrics['accuracy'] == 0
     assert metrics['cross_entropy'] > 5
     assert 'hold' not in metrics['per_action']
+    distribution = metrics['action_distribution']
+    assert distribution['hold']['label_share'] == 0
+    assert distribution['hold']['argmax_share'] == 1
+    assert distribution['hold']['mean_probability'] == pytest.approx(1/(1+math.exp(-5)))
+    assert distribution[ACTION_NAMES[1]]['label_share'] == 1
+    assert distribution[ACTION_NAMES[2]]['mean_probability'] == 0
+    assert distribution[ACTION_NAMES[2]]['legal_share'] == 0
+    assert sum(x['mean_probability'] for x in distribution.values()) == pytest.approx(1)
+    assert metrics['unobserved_label_probability'] == pytest.approx(distribution['hold']['mean_probability'])
     assert imitation_metrics(model, [])['accuracy'] is None
+    assert imitation_metrics(model, [])['unobserved_label_probability'] is None
 
 
 def test_balanced_imitation_does_not_count_forced_holds(tmp_path):
