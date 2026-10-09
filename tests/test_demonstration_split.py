@@ -1,4 +1,5 @@
 import json
+from types import SimpleNamespace
 
 import pytest
 
@@ -51,3 +52,27 @@ def test_split_rejects_contamination_and_incomplete_data(tmp_path, bad):
     write(tmp_path, rows, **({'status': 'collecting'} if bad == 'incomplete' else {}))
     with pytest.raises(ValueError):
         split_collection(tmp_path, 'parent')
+
+
+def test_fit_checks_collection_policy_separately_from_start_and_reference(tmp_path, monkeypatch):
+    from scripts import fit_collected_demonstrations as fit
+
+    rows = dataset(tmp_path)
+    write(tmp_path, rows)
+    loaded, commands = [], []
+
+    def load(path):
+        loaded.append(path)
+        return SimpleNamespace(policy_sha='parent' if path.name == 'collector' else 'different')
+
+    monkeypatch.setattr(fit, 'load_checkpoint', load)
+    monkeypatch.setattr(fit.subprocess, 'run', lambda command, **kwargs: commands.append(command))
+    assert fit.main(['--dataset', str(tmp_path), '--checkpoint', str(tmp_path/'start'),
+                     '--collection-checkpoint', str(tmp_path/'collector'),
+                     '--reference-checkpoint', str(tmp_path/'reference'),
+                     '--reference-kl-coef', '0.5', '--out', str(tmp_path/'output')]) == 0
+    assert loaded == [tmp_path/'collector']
+    command = commands[0]
+    assert command[command.index('--checkpoint')+1] == str(tmp_path/'start')
+    assert command[command.index('--reference-checkpoint')+1] == str(tmp_path/'reference')
+    assert command[command.index('--reference-kl-coef')+1] == '0.5'

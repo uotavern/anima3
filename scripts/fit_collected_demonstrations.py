@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import subprocess
 import sys
 from pathlib import Path
@@ -50,22 +51,34 @@ def main(argv=None):
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('--dataset', type=Path, required=True)
     p.add_argument('--checkpoint', type=Path, required=True)
+    p.add_argument('--collection-checkpoint', type=Path,
+                   help='Frozen policy used to collect data; defaults to starting checkpoint')
+    p.add_argument('--reference-checkpoint', type=Path)
+    p.add_argument('--reference-kl-coef', type=float, default=0.)
     p.add_argument('--out', type=Path, required=True)
     p.add_argument('--epochs', type=int, default=8)
     p.add_argument('--seed', type=int, default=20261010)
     args = p.parse_args(argv)
     if args.out.exists() or not 1 <= args.epochs <= 256:
         p.error('fresh output and bounded epochs required')
+    if (not math.isfinite(args.reference_kl_coef) or args.reference_kl_coef < 0
+            or bool(args.reference_checkpoint) != (args.reference_kl_coef > 0)):
+        p.error('reference checkpoint and positive finite KL coefficient must be supplied together')
     training, validation = split_collection(
-        args.dataset.resolve(), load_checkpoint(args.checkpoint).policy_sha)
+        args.dataset.resolve(),
+        load_checkpoint(args.collection_checkpoint or args.checkpoint).policy_sha)
     # The existing fitter verifies every replay/supply receipt before any gradient
     # and rejects overlapping matches. Validation affects reporting only.
-    subprocess.run([
+    command = [
         sys.executable, '-m', 'scripts.clone_live_demonstrations',
         '--checkpoint', str(args.checkpoint.resolve()), '--out', str(args.out.resolve()),
         '--epochs', str(args.epochs), '--seed', str(args.seed), '--balance-actions',
         '--collections', *map(str, training),
-        '--validation-collections', *map(str, validation)], check=True)
+        '--validation-collections', *map(str, validation)]
+    if args.reference_checkpoint:
+        command.extend(['--reference-checkpoint', str(args.reference_checkpoint.resolve()),
+                        '--reference-kl-coef', str(args.reference_kl_coef)])
+    subprocess.run(command, check=True)
     return 0
 
 
