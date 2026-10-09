@@ -1,0 +1,106 @@
+{
+  "plan": {
+    "domain": "approximate-pre-aos-simulator",
+    "games_per_style": 40,
+    "max_steps": 800,
+    "models": {
+      "bc": "0b3fb0a17657dd7688ae3e20b0ab65601a3a1de8f65ea37b8097aaadd23557d1",
+      "parent": "0c6ca921e8bfd19fbaab3fa353d11819b2ba523cd1a810c2c4782447b7a5f56d",
+      "reference-bc": "af3cb4ad485e9c55ad647fa54c35c1fa90336166dcfb34ebd96a41efce108175"
+    },
+    "public_deployment": false,
+    "sampling": "categorical",
+    "seed": 3658000000,
+    "training_updates": 0
+  },
+  "comparisons": {
+    "bc": {
+      "delta_ci95": [
+        -0.0275,
+        0.0525
+      ],
+      "domain": "approximate-pre-aos-simulator",
+      "enough_evidence": true,
+      "paired_delta": 0.0125,
+      "passed": false,
+      "public_deployment": false,
+      "reason": "retain incumbent: insufficient or regressed evidence",
+      "style_deltas": {
+        "balanced": 0.0,
+        "burst": -0.0125,
+        "defensive": 0.05,
+        "potions": 0.025,
+        "pressure": 0.0
+      },
+      "valid_episodes": true,
+      "valid_templates": true
+    },
+    "reference-bc": {
+      "delta_ci95": [
+        -0.0375,
+        0.0425
+      ],
+      "domain": "approximate-pre-aos-simulator",
+      "enough_evidence": true,
+      "paired_delta": 0.0025,
+      "passed": false,
+      "public_deployment": false,
+      "reason": "retain incumbent: insufficient or regressed evidence",
+      "style_deltas": {
+        "balanced": -0.0625,
+        "burst": -0.0125,
+        "defensive": 0.025,
+        "potions": 0.0625,
+        "pressure": 0.0
+      },
+      "valid_episodes": true,
+      "valid_templates": true
+    }
+  },
+  "models": {
+    "parent": {
+      "games": 200,
+      "score": 0.5325,
+      "style_scores": {
+        "balanced": 0.4875,
+        "burst": 0.575,
+        "defensive": 0.6,
+        "potions": 0.5,
+        "pressure": 0.5
+      },
+      "sha": "0c6ca921e8bfd19fbaab3fa353d11819b2ba523cd1a810c2c4782447b7a5f56d"
+    },
+    "bc": {
+      "games": 200,
+      "score": 0.545,
+      "style_scores": {
+        "balanced": 0.4875,
+        "burst": 0.5625,
+        "defensive": 0.65,
+        "potions": 0.525,
+        "pressure": 0.5
+      },
+      "sha": "0b3fb0a17657dd7688ae3e20b0ab65601a3a1de8f65ea37b8097aaadd23557d1"
+    },
+    "reference-bc": {
+      "games": 200,
+      "score": 0.535,
+      "style_scores": {
+        "balanced": 0.425,
+        "burst": 0.5625,
+        "defensive": 0.625,
+        "potions": 0.5625,
+        "pressure": 0.5
+      },
+      "sha": "af3cb4ad485e9c55ad647fa54c35c1fa90336166dcfb34ebd96a41efce108175"
+    }
+  },
+  "artifact_sha256": {
+    "plan.json": "ccb059207c6fae1cb4375d135553b04b28613f3a230be477be88c532540e7648",
+    "bc.json": "fa2ec2203c1d8db05ed5656615a82ba946108a7b6c4c2535813725d139e94318",
+    "parent.json": "e130b12f6d8d9b349d2c71dbcf4d125c22fd155e8afb1377c8fc47e402db45cb",
+    "reference-bc.json": "09eeed339f74449b9bcc22ba5058d9579c40e56bf48f3dc0a843ff7fe9e29102",
+    "comparison.json": "50dad9668215b6f1bdc2c93e226db63972b194a6cbfaabaabbaf69007af1e6f4",
+    "status.json": "2a863afe39ac0e2e7f30644e5978c2a2f9522c4745a7ebc776e5b92271cec025"
+  }
+}
