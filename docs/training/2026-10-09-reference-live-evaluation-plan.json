@@ -1,0 +1,21 @@
+{
+  "purpose": "Fresh live confirmation of the prespecified reference-regularized BC candidate",
+  "status": "prepared_not_launched",
+  "total_games": 200,
+  "games_per_model_per_style": 20,
+  "seed": 20261021,
+  "parent_sha": "0c6ca921e8bfd19fbaab3fa353d11819b2ba523cd1a810c2c4782447b7a5f56d",
+  "candidate_sha": "af3cb4ad485e9c55ad647fa54c35c1fa90336166dcfb34ebd96a41efce108175",
+  "source": "d4da520",
+  "bridge": "25378fa",
+  "training_updates": 0,
+  "decision": "Use these 200 games alone; paired bootstrap95 lower bound >0; each style delta >= -0.1; valid episodes/templates; no favorable early stopping or automatic extensions",
+  "prior_evaluations": "Excluded from gradient updates and primary result",
+  "public_deployment": false,
+  "estimated_duration_hours": [
+    8,
+    10
+  ],
+  "estimate_basis": "Prior actual collection mean cycle approximately 168 seconds; 200 games approximately 9.3 hours; actual match durations vary",
+  "output": "/opt/uoarena/anima3-reference-fit-d4da520/.logs/reference-bc-live-evaluation-200"
+}
