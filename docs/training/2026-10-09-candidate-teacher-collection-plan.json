@@ -1,0 +1,23 @@
+{
+  "purpose": "Fresh supervised training collection after balanced-style regression; never reuse evaluation trajectories",
+  "total_matches": 50,
+  "per_style": 10,
+  "styles": [
+    "balanced",
+    "pressure",
+    "burst",
+    "defensive",
+    "potions"
+  ],
+  "collection_policy_sha": "5e03b62457dec56b80ec8e87c700cae29433a498103ad3f273b7d3fe45cfe0cc",
+  "collection_policy": "recovered BC frozen; teacher observes this opponent distribution",
+  "source": "7b97aba",
+  "bridge": "25378fa",
+  "seed": 20261019,
+  "training_updates_during_collection": 0,
+  "split": "First eight per style train (40 total); last two per style validation (10 total); alternating seats; split by entire match",
+  "fit": "Not launched yet. Diagnose label coverage and held-out likelihood; no evaluation trajectories in gradients.",
+  "candidate_selection": "Any new candidate requires fresh frozen live evaluation; previous 200 and 400 remain final and separate.",
+  "output": "/opt/uoarena/anima3-demonstrations-7b97aba/.logs/candidate-teacher-collection-50-20261009",
+  "public_deployment": false
+}
