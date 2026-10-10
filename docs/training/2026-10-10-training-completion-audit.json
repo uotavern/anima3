@@ -1,0 +1,75 @@
+{
+  "objective": "Implement effective training and demonstrate measured improvement through live sparring experiments",
+  "requirements": [
+    {
+      "requirement": "Explore multiple training methods and diagnose failures",
+      "evidence": [
+        "2026-10-09-recovered-bc-replication-final.json",
+        "2026-10-09-demonstration-distribution-audit.json",
+        "2026-10-09-reference-bc-fit-final.json"
+      ],
+      "verified": true
+    },
+    {
+      "requirement": "Actually train model on separated real duel data",
+      "training_matches": 40,
+      "validation_matches": 10,
+      "updates": 320,
+      "method": "Action-balanced behavior cloning with frozen parent KL coefficient 0.5",
+      "train_validation_overlap": 0,
+      "verified": true
+    },
+    {
+      "requirement": "Load and run learned model in live client duels",
+      "local_checkpoint_loaded_and_hash_verified": "af3cb4ad485e9c55ad647fa54c35c1fa90336166dcfb34ebd96a41efce108175",
+      "live_candidate_matches": 100,
+      "fixed_checkpoint_in_live_rows": true,
+      "verified": true
+    },
+    {
+      "requirement": "Demonstrate live improvement without evaluation data leakage",
+      "unique_live_matches": 200,
+      "collection_evaluation_overlap": 0,
+      "gate_recomputed": {
+        "passed": true,
+        "enough_evidence": true,
+        "valid_templates": true,
+        "valid_episodes": true,
+        "paired_delta": 0.165,
+        "delta_ci95": [
+          0.045,
+          0.285
+        ],
+        "style_deltas": {
+          "balanced": 0.125,
+          "pressure": 0.3,
+          "burst": 0.15,
+          "defensive": 0.3,
+          "potions": -0.05
+        },
+        "reason": "improved",
+        "domain": "servuo",
+        "public_deployment": false
+      },
+      "verified": true
+    },
+    {
+      "requirement": "End scheduled games and preserve evidence",
+      "unit": "arena-training-reference-eval-20261009.service",
+      "observed_process_state": "inactive, MainPID=0, Result=success",
+      "status": "complete",
+      "completed": 200,
+      "artifact_hashes_verified": true,
+      "tests": "44 passed: live demonstrations, demonstration split, training league",
+      "verified": true
+    }
+  ],
+  "selected_checkpoint_local": "/Users/dkkang/dev/uo/arena-worktrees/anima3-training-league/.logs/reference-bc-final-audit/reference-bc",
+  "source_commit": "fdd76a5",
+  "scope_limits": [
+    "Improvement demonstrated against five fixed tactical teachers; human and unseen-opponent strength not established.",
+    "Potion style score fell by 0.05, within prespecified tolerance of 0.10.",
+    "This successful training method is behavior cloning with reference regularization, not evidence of successful live PPO.",
+    "Public deployment and further games are not started."
+  ]
+}
