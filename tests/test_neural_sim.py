@@ -389,3 +389,24 @@ def test_public_explosion_estimate_survives_followup_and_expires():
     assert sim.view(0).incoming_explosion_seconds == -1
     sim.reset()
     assert sim.view(0).incoming_explosion_seconds == -1
+
+
+def test_tactical_teacher_prioritizes_interrupt_before_opening_or_burst():
+    from anima3.neural.curriculum import TacticalTeacher
+    view = supplied(opponent_cast="explosion", opponent_spell_age=0.1)
+    assert TacticalTeacher("tactical").choose(view) == action("magic_arrow")
+    # Physical attack needs no cast, mana, or reagent but requires contact.
+    close = replace(view, distance=1, hands_free=True, mana=0)
+    assert TacticalTeacher("tactical").choose(close) == action("punch")
+    assert TacticalTeacher("tactical").choose(replace(close, stun_skilled=True)) == action("stun")
+
+
+def test_tactical_teacher_selects_both_dump_finishers_with_reserves():
+    from anima3.neural.curriculum import TacticalTeacher
+    view = supplied(elapsed=20)
+    assert TacticalTeacher("tactical").choose(view) == action("burst_bolt")
+    assert TacticalTeacher("tactical").choose(replace(view, opponent_hp=50)) == action("burst_flame")
+    assert TacticalTeacher("tactical").choose(replace(view, opponent_hp=50, mana=51)) == action("burst_bolt")
+    # Healing remains more urgent than an interrupt opportunity.
+    hurt = replace(view, hp=30, opponent_cast="explosion", opponent_spell_age=0.1)
+    assert TacticalTeacher("tactical").choose(hurt) == action("heal_potion")

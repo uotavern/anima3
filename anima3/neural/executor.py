@@ -34,7 +34,7 @@ POTION_GRAPHICS = {"heal_potion": 0x0F0C, "cure_potion": 0x0F07, "explosion_poti
 FUSE_SECONDS = 3.75
 SPELL_RECOVERY = 0.75
 STATE_FRESH_SECONDS = 3.0
-EXECUTOR_VERSION = "pre-aos-options-v9-explosion-word-memory"
+EXECUTOR_VERSION = "pre-aos-options-v10-ground-rethrow"
 CAST_VERDICTS = {**VERDICTS, 500641: "concentration disturbed"}
 
 
@@ -111,6 +111,8 @@ class CombatExecutor:
         self._opponent_cast = ""
         self._opponent_spell_at = -math.inf
         self._explosion_word_deadlines: list[float] = []
+        self._ground_fuses: dict[int, float] = {}
+        self._rethrow_attempted: set[int] = set()
         self._verdict_at = -math.inf
         self._verdict = ""
         self._los_refused_until = 0.0
@@ -172,6 +174,8 @@ class CombatExecutor:
         self._opponent_cast = ""
         self._opponent_spell_at = self._verdict_at = -math.inf
         self._explosion_word_deadlines.clear()
+        self._ground_fuses.clear()
+        self._rethrow_attempted.clear()
         self._los_refused_until = self._recovery_until = 0.0
         self._cooldowns = {name: 0.0 for name in (*POTION_GRAPHICS, "burst")}
         self._last_action = "hold"
@@ -224,7 +228,17 @@ class CombatExecutor:
             self._damage.append((now, dealt, received))
         while self._damage and now - self._damage[0][0] > 2:
             self._damage.popleft()
+        self._ground_fuses = {serial: expiry for serial, expiry in self._ground_fuses.items()
+                              if expiry > now}
         for journal in obs.new_journal:
+            # Item overhead countdown only. A mobile saying "3" is not a fuse.
+            if journal.text.strip() in ("1", "2", "3") and any(
+                i.serial == journal.serial and i.graphic == 0x0F0D and i.container is None
+                for i in obs.items
+            ):
+                expiry = now + int(journal.text.strip())
+                self._ground_fuses[journal.serial] = min(
+                    expiry, self._ground_fuses.get(journal.serial, expiry))
             if journal.cliloc == 1019011:
                 self._stun_armed, self._stun_pending = True, False
             elif journal.cliloc in (1019012, 1004013, 1004008, 1004031):
@@ -514,6 +528,37 @@ class CombatExecutor:
         )
         self.procedure = None
 
+    def start_ground_rethrow(self, obs: Observation, now: float) -> bool:
+        """Explicit tactical-controller action; never mislabeled as a policy sample.
+
+        ServUO permits double click within one tile and keeps the original fuse.
+        Only item overhead counts establish a conservative remaining-time bound.
+        This opt-in action is deliberately outside the frozen 27-action schema.
+        """
+        self.observe(obs, now=now)
+        if (self.busy or obs.pending_target or obs.player.dead or obs.player.paralyzed
+                or not self.view.ready or not self.view.fresh):
+            return False
+        enemy = self._opponent(obs)
+        if not enemy or not 3 <= chebyshev(obs.player.pos, enemy.pos) <= 12:
+            return False
+        for item in obs.items:
+            expiry = self._ground_fuses.get(item.serial, 0)
+            if (item.graphic != 0x0F0D or item.container is not None or item.amount != 1
+                    or chebyshev(obs.player.pos, item.pos) > 1
+                    or abs(item.pos.z - obs.player.pos.z) > 16
+                    or expiry - now < 1.5 or item.serial in self._rethrow_attempted):
+                continue
+            self._rethrow_attempted.add(item.serial)
+            self.procedure = Procedure(
+                -1, "ground_rethrow", now, stage="ground_use", stage_at=now,
+                deadline=expiry, potion_serial=item.serial,
+                primed_at=expiry - FUSE_SECONDS)
+            self._event("tactical_rethrow_started", now, serial=item.serial,
+                        remaining=expiry-now, policy_override=True, scope="policy_override")
+            return True
+        return False
+
     def _item(self, obs: Observation, name: str) -> int:
         return next(
             (
@@ -659,6 +704,8 @@ class CombatExecutor:
             or self._state.get("opponent") != self.opponent_serial
         )
         if ended and proc.stage not in (
+            "ground_use",
+            "ground_cursor",
             "throw_reopen",
             "potion_wait",
             "potion_cook",
@@ -669,6 +716,17 @@ class CombatExecutor:
             packets = self._wire({"type": "TargetCancel"}, now) if obs.pending_target else []
             self._finish(now, False, "combat context ended", forced=True)
             return packets
+        if proc.name == "ground_rethrow" and proc.stage in ("ground_use", "ground_cursor"):
+            if ended or now >= proc.deadline - 0.35:
+                packets = self._wire({"type": "TargetCancel"}, now) if obs.pending_target else []
+                self._finish(now, False, "rethrow context or fuse expired", forced=True)
+                return packets
+            if proc.stage == "ground_use":
+                proc.stage = "ground_cursor"
+                return self._wire(use(proc.potion_serial), now)
+            if _cursor(obs, 0, 1):
+                return self._throw(obs, now)
+            return []
         if proc.stage == "new":
             if proc.name == "hold":
                 self._stage("simple_wait", now, now + 0.15)
@@ -885,7 +943,7 @@ class CombatExecutor:
             if now >= proc.deadline:
                 # Never report a still-open target as a successful throw.
                 self._intervene(now, "potion throw unconfirmed")
-                if proc.primed_at is not None and now - proc.primed_at < 2.8:
+                if proc.name != "ground_rethrow" and proc.primed_at is not None and now - proc.primed_at < 2.8:
                     proc.throw_at = None
                     return self._begin_throw(obs, now)
                 self._finish(now, False, "potion throw unconfirmed", forced=True)

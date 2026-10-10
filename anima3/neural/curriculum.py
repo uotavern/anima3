@@ -1,6 +1,7 @@
 """Public-view teachers and randomized simulator drills; no production mutation."""
 from __future__ import annotations
 
+from .executor import cast_seconds
 from .schema import ACTION_INDEX, CombatView, legal_mask
 
 STYLES = ("balanced", "pressure", "burst", "defensive", "potions")
@@ -9,7 +10,7 @@ DRILLS = ("melee", "survival", "burst", "full")
 
 class TacticalTeacher:
     def __init__(self, style="balanced"):
-        if style not in STYLES:
+        if style not in (*STYLES, "tactical"):
             raise ValueError(style)
         self.style = style
         self.opened = set()
@@ -27,6 +28,21 @@ class TacticalTeacher:
             choices += ["refresh_potion", "agility_potion"]
         if hp < 0.3 or (self.style == "defensive" and view.distance < 4):
             choices += ["retreat"]
+        if self.style == "tactical":
+            # Public spell words indicate a possible cast, not guaranteed success.
+            remaining = (cast_seconds(view.opponent_cast) - view.opponent_spell_age
+                         if view.opponent_cast in ("greater_heal", "explosion", "energy_bolt",
+                                                   "flamestrike", "poison", "paralyze") else 0)
+            if remaining > 0:
+                if view.distance <= 1:
+                    choices += ["stun", "punch"]
+                elif view.distance == 2 and remaining > 0.5 and hp > 0.65:
+                    choices += ["approach"]
+                # First-circle cast + pre-AOS delayed damage + polling margin.
+                if remaining > cast_seconds("magic_arrow") + 0.5 + 0.15:
+                    choices += ["magic_arrow"]
+            if view.distance <= 1:
+                choices += ["stun", "punch"]
         if self.style == "pressure" and view.distance > 1:
             choices += ["approach"]
         if view.distance > 8:
@@ -40,6 +56,12 @@ class TacticalTeacher:
         if view.mana < 23:
             choices += ["retreat"] if view.distance < 6 else []
             choices += ["meditate"]
+        if self.style == "tactical":
+            # Flamestrike consumes more mana; retain a heal/cure reserve through
+            # the existing legal mask. Prefer its larger dump on a weakened foe.
+            hurt = view.opponent_health_known and view.opponent_hp / max(1, view.opponent_hp_max) < 0.6
+            choices += (["burst_flame", "burst_bolt"] if hurt else ["burst_bolt", "burst_flame"])
+            choices += ["explosion_potion"]
         if self.style == "burst":
             choices += ["burst_bolt", "explosion"]
         elif self.style == "potions":

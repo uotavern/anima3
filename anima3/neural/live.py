@@ -351,6 +351,10 @@ def _actor(body, opponent, worker, log, stop, *, deadline=340, expected_rules=TR
                 for packet in executor.tick(obs, time.monotonic()):
                     rpc("act:" + packet["type"], body.act, packet)
                 decision_at = time.monotonic()
+                if opponent_style == "tactical" and executor.start_ground_rethrow(obs, decision_at):
+                    # A separate observed-state tactic, not a 27-action neural
+                    # label. Keep this round out of BC/PPO collection.
+                    invalid.add("ground_rethrow_outside_policy_schema")
                 # Death can arrive before the final DuelState receipt. There is
                 # no decision to label outside a fresh, living combat context.
                 if (decision_at >= next_decision and decision_at - last_state < 3
@@ -478,7 +482,7 @@ def add_arguments(ap):
     ap.add_argument("--checkpoint", type=Path, required=True)
     ap.add_argument("--probe-resources", action="store_true")
     ap.add_argument("--experimental-tactic", choices=["magic", "punch", "stun", "dump-baseline", "dump-fast", "dump-held", "dump-primed"])
-    ap.add_argument("--opponent-style", choices=["balanced", "pressure", "burst", "defensive", "potions"])
+    ap.add_argument("--opponent-style", choices=["balanced", "pressure", "burst", "defensive", "potions", "tactical"])
     ap.add_argument("--opponent-checkpoint", type=Path)
     ap.add_argument("--opponent", choices=["scripted", "self"], default="scripted")
     ap.add_argument("--host", default="arena.uotavern.com")

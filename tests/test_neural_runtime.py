@@ -497,3 +497,64 @@ def test_lost_opponent_can_be_reacquired_without_hidden_position_leak():
     ex.reset(2,'next-round',32)
     f = ex.observe(replace(lost), {'phase':'Fighting','opponent':2}, 32)
     assert not f.mask[ACTION_INDEX['approach']]
+
+
+def ground_observation(count="3", *, x=101, enemy_x=106, cursor=None):
+    obs = observation(enemy_x=enemy_x, cursor=cursor)
+    obs.items.append(Item(7000, 0x0F0D, 1, Pos(x, 100), None, 0, abs(x-100)))
+    obs.new_journal = [Journal(7000, "", count, 0, 0x22, 0)] if count else []
+    return obs
+
+
+def test_ground_rethrow_uses_original_serial_and_immediately_targets():
+    obs = ground_observation()
+    ex = executor(obs)
+    assert ex.start_ground_rethrow(obs, 0)
+    assert ex.tick(obs, 0) == [{"type": "Use", "serial": 7000}]
+    cursor = ground_observation("", cursor=(0, 1, 88))
+    assert ex.tick(cursor, 0.15) == [{"type": "TargetObject", "serial": 2}]
+    ex.tick(ground_observation(""), 0.2)
+    assert not ex.busy
+    assert not ex.start_ground_rethrow(ground_observation(), 0.3)
+    assert any(e.get("policy_override") for e in ex.drain_events())
+
+
+@pytest.mark.parametrize("changes", [{"count": "1"}, {"count": ""}, {"x": 102}, {"enemy_x": 101}])
+def test_ground_rethrow_rejects_unknown_short_distant_or_unsafe_fuses(changes):
+    obs = ground_observation(**changes)
+    ex = executor(obs)
+    assert not ex.start_ground_rethrow(obs, 0)
+
+
+def test_ground_rethrow_does_not_restart_fuse_or_retry_after_timeout():
+    obs = ground_observation("2")
+    ex = executor(obs)
+    assert not ex.start_ground_rethrow(ground_observation(""), 0.6)
+    ex.reset(2, "round-2", 1)
+    obs = ground_observation("2")
+    ex.observe(obs, {"phase": "Fighting", "opponent": 2}, 1)
+    assert ex.start_ground_rethrow(obs, 1)
+    ex.tick(obs, 1)
+    assert ex.tick(ground_observation(""), 2.7) == []
+    assert not ex.busy
+    assert not ex.start_ground_rethrow(ground_observation(""), 2.8)
+
+
+def test_mobile_spoken_count_is_not_a_ground_potion_fuse():
+    obs = ground_observation("")
+    obs.new_journal = [Journal(2, "Opponent", "3", 0, 0x22, 0)]
+    ex = executor(obs)
+    assert not ex.start_ground_rethrow(obs, 0)
+
+
+def test_flamestrike_burst_uses_same_safe_sequence():
+    ex, obs = executor(), observation()
+    assert ex.start("burst_flame", obs, 0)
+    ex.tick(obs, 0)
+    ex.tick(observation(), 0.85)
+    ex.tick(observation(cursor=(1, 0, 12)), 1.65)
+    ex.tick(observation(cursor=(1, 0, 12)), 2.31)
+    ex.tick(observation(mana=80), 2.36)
+    assert ex.tick(observation(cursor=(0, 1, 13), mana=80), 2.41) == [{"type": "TargetObject", "serial": 2}]
+    ex.tick(observation(mana=80), 2.46)
+    assert ex.tick(observation(mana=80), 2.51) == [{"type": "CastSpell", "spell": 51}]
