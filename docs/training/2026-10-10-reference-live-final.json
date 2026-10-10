@@ -1,0 +1,108 @@
+{
+  "experiment": "reference-regularized BC fresh live confirmation",
+  "registry": {
+    "candidate": "/opt/uoarena/anima3-reference-fit-d4da520/candidate-reference-bc",
+    "gate": {
+      "delta_ci95": [
+        0.045,
+        0.285
+      ],
+      "domain": "servuo",
+      "enough_evidence": true,
+      "paired_delta": 0.165,
+      "passed": true,
+      "public_deployment": false,
+      "reason": "improved",
+      "style_deltas": {
+        "balanced": 0.125,
+        "burst": 0.15,
+        "defensive": 0.3,
+        "potions": -0.05,
+        "pressure": 0.3
+      },
+      "valid_episodes": true,
+      "valid_templates": true
+    },
+    "incumbent": "/opt/uoarena/anima3-training-skill-clock-20261007/warmstart",
+    "pairing": "style and challenger order; server RNG uncontrolled",
+    "public_deployment": false,
+    "real_server_strength_established": true,
+    "rollback_checkpoint": "/opt/uoarena/anima3-training-skill-clock-20261007/warmstart",
+    "selected_checkpoint": "/opt/uoarena/anima3-reference-fit-d4da520/candidate-reference-bc",
+    "selected_sha": "af3cb4ad485e9c55ad647fa54c35c1fa90336166dcfb34ebd96a41efce108175"
+  },
+  "models": {
+    "incumbent": {
+      "games": 100,
+      "wins": 55,
+      "losses": 37,
+      "draws": 8,
+      "score": 0.59,
+      "policy_sha": "0c6ca921e8bfd19fbaab3fa353d11819b2ba523cd1a810c2c4782447b7a5f56d",
+      "style_scores": {
+        "balanced": 0.625,
+        "burst": 0.55,
+        "defensive": 0.625,
+        "potions": 0.7,
+        "pressure": 0.45
+      }
+    },
+    "candidate": {
+      "games": 100,
+      "wins": 74,
+      "losses": 23,
+      "draws": 3,
+      "score": 0.755,
+      "policy_sha": "af3cb4ad485e9c55ad647fa54c35c1fa90336166dcfb34ebd96a41efce108175",
+      "style_scores": {
+        "balanced": 0.75,
+        "burst": 0.7,
+        "defensive": 0.925,
+        "potions": 0.65,
+        "pressure": 0.75
+      }
+    }
+  },
+  "unique_matches": 200,
+  "independently_recomputed_gate": {
+    "passed": true,
+    "enough_evidence": true,
+    "valid_templates": true,
+    "valid_episodes": true,
+    "paired_delta": 0.165,
+    "delta_ci95": [
+      0.045,
+      0.285
+    ],
+    "style_deltas": {
+      "balanced": 0.125,
+      "pressure": 0.3,
+      "burst": 0.15,
+      "defensive": 0.3,
+      "potions": -0.05
+    },
+    "reason": "improved",
+    "domain": "servuo",
+    "public_deployment": false
+  },
+  "audit": {
+    "all_episodes_eligible": true,
+    "all_templates_verified": true,
+    "fixed_expected_model_hashes": true,
+    "20_games_per_style_per_model": true,
+    "no_extra_games_started": true
+  },
+  "limitations": [
+    "Five fixed tactical opponent styles; does not establish strength against humans or unseen agents.",
+    "Pairing uses style and challenger order; server RNG uncontrolled.",
+    "Potions style score decreased 5 percentage points, within prespecified 10 point tolerance.",
+    "No gradient updates during evaluation; public deployment remains disabled."
+  ],
+  "artifact_sha256": {
+    "registry.json": "e41538c1cae54b0b3ffaed3260f33fc8d137625a4c589fc5c50cfc833a070892",
+    "plan.json": "e2a3128e9770a7d22d248c5823b9a74665ce0997c3271ec6eda1fbc3f1f3a034",
+    "evaluation-candidate.json": "adf0b763d7676422ffc21225143c6e71688969ab92fee1729b15332f0280d0df",
+    "evaluation-incumbent.json": "4051f034eb732e983cd803bb6ce53a6c12b90037da600c4b89c4c6e419a98bdf",
+    "status.json": "3c48c72e2aa1103bfcedf687cf603ae7a6ef94a2ce7ed1ba121ed2f713ec96f7"
+  }
+}
