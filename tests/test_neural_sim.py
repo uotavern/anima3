@@ -396,7 +396,7 @@ def test_tactical_teacher_prioritizes_interrupt_before_opening_or_burst():
     view = supplied(opponent_cast="explosion", opponent_spell_age=0.1)
     assert TacticalTeacher("tactical").choose(view) == action("magic_arrow")
     # Physical attack needs no cast, mana, or reagent but requires contact.
-    close = replace(view, distance=1, hands_free=True, mana=0)
+    close = replace(view, distance=1, hands_free=True, mana=30)
     assert TacticalTeacher("tactical").choose(close) == action("punch")
     assert TacticalTeacher("tactical").choose(replace(close, stun_skilled=True)) == action("stun")
 
@@ -410,3 +410,15 @@ def test_tactical_teacher_selects_both_dump_finishers_with_reserves():
     # Healing remains more urgent than an interrupt opportunity.
     hurt = replace(view, hp=30, opponent_cast="explosion", opponent_spell_age=0.1)
     assert TacticalTeacher("tactical").choose(hurt) == action("heal_potion")
+
+
+def test_tactical_low_mana_waits_until_reserve_and_never_chips():
+    from anima3.neural.curriculum import TacticalTeacher
+    teacher = TacticalTeacher("tactical")
+    view = supplied(elapsed=20, mana=10, hands_free=True,
+                    opponent_cast="explosion", opponent_spell_age=0.1)
+    assert teacher.choose(view) == action("meditate")
+    assert teacher.choose(replace(view, mana=40, meditation_cooldown=5)) == action("hold")
+    assert teacher.choose(replace(view, mana=59)) == action("meditate")
+    assert teacher.choose(replace(view, mana=60)) == action("magic_arrow")
+    assert teacher.choose(replace(view, hp=25)) == action("heal_potion")

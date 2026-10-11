@@ -558,3 +558,61 @@ def test_flamestrike_burst_uses_same_safe_sequence():
     assert ex.tick(observation(cursor=(0, 1, 13), mana=80), 2.41) == [{"type": "TargetObject", "serial": 2}]
     ex.tick(observation(mana=80), 2.46)
     assert ex.tick(observation(mana=80), 2.51) == [{"type": "CastSpell", "spell": 51}]
+
+
+def incoming_observation(*, seq=1, cursor=None, x=100):
+    obs = observation(cursor=cursor)
+    obs.recent_effects = [{"seq": seq, "kind": 0, "graphic": 0x0F0D,
+                           "src": 2, "tgt": 1, "to": {"x": x, "y": 100, "z": 0}}]
+    return obs
+
+
+def test_incoming_unknown_fuse_evades_and_deduplicates_ring():
+    ex = executor()
+    handled, packets = ex.defend_potions(incoming_observation(), 0.1)
+    assert handled and any(p["type"] == "Walk" and p["run"] for p in packets)
+    assert ex.defend_potions(incoming_observation(), 0.15) == (True, [])
+    ex.observe(incoming_observation(), {"phase": "Fighting", "opponent": 2}, 4.2)
+    assert ex.defend_potions(incoming_observation(), 4.2) == (False, [])
+
+
+def test_potion_defense_prefers_confirmed_safe_rethrow():
+    obs = ground_observation("2")
+    ex = executor(obs)
+    handled, packets = ex.defend_potions(obs, 0.1)
+    assert handled and packets == [{"type": "Use", "serial": 7000}]
+    assert ex.defend_potions(ground_observation("", cursor=(0, 1, 88)), 0.2)[1] == [
+        {"type": "TargetObject", "serial": 2}]
+
+
+def test_potion_defense_short_fuse_cancels_spell_and_evades():
+    ex = executor()
+    assert ex.start("explosion", observation(), 0)
+    ex.tick(observation(), 0)
+    obs = ground_observation("1", cursor=(1, 0, 44))
+    handled, packets = ex.defend_potions(obs, 1)
+    assert handled and packets[0] == {"type": "TargetCancel"}
+    assert packets[-1]["type"] == "Walk"
+    assert not ex.busy
+
+
+def test_potion_defense_ignores_historical_ring_and_own_projectile():
+    obs = incoming_observation()
+    ex = executor(obs)
+    assert ex.defend_potions(obs, 0.1) == (False, [])
+    own = incoming_observation(seq=2)
+    own.recent_effects[0]["src"] = 1
+    assert ex.defend_potions(own, 0.2) == (False, [])
+
+
+def test_potion_defense_never_walks_through_blocked_terrain():
+    ex = executor()
+    obs = incoming_observation()
+    obs.terrain = Terrain((88, 88), 25, "#" * 625)
+    assert ex.defend_potions(obs, 0.1) == (True, [])
+    assert any(e["type"] == "potion_escape_blocked" for e in ex.drain_events())
+
+
+def test_contract_preserves_public_projectile_ring():
+    effect = incoming_observation().recent_effects
+    assert Observation.from_json({"recent_effects": effect}).recent_effects == effect

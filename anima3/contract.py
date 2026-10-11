@@ -290,6 +290,7 @@ class Observation:
     shop_sell: ShopSell | None = None
     corpse_of: dict[int, int] = field(default_factory=dict)   # corpse serial -> killed mobile serial
     skills: list[Skill] = field(default_factory=list)
+    recent_effects: list[dict[str, Any]] = field(default_factory=list)
 
     @classmethod
     def from_json(cls, d: dict[str, Any]) -> Observation:
@@ -311,6 +312,7 @@ class Observation:
             shop_sell=ShopSell.from_json(ss) if ss else None,
             corpse_of={int(x.get("corpse", 0)): int(x.get("killed", 0)) for x in d.get("corpse_of") or []},
             skills=[Skill.from_json(x) for x in d.get("skills") or []],
+            recent_effects=list(d.get("recent_effects") or []),
         )
 
     # --- convenience views -------------------------------------------------

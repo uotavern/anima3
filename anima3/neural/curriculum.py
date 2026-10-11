@@ -15,6 +15,7 @@ class TacticalTeacher:
         self.style = style
         self.opened = set()
         self.followup = False
+        self.recovering_mana = False
 
     def choose(self, view: CombatView, mask=None) -> int:
         mask = legal_mask(view) if mask is None else mask
@@ -29,6 +30,16 @@ class TacticalTeacher:
         if hp < 0.3 or (self.style == "defensive" and view.distance < 4):
             choices += ["retreat"]
         if self.style == "tactical":
+            if view.mana < 23:
+                self.recovering_mana = True
+            elif view.mana >= min(60, view.mana_max * 0.75):
+                self.recovering_mana = False
+            if self.recovering_mana:
+                # No chip attacks or opening debuffs while rebuilding mana.
+                # Hysteresis prevents spending each newly regenerated point.
+                choices += ["retreat"] if view.distance < 6 else []
+                choices += ["meditate", "hold"]
+                return next(ACTION_INDEX[n] for n in choices if mask[ACTION_INDEX[n]])
             # Public spell words indicate a possible cast, not guaranteed success.
             remaining = (cast_seconds(view.opponent_cast) - view.opponent_spell_age
                          if view.opponent_cast in ("greater_heal", "explosion", "energy_bolt",

@@ -348,13 +348,19 @@ def _actor(body, opponent, worker, log, stop, *, deadline=340, expected_rules=TR
                 rpc("pump", body.pump, 10 if fast_timing else 50)
             elif tactical_teacher:
                 frame = executor.observe(obs, server_state=update, now=now)
+                defending, defense_packets = (executor.defend_potions(obs, time.monotonic())
+                                               if opponent_style == "tactical" else (False, []))
+                if defending:
+                    invalid.add("potion_defense_outside_policy_schema")
+                    for packet in defense_packets:
+                        rpc("act:" + packet["type"], body.act, packet)
+                    for event in executor.drain_events():
+                        emit(event)
+                    rpc("pump", body.pump, 10)
+                    continue
                 for packet in executor.tick(obs, time.monotonic()):
                     rpc("act:" + packet["type"], body.act, packet)
                 decision_at = time.monotonic()
-                if opponent_style == "tactical" and executor.start_ground_rethrow(obs, decision_at):
-                    # A separate observed-state tactic, not a 27-action neural
-                    # label. Keep this round out of BC/PPO collection.
-                    invalid.add("ground_rethrow_outside_policy_schema")
                 # Death can arrive before the final DuelState receipt. There is
                 # no decision to label outside a fresh, living combat context.
                 if (decision_at >= next_decision and decision_at - last_state < 3

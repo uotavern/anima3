@@ -34,7 +34,7 @@ POTION_GRAPHICS = {"heal_potion": 0x0F0C, "cure_potion": 0x0F07, "explosion_poti
 FUSE_SECONDS = 3.75
 SPELL_RECOVERY = 0.75
 STATE_FRESH_SECONDS = 3.0
-EXECUTOR_VERSION = "pre-aos-options-v10-ground-rethrow"
+EXECUTOR_VERSION = "pre-aos-options-v11-potion-defense"
 CAST_VERDICTS = {**VERDICTS, 500641: "concentration disturbed"}
 
 
@@ -113,6 +113,9 @@ class CombatExecutor:
         self._explosion_word_deadlines: list[float] = []
         self._ground_fuses: dict[int, float] = {}
         self._rethrow_attempted: set[int] = set()
+        self._effect_seq: int | None = None
+        self._incoming_potions: list[tuple[Pos, float]] = []
+        self._dodge_at = -math.inf
         self._verdict_at = -math.inf
         self._verdict = ""
         self._los_refused_until = 0.0
@@ -176,6 +179,9 @@ class CombatExecutor:
         self._explosion_word_deadlines.clear()
         self._ground_fuses.clear()
         self._rethrow_attempted.clear()
+        self._effect_seq = None
+        self._incoming_potions.clear()
+        self._dodge_at = -math.inf
         self._los_refused_until = self._recovery_until = 0.0
         self._cooldowns = {name: 0.0 for name in (*POTION_GRAPHICS, "burst")}
         self._last_action = "hold"
@@ -193,6 +199,17 @@ class CombatExecutor:
         if obs is self._last_observation:
             return
         self._last_observation, self._observed_at = obs, now
+        # The bridge already exposes public 0x70/0xC0/0xC7 moving effects.
+        # Ignore the initial historical ring and consume subsequent seqs once.
+        effects = obs.recent_effects
+        if self._effect_seq is not None:
+            for effect in effects:
+                if (int(effect.get("seq", 0)) > self._effect_seq
+                        and effect.get("kind") == 0 and effect.get("graphic") == 0x0F0D
+                        and effect.get("src") != obs.player.serial):
+                    self._incoming_potions.append((Pos.from_json(effect.get("to")), now + 4.0))
+        self._effect_seq = max([self._effect_seq or 0] + [int(e.get("seq", 0)) for e in effects])
+        self._incoming_potions = [(pos, expiry) for pos, expiry in self._incoming_potions if expiry > now][-32:]
         current_cursor = (
             obs.pending_target,
             obs.target_cursor_id,
@@ -527,6 +544,71 @@ class CombatExecutor:
             potion_throw_at=proc.throw_at,
         )
         self.procedure = None
+
+    def defend_potions(self, obs: Observation, now: float) -> tuple[bool, list[dict]]:
+        """Opt-in public-observation defense; returns whether it owns this tick.
+
+        Unknown fuse means evade immediately. Reuse only a landed, counted item.
+        No hidden server timers and no guarantee against latency or blocked exits.
+        """
+        self.observe(obs, now=now)
+        if (not self.view.fresh or obs.player.dead
+                or self._state.get("phase") != "Fighting"
+                or self._state.get("opponent") != self.opponent_serial):
+            return False, []
+        if self.procedure and self.procedure.name == "ground_rethrow":
+            return True, self.tick(obs, now)
+        hazards = [pos for pos, expiry in self._incoming_potions if expiry > now]
+        hazards += [item.pos for item in obs.items if item.container is None
+                    and self._ground_fuses.get(item.serial, 0) > now]
+        if not any(chebyshev(obs.player.pos, pos) <= 2 for pos in hazards):
+            return False, []
+        if self.start_ground_rethrow(obs, now):
+            return True, self.tick(obs, now)
+        if now - self._dodge_at < 0.2:
+            return True, []
+        self._dodge_at = now
+        self._event("potion_evasion", now, policy_override=True, scope="policy_override")
+        proc = self.procedure
+        # Dispose our own lit potion before replacing its cursor/procedure.
+        if proc and proc.primed_at is not None and proc.throw_at is None:
+            return True, self._begin_throw(obs, now, "incoming potion while holding lit potion")
+        packets = []
+        if obs.pending_target:
+            packets += self._wire({"type": "TargetCancel"}, now)
+        if proc:
+            self._finish(now, False, "evade incoming potion", forced=True)
+        if obs.player.paralyzed or obs.player.stam <= 0 or obs.terrain is None:
+            return True, packets
+        # Bounded BFS can route around corners; one acknowledged position per tick.
+        start = (obs.player.pos.x, obs.player.pos.y)
+        occupied = {(m.pos.x, m.pos.y) for m in obs.mobiles if not m.hidden}
+        queue = deque([(start, None, 0)])
+        visited = {start}
+        best, best_distance = None, min(chebyshev(obs.player.pos, p) for p in hazards)
+        while queue:
+            (x, y), first, depth = queue.popleft()
+            distance = min(max(abs(x-p.x), abs(y-p.y)) for p in hazards)
+            if first is not None and distance > best_distance:
+                best, best_distance = first, distance
+            if distance > 2:
+                best = first
+                break
+            if depth >= 4:
+                continue
+            for direction, (dx, dy) in enumerate(DIRECTION_DELTAS):
+                nxt = (x+dx, y+dy)
+                if (nxt in visited or nxt in occupied or obs.terrain.walkable(*nxt) is not True
+                        or (dx and dy and (obs.terrain.walkable(x+dx, y) is not True
+                                           or obs.terrain.walkable(x, y+dy) is not True))):
+                    continue
+                visited.add(nxt)
+                queue.append((nxt, direction if first is None else first, depth+1))
+        if best is not None:
+            packets += self._wire(walk(best, run=True), now)
+        else:
+            self._event("potion_escape_blocked", now)
+        return True, packets
 
     def start_ground_rethrow(self, obs: Observation, now: float) -> bool:
         """Explicit tactical-controller action; never mislabeled as a policy sample.
