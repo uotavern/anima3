@@ -34,7 +34,7 @@ POTION_GRAPHICS = {"heal_potion": 0x0F0C, "cure_potion": 0x0F07, "explosion_poti
 FUSE_SECONDS = 3.75
 SPELL_RECOVERY = 0.75
 STATE_FRESH_SECONDS = 3.0
-EXECUTOR_VERSION = "pre-aos-options-v11-potion-defense"
+EXECUTOR_VERSION = "pre-aos-options-v12-potion-landing-tracking"
 CAST_VERDICTS = {**VERDICTS, 500641: "concentration disturbed"}
 
 
@@ -114,7 +114,7 @@ class CombatExecutor:
         self._ground_fuses: dict[int, float] = {}
         self._rethrow_attempted: set[int] = set()
         self._effect_seq: int | None = None
-        self._incoming_potions: list[tuple[Pos, float]] = []
+        self._incoming_potions: list[tuple[Pos, float, int, float]] = []
         self._dodge_at = -math.inf
         self._verdict_at = -math.inf
         self._verdict = ""
@@ -207,9 +207,10 @@ class CombatExecutor:
                 if (int(effect.get("seq", 0)) > self._effect_seq
                         and effect.get("kind") == 0 and effect.get("graphic") == 0x0F0D
                         and effect.get("src") != obs.player.serial):
-                    self._incoming_potions.append((Pos.from_json(effect.get("to")), now + 4.0))
+                    self._incoming_potions.append((Pos.from_json(effect.get("to")), now + 4.0,
+                                                   int(effect.get("tgt", 0)), now + 1.15))
         self._effect_seq = max([self._effect_seq or 0] + [int(e.get("seq", 0)) for e in effects])
-        self._incoming_potions = [(pos, expiry) for pos, expiry in self._incoming_potions if expiry > now][-32:]
+        self._incoming_potions = [entry for entry in self._incoming_potions if entry[1] > now][-32:]
         current_cursor = (
             obs.pending_target,
             obs.target_cursor_id,
@@ -558,9 +559,18 @@ class CombatExecutor:
             return False, []
         if self.procedure and self.procedure.name == "ground_rethrow":
             return True, self.tick(obs, now)
-        hazards = [pos for pos, expiry in self._incoming_potions if expiry > now]
+        hazards = []
+        for pos, expiry, target, flight_until in self._incoming_potions:
+            if expiry <= now:
+                continue
+            # ServUO Reposition_OnTick retains the targeted Mobile object and
+            # resolves its location after the one-second flight, not at release.
+            mobile = (obs.player if target == obs.player.serial else
+                      next((m for m in obs.mobiles if m.serial == target), None))
+            hazards.append(mobile.pos if mobile and now < flight_until else pos)
         hazards += [item.pos for item in obs.items if item.container is None
-                    and self._ground_fuses.get(item.serial, 0) > now]
+                    and item.graphic == 0x0F0D and (self._ground_fuses.get(item.serial, 0) > now
+                                                  or self._incoming_potions)]
         if not any(chebyshev(obs.player.pos, pos) <= 2 for pos in hazards):
             return False, []
         if self.start_ground_rethrow(obs, now):

@@ -616,3 +616,21 @@ def test_potion_defense_never_walks_through_blocked_terrain():
 def test_contract_preserves_public_projectile_ring():
     effect = incoming_observation().recent_effects
     assert Observation.from_json({"recent_effects": effect}).recent_effects == effect
+
+
+def test_potion_landing_follows_mobile_then_visible_ground_position():
+    ex = executor()
+    first = incoming_observation()
+    assert ex.defend_potions(first, 0.1)[0]
+    moved = incoming_observation()
+    moved.player.pos = Pos(100, 97)
+    # Three tiles from original throw point is not yet safe during flight.
+    assert ex.defend_potions(moved, 0.5)[0]
+    landed = incoming_observation()
+    landed.player.pos = Pos(100, 97)
+    landed.items.append(Item(7999, 0x0F0D, 1, Pos(100, 97), None, 0, 0))
+    assert ex.defend_potions(landed, 1.4)[0]
+    escaped = incoming_observation()
+    escaped.player.pos = Pos(100, 94)
+    escaped.items.append(Item(7999, 0x0F0D, 1, Pos(100, 97), None, 0, 3))
+    assert not ex.defend_potions(escaped, 1.8)[0]
