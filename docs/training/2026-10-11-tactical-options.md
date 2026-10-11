@@ -74,4 +74,29 @@ and neural weights are unchanged.
 Validation: 96 runtime/simulator/live-contract tests passed, including projectile
 ring decode/deduplication, historical and own-projectile filtering, blocked exits,
 short-fuse spell cancellation, safe rethrow priority, and mana recovery hysteresis.
-These defense/recovery changes have not yet been live-tested or deployed.
+Deployment and live validation subsequently completed; see the report below.
+
+
+## Server deployment and live validation (2026-10-11)
+
+- Initial defense snapshot 5672268: two complete games, tactical 1W/1L.
+- Found a real server mechanic mismatch: potion Reposition_OnTick retains a Mobile
+  target until its one-second landing callback, so the landing location follows
+  the target during flight. Tracking only the original destination was insufficient.
+- Corrected snapshot 99f0184 deployed to
+  `/opt/uoarena/anima3-defense-99f0184`; two further games, tactical 2W/0L.
+  Unit `arena-training-defense-99f0184` finished inactive with Result=success.
+- Added public target-position tracking during flight and visible ground-potion
+  tracking after landing. 97 focused tests passed before deployment.
+- Initial snapshot: 2/10 enemy explosions had no damage event to the defender in
+  the next 50 ms; corrected snapshot: 6/9. This is an event-association audit, not
+  definitive damage-source attribution or a statistically established gain.
+- Corrected first-game failures include movement delayed during casting and
+  insufficient time to exit after landing/direction change. Avoidance is not guaranteed.
+- All four games: zero offensive action selections during the recorded mana
+  recovery periods. Cure/heal, resources, retreat, meditation and hold were allowed.
+- No ground rethrow occurred in these four games; the earlier two-game tactical
+  pilot separately verified rethrow. No neural weights were updated or promoted.
+- Raw replay SHA256 values were checked against server metadata. Audits are
+  `2026-10-11-defense-v11-live.json` and `2026-10-11-defense-v12-live.json`;
+  regenerate using `scripts/report_potion_defense.py`.

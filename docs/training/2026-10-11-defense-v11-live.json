@@ -1,0 +1,166 @@
+{
+  "status": "complete",
+  "training_updates": 0,
+  "matches": [
+    {
+      "id": "d7d1f1c921534126afed26f2fee846cb",
+      "winner": 58,
+      "replay_sha256": "9bce23df48ffdea55671f06af48f9c9f794eed38b70bf0f3b4484d16b4698d87",
+      "explosions": [
+        {
+          "at_ms": 19800,
+          "landing": [
+            4455,
+            1149,
+            1
+          ],
+          "last_frame_age_ms": 78,
+          "last_frame_distance": 0,
+          "damage_in_next_50ms": 28
+        },
+        {
+          "at_ms": 36643,
+          "landing": [
+            4457,
+            1151,
+            1
+          ],
+          "last_frame_age_ms": 21,
+          "last_frame_distance": 1,
+          "damage_in_next_50ms": 28
+        },
+        {
+          "at_ms": 50169,
+          "landing": [
+            4457,
+            1150,
+            1
+          ],
+          "last_frame_age_ms": 73,
+          "last_frame_distance": 3,
+          "damage_in_next_50ms": 0
+        },
+        {
+          "at_ms": 62399,
+          "landing": [
+            4456,
+            1149,
+            1
+          ],
+          "last_frame_age_ms": 32,
+          "last_frame_distance": 0,
+          "damage_in_next_50ms": 25
+        },
+        {
+          "at_ms": 73142,
+          "landing": [
+            4457,
+            1151,
+            1
+          ],
+          "last_frame_age_ms": 117,
+          "last_frame_distance": 1,
+          "damage_in_next_50ms": 40
+        }
+      ],
+      "defense_events": {
+        "potion_evasion": 30
+      },
+      "recovery_actions": {
+        "meditate": 12,
+        "hold": 358,
+        "heal": 8,
+        "refresh_potion": 2,
+        "heal_potion": 5,
+        "retreat": 3,
+        "greater_heal": 4,
+        "agility_potion": 1
+      },
+      "recovery_violations": [],
+      "demonstration_eligible": false,
+      "invalid_reasons": [
+        "potion_defense_outside_policy_schema"
+      ]
+    },
+    {
+      "id": "b4dfb936dfc2475ebcfc6b2560638e0d",
+      "winner": 57,
+      "replay_sha256": "7f75b8c432f496ccc0768442a220e336b605b1e6f3d215b5514044d82e873f42",
+      "explosions": [
+        {
+          "at_ms": 100930,
+          "landing": [
+            1222,
+            1713,
+            1
+          ],
+          "last_frame_age_ms": 146,
+          "last_frame_distance": 0,
+          "damage_in_next_50ms": 26
+        },
+        {
+          "at_ms": 163290,
+          "landing": [
+            1224,
+            1713,
+            1
+          ],
+          "last_frame_age_ms": 141,
+          "last_frame_distance": 3,
+          "damage_in_next_50ms": 0
+        },
+        {
+          "at_ms": 173631,
+          "landing": [
+            1232,
+            1713,
+            1
+          ],
+          "last_frame_age_ms": 9,
+          "last_frame_distance": 0,
+          "damage_in_next_50ms": 36
+        },
+        {
+          "at_ms": 183812,
+          "landing": [
+            1234,
+            1715,
+            1
+          ],
+          "last_frame_age_ms": 132,
+          "last_frame_distance": 1,
+          "damage_in_next_50ms": 31
+        },
+        {
+          "at_ms": 194921,
+          "landing": [
+            1234,
+            1713,
+            1
+          ],
+          "last_frame_age_ms": 186,
+          "last_frame_distance": 0,
+          "damage_in_next_50ms": 30
+        }
+      ],
+      "defense_events": {
+        "potion_evasion": 21
+      },
+      "recovery_actions": {
+        "hold": 345,
+        "heal_potion": 3,
+        "retreat": 8,
+        "meditate": 12,
+        "greater_heal": 5,
+        "refresh_potion": 2,
+        "agility_potion": 1
+      },
+      "recovery_violations": [],
+      "demonstration_eligible": false,
+      "invalid_reasons": [
+        "potion_defense_outside_policy_schema"
+      ]
+    }
+  ],
+  "limits": "Two-game mechanics pilot, no strength estimate. Frame positions are sampled; damage within 50ms is a temporal association, not explicit spell attribution. Recovery audit uses the verified 100 maximum mana template."
+}
