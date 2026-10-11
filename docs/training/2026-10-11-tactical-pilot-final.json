@@ -1,0 +1,287 @@
+{
+  "source": "6bb1756",
+  "status": "complete",
+  "training_updates": 0,
+  "matches": [
+    {
+      "id": "6ac492f68ce5445b88387d427d396237",
+      "winner": 58,
+      "replay_sha256": "898b4dfadc5682d875022ad6bbdbb8b634b6e0c480fb8bc4a1cb5ed43aa90402",
+      "actions": {
+        "weaken": 1,
+        "clumsy": 1,
+        "burst_bolt": 1,
+        "explosion": 1
+      },
+      "rethrows": [],
+      "demonstration_eligible": true,
+      "invalid_reasons": []
+    },
+    {
+      "id": "3197f5847d1943ceb1311c901e5d8a00",
+      "winner": 57,
+      "replay_sha256": "3be1a193077a6ac6d92f7df5ba249016186b73b3aa9c8c8ded7fff528d4f799e",
+      "actions": {
+        "weaken": 1,
+        "clumsy": 1,
+        "agility_potion": 2,
+        "burst_bolt": 1,
+        "explosion_potion": 5,
+        "explosion": 4,
+        "refresh_potion": 5,
+        "energy_bolt": 4,
+        "hold": 297,
+        "magic_arrow": 32,
+        "heal_potion": 6,
+        "greater_heal": 1,
+        "meditate": 18,
+        "heal": 16,
+        "approach": 29,
+        "retreat": 30
+      },
+      "rethrows": [
+        {
+          "item": 1073799619,
+          "remaining_estimate": 1.6652745380997658,
+          "server_states": [
+            {
+              "seq": 383,
+              "t": 33407,
+              "type": "potion_state",
+              "actor": 57,
+              "item": 1073799619,
+              "graphic": 3853,
+              "hue": 0,
+              "phase": "prime",
+              "count": -1,
+              "holder": 57,
+              "flight": false,
+              "pos": [
+                4454,
+                1152,
+                1
+              ],
+              "from": [
+                4454,
+                1152,
+                1
+              ]
+            },
+            {
+              "seq": 390,
+              "t": 33563,
+              "type": "potion_state",
+              "actor": 57,
+              "item": 1073799619,
+              "graphic": 3853,
+              "hue": 0,
+              "phase": "throw",
+              "count": -1,
+              "holder": 0,
+              "flight": true,
+              "pos": [
+                4447,
+                1152,
+                1
+              ],
+              "from": [
+                4454,
+                1152,
+                1
+              ]
+            },
+            {
+              "seq": 394,
+              "t": 34160,
+              "type": "potion_state",
+              "actor": 57,
+              "item": 1073799619,
+              "graphic": 3853,
+              "hue": 0,
+              "phase": "tick",
+              "count": 3,
+              "holder": 0,
+              "flight": true,
+              "pos": [
+                4447,
+                1152,
+                1
+              ],
+              "from": [
+                4454,
+                1152,
+                1
+              ]
+            },
+            {
+              "seq": 400,
+              "t": 34588,
+              "type": "potion_state",
+              "actor": 57,
+              "item": 1073799619,
+              "graphic": 3853,
+              "hue": 0,
+              "phase": "land",
+              "count": -1,
+              "holder": 0,
+              "flight": false,
+              "pos": [
+                4447,
+                1152,
+                1
+              ],
+              "from": [
+                4454,
+                1152,
+                1
+              ]
+            },
+            {
+              "seq": 409,
+              "t": 35189,
+              "type": "potion_state",
+              "actor": 57,
+              "item": 1073799619,
+              "graphic": 3853,
+              "hue": 0,
+              "phase": "tick",
+              "count": 2,
+              "holder": 0,
+              "flight": false,
+              "pos": [
+                4447,
+                1152,
+                1
+              ],
+              "from": [
+                4454,
+                1152,
+                1
+              ]
+            },
+            {
+              "seq": 418,
+              "t": 35674,
+              "type": "potion_state",
+              "actor": 58,
+              "item": 1073799619,
+              "graphic": 3853,
+              "hue": 0,
+              "phase": "throw",
+              "count": -1,
+              "holder": 0,
+              "flight": true,
+              "pos": [
+                4454,
+                1152,
+                1
+              ],
+              "from": [
+                4447,
+                1152,
+                1
+              ]
+            },
+            {
+              "seq": 424,
+              "t": 36220,
+              "type": "potion_state",
+              "actor": 57,
+              "item": 1073799619,
+              "graphic": 3853,
+              "hue": 0,
+              "phase": "tick",
+              "count": 1,
+              "holder": 0,
+              "flight": true,
+              "pos": [
+                4454,
+                1152,
+                1
+              ],
+              "from": [
+                4454,
+                1152,
+                1
+              ]
+            },
+            {
+              "seq": 427,
+              "t": 36679,
+              "type": "potion_state",
+              "actor": 58,
+              "item": 1073799619,
+              "graphic": 3853,
+              "hue": 0,
+              "phase": "land",
+              "count": -1,
+              "holder": 0,
+              "flight": false,
+              "pos": [
+                4454,
+                1152,
+                1
+              ],
+              "from": [
+                4447,
+                1152,
+                1
+              ]
+            },
+            {
+              "seq": 436,
+              "t": 37224,
+              "type": "potion_state",
+              "actor": 57,
+              "item": 1073799619,
+              "graphic": 3853,
+              "hue": 0,
+              "phase": "tick",
+              "count": 0,
+              "holder": 0,
+              "flight": false,
+              "pos": [
+                4454,
+                1152,
+                1
+              ],
+              "from": [
+                4454,
+                1152,
+                1
+              ]
+            },
+            {
+              "seq": 437,
+              "t": 37224,
+              "type": "potion_state",
+              "actor": 57,
+              "item": 1073799619,
+              "graphic": 3853,
+              "hue": 0,
+              "phase": "explode",
+              "count": 0,
+              "holder": 0,
+              "flight": false,
+              "pos": [
+                4454,
+                1152,
+                1
+              ],
+              "from": [
+                4454,
+                1152,
+                1
+              ]
+            }
+          ]
+        }
+      ],
+      "demonstration_eligible": false,
+      "invalid_reasons": [
+        "ground_rethrow_outside_policy_schema"
+      ]
+    }
+  ],
+  "conclusion": "Two mechanics pilot games, one win each. Ground rethrow verified by same serial changing thrower without new prime. No strength claim or training update."
+}
