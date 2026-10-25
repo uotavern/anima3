@@ -48,7 +48,8 @@ uv run python -m anima3 --offline hostile --backend qwen --persona adventurer
 uv run python -m anima3 --offline ambush  --backend qwen --persona miner
 uv run python -m anima3 --offline town    --backend scripted        # the rule alone
 
-# live: the hosted shard uo.hulryung.com:2593 by default (ANIMA3_HOST=127.0.0.1 for a local ServUO);
+# live: the hosted lab shard uo.hulryung.com:2594 by default — its own ServUO (pub57, fourteen rings) beside the
+# public arena on the arena Linode (ANIMA3_HOST=127.0.0.1 ANIMA3_PORT=2593 for a local ServUO);
 # staff commands need the `anima3` account, the only one with staff access there; the bridge is built in ../anima-client
 ( cd ../anima-client && cargo build --release -p anima-session -p anima-net )   # anima-bridge (headless) + anima-agent (--monitor)
 uv run python -m anima3.gm --createworld            # once, as the owner account

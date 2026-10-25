@@ -51,7 +51,7 @@ class Body(Protocol):
 
 #: The shard. The hosted one by default; `ANIMA3_HOST=127.0.0.1` for a local ServUO.
 DEFAULT_HOST = os.environ.get("ANIMA3_HOST", "uo.hulryung.com")
-DEFAULT_PORT = int(os.environ.get("ANIMA3_PORT", "2593"))
+DEFAULT_PORT = int(os.environ.get("ANIMA3_PORT", "2594"))
 DEFAULT_BRIDGE = Path.home() / "dev" / "uo" / "anima-client" / "target" / "release" / "anima-bridge"
 #: The spectator build, used when `monitor_port` is set and no binary is named.
 DEFAULT_MONITOR_BRIDGE = DEFAULT_BRIDGE.with_name("anima-agent")
