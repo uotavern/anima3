@@ -58,6 +58,9 @@ SPELLS: dict[str, Spell] = {s.key: s for s in [
     Spell("reactive_armor", 7, 1, frozenset({GARLIC, SPIDERS_SILK, SULFUROUS_ASH}), "buff", "Reactive Armor: reflect some melee damage (4 mana)."),
 ]}
 SELF_TARGET = {"heal", "cure", "buff"}
+#: Buffs go off on the caster with no target cursor: waiting for one failed every Magic Reflection
+#: ("no cursor"), so reflection stayed due and `sustain` cast nothing else (experiment 5's void).
+NO_CURSOR = {"buff"}
 #: Every cast is spoken aloud: the opponent's power words are how a mage reads the other's casting.
 WORDS = {"in por ylem": "Magic Arrow", "an mani": "Harm", "vas flam": "Fireball", "por ort grav": "Lightning",
          "corp por": "Energy Bolt", "vas ort flam": "Explosion", "kal vas flam": "Flamestrike", "in mani": "Heal",
@@ -78,18 +81,21 @@ def has_reagents(obs: Observation, spell: Spell) -> bool:
 def cast_proc(spell: Spell, target_serial: int):
     def proc(obs0, memory):
         mana0 = obs0.player.mana
+        if spell.key == "magic_reflection":    # an attempt restarts the clock: a reflection the opponent's
+            memory["reflect_at"] = memory.get("tick", 0)   # arrows keep disturbing was retried forever
         obs = yield {"type": "CastSpell", "spell": spell.id}
-        for _ in range(8):
-            cl = {j.cliloc for j in obs.new_journal}
-            for c, v in VERDICTS.items():
-                if c in cl:
-                    return v
-            if obs.pending_target:
-                break
-            obs = yield None
-        if not obs.pending_target:
-            return "no cursor"
-        obs = yield target_object(target_serial)
+        if spell.kind not in NO_CURSOR:
+            for _ in range(8):
+                cl = {j.cliloc for j in obs.new_journal}
+                for c, v in VERDICTS.items():
+                    if c in cl:
+                        return v
+                if obs.pending_target:
+                    break
+                obs = yield None
+            if not obs.pending_target:
+                return "no cursor"
+            obs = yield target_object(target_serial)
         low = mana0
         for _ in range(spell.cast_ticks + 4):
             cl = {j.cliloc for j in obs.new_journal}
@@ -99,8 +105,6 @@ def cast_proc(spell: Spell, target_serial: int):
             low = min(low, obs.player.mana)
             if low <= mana0 - spell.mana // 2:            # the mana went: the spell went off (regen can mask the full cost)
                 memory["last_cast"] = (memory.get("tick", 0), spell.key)
-                if spell.key == "magic_reflection":           # nothing else set it: reflection was always "due"
-                    memory["reflect_at"] = memory.get("tick", 0)
                 memory["recover_until"] = memory.get("tick", 0) + 3
                 return "ok"
             obs = yield None

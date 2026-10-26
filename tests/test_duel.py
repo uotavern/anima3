@@ -62,3 +62,42 @@ def test_a_model_that_slowed_to_seconds_voids_the_match():
     assert validate_match(res, {}, mage=True) == ["Ilse's model took 2100 ms per decision (limit 1000)"]
     res["per"]["Ilse"]["model_ms"] = 280.0
     assert validate_match(res, {}, mage=True) == []
+
+
+def test_magic_reflection_goes_off_without_a_target_cursor():
+    from types import SimpleNamespace
+
+    from anima3.magic import SPELLS, cast_proc
+
+    def obs(mana):
+        return SimpleNamespace(player=SimpleNamespace(mana=mana), new_journal=[], pending_target=None)
+    memory = {"tick": 40}
+    proc = cast_proc(SPELLS["magic_reflection"], 7)(obs(100), memory)
+    assert next(proc)["type"] == "CastSpell"
+    proc.send(obs(100))                      # no cursor ever comes: keep watching the mana
+    try:
+        proc.send(obs(86))
+    except StopIteration as done:
+        assert done.value == "ok"
+    assert memory["reflect_at"] == 40
+
+
+def test_a_disturbed_magic_reflection_is_not_retried_at_once():
+    from types import SimpleNamespace
+
+    from anima3.magic import SPELLS, cast_proc, spell_order
+
+    def obs(mana):
+        return SimpleNamespace(player=SimpleNamespace(mana=mana), new_journal=[], pending_target=None)
+    memory = {"tick": 100}
+    proc = cast_proc(SPELLS["magic_reflection"], 7)(obs(100), memory)
+    next(proc)
+    result = None
+    try:
+        while True:
+            proc.send(obs(100))              # concentration disturbed: the mana never goes
+    except StopIteration as done:
+        result = done.value
+    assert result == "timeout" and memory["reflect_at"] == 100
+    reflect_due = memory["tick"] + 10 - memory["reflect_at"] > 60
+    assert spell_order("sustain", 1.0, False, False, False, reflect_due)[0] == "energy_bolt"
