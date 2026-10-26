@@ -573,12 +573,54 @@ the false "staging short" voids (the dead bridge counted an empty pack) were its
 symptom. Fixed in anima-client; once the bridges picked up the fix, there were no drops in the
 remaining two and a half hours.
 
+## Experiment 5: wording or prior, and is `sustain` real
+
+Both questions from experiment 4, run on the lab shard (uo.hulryung.com:2594, its own ServUO on
+the arena Linode) with three arms at once:
+
+```bash
+export EXP=exp5
+experiments/run_arm.sh rule        1 anima3gm3 scripted 3
+experiments/run_arm.sh jev-neutral 2 anima3gm4 scripted 4 --tactics-a jev --tactics-wording neutral
+experiments/run_arm.sh sustain     3 anima3gm6 scripted 5 --playbook-a sustain
+python -m anima3.report .logs/exp5 --baseline rule
+```
+
+| arm (fighter A) | rounds | A's share, 95% CI | vs rule baseline (match-level p) |
+|---|---|---|---|
+| rule (baseline) | 70 – 87 | 44.6% (37–52%) | — |
+| **Jev, neutral wording, shuffled order** | 33 – 108 | **23.4%** (17–31%) | **< 0.001** |
+| **`sustain` held all match** | 104 – 30 | **77.6%** (70–84%) | **< 0.001** |
+
+38, 38 and 40 valid matches; 7, 4 and 1 attempts were voided and replayed. The numbers are
+the same with reconnect matches left out (no counted match had one).
+
+- **Jev's pick is a prior, not the wording.** With every description in one `Order: …` shape
+  and the order shuffled on every call, 1153 of 1397 applied answers were still `control`
+  (83%, against 87% in experiment 4), and the arm scored what it scored before (23.2% →
+  23.4%). The offline check on experiment 4's states had said the same: the judge does not
+  read the fight to choose among these five.
+- **`sustain` is real.** Healing under 80% with reflection up, held all match, wins 77.6% of
+  rounds against the rule. That is 33 points over the baseline and in line with the 74% it drew
+  in experiment 4's random arm. The opponent fought normally (40-50 casts a match, 150-230 s
+  matches). Its two losses at 56 s, where A barely cast, were counted as losses.
+- The baseline (44.6%) is not directly comparable with experiment 4's 41.6%. The Magic
+  Reflection fix (`ccbc571`) came first: a buff opens no target cursor, and a disturbed
+  reflection waits its interval instead of being retried at once. It voided the first two
+  attempts at the `sustain` arm and changes the `standard` rule slightly too.
+
+What the run taught the infrastructure: the Mac idle-slept on AC at 02:14, and the rule and Jev
+arms lost about eight hours to sleep and reconnect voids. `sustain` had finished at 02:07. The
+shared `caffeinate` that `run_arm.sh` started through `pgrep` never showed up as an assertion
+in `pmset`. Each arm now runs its duel under its own `caffeinate -dims`, and `arms.done`
+records the duel's real exit code.
+
 ## Next
 
-1. **Check the wording pull**: give the playbooks descriptions of one neutral shape, shuffle
-   their order on every call, and rerun Jev against a fresh rule baseline. If Jev still
-   answers one playbook, its choice is not reading the state. Then hold `sustain` all match
-   to see whether its 74% is real.
+1. **Give the rule a stronger rival.** Against the `standard` rule, `sustain` alone wins 78%, so
+   "beats the rule" no longer tells a good chooser from a held playbook. Make the opponent
+   `sustain` and measure the five playbooks (and random mixing) against it. A judge that only
+   carries a prior has to beat that table to be worth its calls.
 2. **Put the judge on the village's boundaries** the same way: which skill to train next, when
    to sell, whether a hunt is worth it. `docs/JEV.md` in anima2 has the equivalent plan for
    anima2 (steering with state, a Jev in-character screen, a chat gate, encounter scores).
@@ -589,6 +631,8 @@ remaining two and a half hours.
 4. **Cheaper runs.** Jev and rule arms need no GPU, so ten can share the fourteen rings. Swap,
    not CPU, is the limit.
 
-Done since the last list: every match validates itself (staff preflight; frozen side,
-reconnect, castless mage, short staging, slow model → void and replay), and experiment 3 was
-stopped at 17-27 valid matches per arm. Its result is settled for Qwen and inconclusive for Jev.
+Done since the last list: the wording check and the held `sustain` arm (experiment 5: Jev's
+`control` is a prior, `sustain` is 78%). Earlier: every match validates itself (staff preflight;
+frozen side, reconnect, castless mage, short staging, slow model → void and replay), and
+experiment 3 was stopped at 17-27 valid matches per arm. Its result is settled for Qwen and
+inconclusive for Jev.
