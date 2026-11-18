@@ -84,6 +84,10 @@ def test_real_worker_decision_reaches_the_real_executor_through_the_actor(tmp_pa
     assert first["cancellation_reason"] in (None, "mask_changed", "executor_refused")
     # The first decision of a round starts from the reset recurrent state.
     assert first["hidden_in"] == [0.0] * 16
+    # Within the round, each decision continues from the previous committed state.
+    second = result["transitions"][1]
+    assert worker.decisions[0].hidden_out != (0.0,) * 16
+    assert second["hidden_in"] == list(worker.decisions[0].hidden_out)
 
 
 def test_real_worker_with_another_identity_never_becomes_an_arm(tmp_path):

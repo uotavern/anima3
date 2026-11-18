@@ -326,8 +326,10 @@ Boundaries this unit adds:
   worker is started with that SHA; `await_workers` also refuses a ready worker
   reporting another identity, and each actor's reported `policy_sha` must equal
   its arm after the match. Episodes record the policy, plan, schema fingerprint
-  and executor SHA, and `LiveReplayVerifier(directory, expected_policy_sha)`
-  rejects an episode with another or no policy and a stale executor fingerprint.
+  and executor SHA. `LiveReplayVerifier(directory, expected_policy_sha)` requires
+  both fingerprints to be present and current, always requires a well-formed
+  64-hex `policy_sha` (equal to `expected_policy_sha` when given), and by default
+  requires a `completed` ledger row for the episode's match and fixture.
 - **No silent fallback.** A missing checkpoint manifest or an absent `torch`
   (`importlib.util.find_spec`, so the parent still never imports it) raises
   `NeuralArmUnavailable` before any account is connected, so a scripted policy
@@ -349,23 +351,41 @@ Boundaries this unit adds:
   accounts, both arms, 1–100 matches, the inference deadline and the match
   deadline. `collection.json` stores the plan and its SHA-256 once. A second
   run needs `resume=True` and the identical plan (including policy SHAs and the
-  budget). `ledger.jsonl` is append-only and fsynced: `issued` is written before
-  the challenge, then exactly one of `completed`, `invalid_fixture`, `failed`
-  or `unresolved`. An issued fixture without an outcome (crash) is closed as
-  `unresolved` on resume and still consumes the budget, so no failure path can
-  issue more challenges than planned. Seat alternation follows the fixture
-  index across resumes. Out-of-order, malformed or double-closed ledgers are
-  refused.
+  budget). `ledger.jsonl` is append-only and fsynced (the directory too, when
+  the file is created; every `atomic_json` rename also fsyncs its directory):
+  `issued` is written before the challenge, then exactly one of `completed`,
+  `invalid_fixture`, `failed` or `unresolved`. An issued fixture without an
+  outcome (crash) is closed as `unresolved` on resume and still consumes the
+  budget, so no failure path can issue more challenges than planned. Seat
+  alternation follows the fixture index across resumes. Every row is validated
+  on load (fixture index, event, 32-hex match IDs, episode list, complete
+  `completed` rows); out-of-order, malformed or double-closed ledgers raise
+  `CollectionRefused`. A torn final line (crash mid-write) is also refused and
+  needs manual repair: a torn `issued` row means its challenge was never sent,
+  and removing a torn terminal row leaves the fixture to be closed
+  `unresolved`. `results.json` is rebuilt from every `completed` row, so a
+  resume keeps the matches of earlier runs.
+- **Episodes follow the ledger.** All of a fixture's episodes are written to
+  `<match>/.staged/`, verified, and moved to their published names only after
+  the `completed` row. A refused second neural arm or an interrupted fixture
+  therefore publishes nothing; a crash between the row and publication is
+  finished by the next `open_collection`.
 - **Duplicates and invalid fixtures.** A match identity may occur once per
-  collection (ledger check and pre-receipt check). The receipt goes through
+  collection: each actor refuses a known identity (`DuplicateMatch`) before
+  anything is written under its directory, and the ledger and pre-receipt
+  checks repeat it. A `failed` row carries the `match_id` once it is known, or
+  `duplicate_match_id` for a refused repeat. The receipt goes through
   unit-3 `verify_receipt` (exact ordered seats, rules, unranked training, SHA,
   no abort); a mismatch is recorded as `invalid_fixture` and stops the run
   without writing an episode. Any other failure after a challenge is recorded
   as `failed` and stops the run; nothing is retried automatically. Earlier
   verified matches remain in `results.json` (`automatic_promotion: false`).
-- **Account locking.** The run holds the unit-3 `account_locks` for both
-  accounts across worker start, connection, preparation and all fixtures, plus
-  a per-collection `run.lock`.
+- **Account locking and cleanup.** The run holds the unit-3 `account_locks` for
+  both accounts across worker start, connection, preparation and all fixtures,
+  plus a per-collection `run.lock`. One `ExitStack` closes bodies and workers
+  independently (a failing close does not skip the others) before releasing the
+  account locks, then the run lock. Only a held `run.lock` is reported as
+  another runner; other I/O errors such as a full disk propagate unchanged.
 
 There is no CLI or `__main__` entry: `run_collection(plan, log_dir, connect=...,
 fetch_receipt=..., lock_dir=...)` receives the body factory and receipt source
@@ -373,10 +393,10 @@ from the caller. `server_receipt(web, timeout=...)` provides a bounded
 read-only replay-index poller for a later authorized fixture. The receipt is
 fetched while both sockets keep pumping.
 
-Offline acceptance: without torch (`--extra dev --extra jeff`), **321 passing,
-2 skipped** (263 prior, 58 new in `tests/test_neural_live.py`; the checkpoint
+Offline acceptance: without torch (`--extra dev --extra jeff`), **348 passing,
+2 skipped** (263 prior, 85 new in `tests/test_neural_live.py`; the checkpoint
 module and the new `tests/test_neural_live_worker.py` skip through
-`pytest.importorskip`). With `--extra neural`, **362 passing** (302 prior, 60
+`pytest.importorskip`). With `--extra neural`, **389 passing** (302 prior, 87
 new). The new cases cover the seven ported source cases (the bridge pump case is
 already covered by unit 1), arm identity validation, missing checkpoint/torch
 refusal before any login, worker identity refusal (including a real
@@ -384,18 +404,27 @@ refusal before any login, worker identity refusal (including a real
 mask-change cancellation, a fresh legal start, round-boundary resets of both
 executor and recurrent state, in-round rejection ineligibility, mid-match worker
 failure, plan bounds, explicit identical-plan resume, budget exhaustion after an
-unresolved fixture, tampered/duplicate ledgers, alternating verified fixtures,
-failure then resume within budget, a repeated server match ID, a receipt for
-other seats, an actor reporting another policy, a held account lock and a
-torch-free import. With torch, a real worker on a temporary checkpoint feeds the
-real executor through `_actor` (first decision from the reset hidden state) and
-a real worker with another identity is refused. Mutating the stale-state check,
-the inactive reset, the duplicate-ledger check or the unresolved close each
-fails a test. Both suites passed three consecutive local runs. CI adds both new
-test files and `live.py` to the scoped Ruff gate, and the torch-only worker
-file to the no-skip neural step. Body, contract, README, lockfile,
-`experiments/run_arm.sh`, `magic.py`, executor, schema, inference and checkpoint
-modules are unchanged.
+unresolved fixture, tampered/duplicate/torn ledgers (including a non-string
+`match_id`), alternating verified fixtures, failure then resume within budget
+with `results.json` keeping every completed fixture, a repeated server match ID
+refused before its directory is written, `match_id` on failed rows, a receipt
+for other seats, an actor reporting another policy, a held account lock, a held
+run lock versus a disk failure, a failing worker close that still closes both
+bodies while the account locks are held, a refused second neural arm publishing
+nothing, publication after a crash following the `completed` row, episodes with
+missing fingerprints, missing or malformed policy, or no `completed` ledger
+row, and a torch-free import. With torch, a real worker on a temporary
+checkpoint feeds the real executor through `_actor` (the first decision starts
+from the reset hidden state and the second continues from the first decision's
+`hidden_out`), and a real worker with another identity is refused. Each of
+these mutations fails a test: weakening the stale-state check, the inactive
+reset, the duplicate-ledger check, the unresolved close, the fingerprint
+requirement, the policy-format check, the ledger-built results, episode
+staging, or the actor duplicate check. Both suites passed three consecutive local
+runs. CI adds both new test files and `live.py` to the scoped Ruff gate, and
+the torch-only worker file to the no-skip neural step. Body, contract, README,
+lockfile, `experiments/run_arm.sh`, `magic.py`, executor, schema, inference and
+checkpoint modules are unchanged.
 
 Not done: no live server, client, bridge, fight, training or promotion was run.
 Real-server timing of the actor loop, inference latency on the production host,

@@ -21,10 +21,12 @@ from anima3.neural import live
 from anima3.neural.inference import InferenceClient
 from anima3.neural.live import (
     EPISODE_SCHEMA,
+    EXECUTION_FINGERPRINT,
     TRAINING_RULES,
     Arm,
     CollectionPlan,
     CollectionRefused,
+    DuplicateMatch,
     Ledger,
     LiveReplayVerifier,
     NeuralArmUnavailable,
@@ -34,6 +36,7 @@ from anima3.neural.live import (
     policy_override,
     preflight_arm,
 )
+from anima3.neural.schema import schema_fingerprint
 
 POLICY_SHA = "ab" * 32
 OTHER_SHA = "cd" * 32
@@ -123,8 +126,21 @@ def replay_fixture(match_id=MATCH, seats=(1, 2), winner=1, **header):
     return meta, data
 
 
-def fixture(tmp_path):
+def completed_row(fixture, match_id, episodes=()):
+    return {
+        "fixture": fixture,
+        "event": "completed",
+        "match_id": match_id,
+        "episodes": list(episodes),
+        "result": {"fixture": fixture, "match_id": match_id},
+    }
+
+
+def fixture(tmp_path, *, ledger=True):
     meta, data = replay_fixture()
+    if ledger:
+        rows = [{"fixture": 0, "event": "issued"}, completed_row(0, MATCH)]
+        (tmp_path / "ledger.jsonl").write_text("".join(json.dumps(r) + "\n" for r in rows))
     root = tmp_path / MATCH
     root.mkdir()
     (root / "replay.jsonl").write_bytes(data)
@@ -138,6 +154,9 @@ def fixture(tmp_path):
         "actor": 1,
         "opponent": 2,
         "policy_sha": POLICY_SHA,
+        "fixture": 0,
+        "schema_fingerprint": schema_fingerprint(),
+        "executor_sha256": EXECUTION_FINGERPRINT,
         "verification": {"match_id": MATCH, "replay_sha256": meta["sha256"]},
         "transitions": [
             {"reward": 0.0, "done": False, "dt": 0.5, "accepted": True},
@@ -181,6 +200,44 @@ def test_bad_live_evidence_rejected(tmp_path, damage):
     if damage == "executor":
         episode["executor_sha256"] = "0" * 64
     assert not LiveReplayVerifier(tmp_path)(episode)
+
+
+@pytest.mark.parametrize(
+    "field,value",
+    [
+        ("schema_fingerprint", None),
+        ("executor_sha256", None),
+        ("policy_sha", None),
+        ("policy_sha", "not-a-sha"),
+        ("policy_sha", "AB" * 32),
+        ("policy_sha", 7),
+        ("schema_fingerprint", "0" * 64),
+    ],
+)
+def test_verifier_requires_fingerprints_and_a_well_formed_policy(tmp_path, field, value):
+    episode, _ = fixture(tmp_path)
+    if value is None:
+        del episode[field]
+    else:
+        episode[field] = value
+    assert not LiveReplayVerifier(tmp_path)(episode)
+
+
+@pytest.mark.parametrize("ledger", ["absent", "other_fixture", "failed", "corrupt"])
+def test_verifier_requires_a_completed_ledger_row(tmp_path, ledger):
+    episode, _ = fixture(tmp_path, ledger=ledger != "absent")
+    path = tmp_path / "ledger.jsonl"
+    if ledger == "other_fixture":
+        episode["fixture"] = 1
+    if ledger == "failed":
+        rows = [{"fixture": 0, "event": "issued"}, {"fixture": 0, "event": "failed"}]
+        path.write_text("".join(json.dumps(r) + "\n" for r in rows))
+    if ledger == "corrupt":
+        path.write_text(path.read_text() + "{torn")
+    assert not LiveReplayVerifier(tmp_path)(episode)
+    if ledger == "absent":
+        # The runner checks staged episodes before their ledger row exists.
+        assert LiveReplayVerifier(tmp_path, require_ledger=False)(episode)
 
 
 def test_verifier_binds_the_episode_to_the_declared_policy(tmp_path):
@@ -613,7 +670,7 @@ def test_interrupted_fixture_is_spent_and_budget_cannot_be_exceeded(tmp_path):
     resumed = open_collection(log, plan, resume=True)
     assert resumed.issued == 1 and resumed.entries[-1]["event"] == "unresolved"
     resumed.issue(1, challenger=2, opponent=1)
-    resumed.close(1, "completed", match_id=MATCH)
+    resumed.close(1, "completed", match_id=MATCH, episodes=[], result={})
     with pytest.raises(CollectionRefused, match="budget is exhausted"):
         open_collection(log, plan, resume=True)
 
@@ -624,13 +681,28 @@ def test_interrupted_fixture_is_spent_and_budget_cannot_be_exceeded(tmp_path):
         (["not json"], "corrupt ledger"),
         ([{"fixture": "0", "event": "issued"}], "malformed"),
         ([{"fixture": 1, "event": "issued"}], "in order"),
-        ([{"fixture": 0, "event": "completed"}], "unknown"),
+        ([{"fixture": True, "event": "issued"}], "malformed"),
+        ([{"fixture": -1, "event": "issued"}], "malformed"),
+        ([completed_row(0, MATCH)], "unknown"),
+        ([{"fixture": 0, "event": "issued"}, {"fixture": 0, "event": "completed"}], "lacks"),
+        (
+            [{"fixture": 0, "event": "issued"}, {"fixture": 0, "event": "failed", "match_id": [1]}],
+            "invalid match_id",
+        ),
+        (
+            [{"fixture": 0, "event": "issued"}, {**completed_row(0, MATCH), "match_id": "A" * 32}],
+            "invalid match_id",
+        ),
+        (
+            [{"fixture": 0, "event": "issued"}, {**completed_row(0, MATCH), "episodes": [3]}],
+            "episode list",
+        ),
         (
             [
                 {"fixture": 0, "event": "issued"},
-                {"fixture": 0, "event": "completed", "match_id": MATCH},
+                completed_row(0, MATCH),
                 {"fixture": 1, "event": "issued"},
-                {"fixture": 1, "event": "completed", "match_id": MATCH},
+                completed_row(1, MATCH),
             ],
             "duplicate match",
         ),
@@ -648,14 +720,22 @@ def test_tampered_or_duplicate_ledgers_are_refused(tmp_path, lines, error):
 class Harness:
     """Mock participant layer around the real ledger, receipts and verifier."""
 
-    def __init__(self, monkeypatch, match_ids, *, seats_override=None, policy_sha=POLICY_SHA):
+    def __init__(self, monkeypatch, match_ids, *, seats_override=None, policy_sha=None):
         self.match_ids = list(match_ids)
         self.challenges, self.connected = [], []
         self.seats_override = seats_override
-        worker = SimpleNamespace(
-            ready=True, startup_error=None, policy_sha=policy_sha, close=lambda: None
-        )
-        self.factory = lambda *a, **k: SimpleNamespace(start=lambda: worker)
+        self.closed = []
+
+        def factory(checkpoint, *, expected_sha256, deadline_ms):
+            worker = SimpleNamespace(
+                ready=True,
+                startup_error=None,
+                policy_sha=policy_sha or expected_sha256,
+                close=lambda: self.closed.append("worker"),
+            )
+            return SimpleNamespace(start=lambda: worker)
+
+        self.factory = factory
         monkeypatch.setattr(live, "wait_training_idle", lambda bodies, **k: [1, 2])
         monkeypatch.setattr(live, "prepare", lambda body, **k: {"serial": body.serial})
         monkeypatch.setattr(
@@ -670,7 +750,10 @@ class Harness:
         self.connected.append(account)
         serial = 1 if account == "alpha" else 2
         return SimpleNamespace(
-            serial=serial, act=lambda _: None, pump=lambda _: 0, close=lambda: None
+            serial=serial,
+            act=lambda _: None,
+            pump=lambda _: 0,
+            close=lambda: self.closed.append(f"body-{serial}"),
         )
 
     def fight(self, bodies, workers, log, stop, **_):
@@ -745,8 +828,9 @@ def test_repeated_server_match_identity_is_refused(tmp_path, monkeypatch):
     harness = Harness(monkeypatch, ["1" * 32, "1" * 32])
     with pytest.raises(CollectionRefused, match="already in this collection"):
         harness.run(tmp_path, plan_for(tmp_path, matches=2))
-    events = [r["event"] for r in Ledger.load(tmp_path / "run" / "ledger.jsonl").entries]
-    assert events == ["issued", "completed", "issued", "failed"]
+    entries = Ledger.load(tmp_path / "run" / "ledger.jsonl").entries
+    assert [r["event"] for r in entries] == ["issued", "completed", "issued", "failed"]
+    assert entries[-1]["duplicate_match_id"] == "1" * 32 and "match_id" not in entries[-1]
 
 
 def test_receipt_for_other_seats_is_an_invalid_fixture(tmp_path, monkeypatch):
@@ -783,6 +867,171 @@ def test_shared_account_lock_blocks_a_concurrent_runner(tmp_path, monkeypatch):
     ):
         harness.run(tmp_path, plan_for(tmp_path, matches=1))
     assert harness.connected == [] and harness.challenges == []
+
+
+def test_torn_final_ledger_line_is_refused_for_manual_repair(tmp_path):
+    path = tmp_path / "ledger.jsonl"
+    path.write_text(json.dumps({"fixture": 0, "event": "issued"}) + "\n" + '{"fixture": 0, "ev')
+    with pytest.raises(CollectionRefused, match="torn final ledger line"):
+        Ledger.load(path)
+
+
+def test_results_json_keeps_every_completed_fixture_across_resumes(tmp_path, monkeypatch):
+    plan = plan_for(tmp_path, matches=3)
+    harness = Harness(monkeypatch, ["1" * 32])
+    with pytest.raises(RuntimeError, match="later match"):
+        harness.run(tmp_path, plan)
+    harness.match_ids = ["3" * 32]
+    assert [r["fixture"] for r in harness.run(tmp_path, plan, resume=True)] == [2]
+    report = json.loads((tmp_path / "run" / "results.json").read_text())
+    assert [m["match_id"] for m in report["matches"]] == ["1" * 32, "3" * 32]
+    assert report["collection_status"] == "complete" and report["issued"] == 3
+
+
+def test_only_a_held_run_lock_is_reported_as_another_runner(tmp_path, monkeypatch):
+    import fcntl
+
+    harness = Harness(monkeypatch, ["1" * 32])
+    log = tmp_path / "run"
+    log.mkdir()
+    with (log / "run.lock").open("a") as other:
+        fcntl.flock(other, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        with pytest.raises(CollectionRefused, match="another runner"):
+            harness.run(tmp_path, plan_for(tmp_path, matches=1))
+
+
+def test_disk_failure_is_not_mislabelled_as_a_concurrent_runner(tmp_path, monkeypatch):
+    harness = Harness(monkeypatch, ["1" * 32])
+
+    def full(*_):
+        raise OSError(28, "No space left on device")
+
+    monkeypatch.setattr(live, "atomic_json", full)
+    with pytest.raises(OSError, match="No space left") as raised:
+        harness.run(tmp_path, plan_for(tmp_path, matches=1))
+    assert not isinstance(raised.value, CollectionRefused)
+
+
+def test_failed_close_still_closes_bodies_before_releasing_locks(tmp_path, monkeypatch):
+    from anima3.sparring import account_locks
+
+    harness = Harness(monkeypatch, ["1" * 32])
+    factory = harness.factory
+
+    def broken_close():
+        raise RuntimeError("worker close failed")
+
+    def broken(*a, **k):
+        worker = factory(*a, **k).start()
+        worker.close = broken_close
+        return SimpleNamespace(start=lambda: worker)
+
+    harness.factory = broken
+    held_while_closing = []
+    connect = harness.connect
+
+    def connect_checked(account):
+        body = connect(account)
+        inner = body.close
+
+        def close():
+            # The account locks must still be held while a body closes.
+            try:
+                with account_locks(tmp_path / "locks", "lab.invalid:2593", ["alpha", "x"]):
+                    held_while_closing.append(False)
+            except OSError:
+                held_while_closing.append(True)
+            inner()
+
+        body.close = close
+        return body
+
+    harness.connect = connect_checked
+    with pytest.raises(RuntimeError, match="worker close failed"):
+        harness.run(tmp_path, plan_for(tmp_path, matches=1))
+    assert harness.closed == ["body-2", "body-1"]
+    assert held_while_closing == [True, True]
+    # The run lock and account locks were released despite the failed close.
+    with account_locks(tmp_path / "locks", "lab.invalid:2593", ["alpha", "beta"]):
+        pass
+    harness.factory = factory
+    harness.connect = connect
+    with pytest.raises(CollectionRefused, match="budget is exhausted"):
+        harness.run(tmp_path, plan_for(tmp_path, matches=1), resume=True)
+
+
+def two_neural(tmp_path):
+    first = neural_arm(tmp_path)
+    second = Arm("neural", first.checkpoint, OTHER_SHA)
+    return plan_for(tmp_path, matches=1, arms=(first, second))
+
+
+def test_second_arm_refusal_publishes_no_episode_for_the_first(tmp_path, monkeypatch):
+    harness = Harness(monkeypatch, ["1" * 32])
+    real = live.LiveReplayVerifier
+    monkeypatch.setattr(
+        live,
+        "LiveReplayVerifier",
+        lambda d, sha, **k: (lambda ep: False) if sha == OTHER_SHA else real(d, sha, **k),
+    )
+    with pytest.raises(CollectionRefused, match="failed receipt verification"):
+        harness.run(tmp_path, two_neural(tmp_path))
+    root = tmp_path / "run" / ("1" * 32)
+    assert not list(root.glob("episode-*.json"))
+    assert Ledger.load(tmp_path / "run" / "ledger.jsonl").entries[-1]["event"] == "invalid_fixture"
+
+
+def test_crash_after_completed_row_publishes_staged_episodes_on_resume(tmp_path, monkeypatch):
+    harness = Harness(monkeypatch, ["1" * 32])
+    publish = live._publish
+
+    def crash(paths):
+        raise RuntimeError("process died before publication")
+
+    monkeypatch.setattr(live, "_publish", crash)
+    plan = plan_for(tmp_path, matches=2)
+    with pytest.raises(RuntimeError, match="before publication"):
+        harness.run(tmp_path, plan)
+    root = tmp_path / "run" / ("1" * 32)
+    assert not (root / "episode-1.json").exists() and (root / ".staged" / "episode-1.json").exists()
+    monkeypatch.setattr(live, "_publish", publish)
+    open_collection(tmp_path / "run", plan, resume=True)
+    episode = json.loads((root / "episode-1.json").read_text())
+    assert LiveReplayVerifier(tmp_path / "run", POLICY_SHA)(episode)
+
+
+def test_episode_claiming_a_fixture_without_completed_row_is_refused(tmp_path, monkeypatch):
+    harness = Harness(monkeypatch, ["1" * 32])
+    with pytest.raises(RuntimeError, match="later match"):
+        harness.run(tmp_path, plan_for(tmp_path, matches=2))  # fixture 1 fails
+    log = tmp_path / "run"
+    episode = json.loads((log / ("1" * 32) / "episode-1.json").read_text())
+    assert LiveReplayVerifier(log, POLICY_SHA)(episode)
+    # The same bytes claiming the failed fixture 1 are refused.
+    assert not LiveReplayVerifier(log, POLICY_SHA)({**episode, "fixture": 1})
+
+
+def test_failed_rows_record_the_known_match_identity(tmp_path, monkeypatch):
+    harness = Harness(monkeypatch, ["1" * 32])
+
+    def unavailable(match_id, seats):
+        raise TimeoutError("server receipt missing")
+
+    harness.receipt = unavailable
+    with pytest.raises(TimeoutError):
+        harness.run(tmp_path, plan_for(tmp_path, matches=1))
+    row = Ledger.load(tmp_path / "run" / "ledger.jsonl").entries[-1]
+    assert row["event"] == "failed" and row["match_id"] == "1" * 32
+
+
+def test_actor_refuses_a_known_match_before_writing_its_directory(tmp_path, monkeypatch):
+    state = {"id": MATCH, "phase": "Countdown", "opponent": 2, "rules": TRAINING_RULES, "round": 1}
+    body = SimpleNamespace(observe=observation, act=lambda _: None, pump=lambda _: None)
+    monkeypatch.setattr(live, "server_state", lambda _: dict(state))
+    with pytest.raises(DuplicateMatch) as raised:
+        live._actor(body, 2, None, tmp_path, threading.Event(), deadline=5, known_match_ids={MATCH})
+    assert raised.value.match_id == MATCH
+    assert not (tmp_path / MATCH).exists()
 
 
 def test_live_runner_import_does_not_import_torch():

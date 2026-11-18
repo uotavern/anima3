@@ -32,6 +32,7 @@ import threading
 import time
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from contextlib import ExitStack
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
@@ -58,6 +59,8 @@ EXECUTION_FINGERPRINT = hashlib.sha256(
     Path(__file__).with_name("executor.py").read_bytes()
 ).hexdigest()
 MATCH_ID = re.compile(r"[0-9a-f]{32}")
+SHA256 = re.compile(r"[0-9a-f]{64}")
+STAGING = ".staged"
 MAX_MATCHES = 100
 DECISION_INTERVAL = 0.25
 STATE_FRESH_SECONDS = 3.0
@@ -70,6 +73,14 @@ class NeuralArmUnavailable(RuntimeError):
 
 class CollectionRefused(RuntimeError):
     """The collection directory, plan or budget forbids issuing another fixture."""
+
+
+class DuplicateMatch(CollectionRefused):
+    """The server assigned a match identity this collection already recorded."""
+
+    def __init__(self, match_id: str):
+        super().__init__("server reported a match identity already in this collection")
+        self.match_id = match_id
 
 
 # --- immutable arm identities ---------------------------------------------------------------
@@ -174,6 +185,15 @@ def dispatch_option(executor, action, frame, obs, now, fresh):
 # --- small file helpers ------------------------------------------------------------------------
 
 
+def _fsync_dir(directory: Path) -> None:
+    """Make a rename or file creation in ``directory`` durable."""
+    fd = os.open(directory, os.O_RDONLY)
+    try:
+        os.fsync(fd)
+    finally:
+        os.close(fd)
+
+
 def atomic_json(path: Path, value: dict) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     fd, name = tempfile.mkstemp(prefix=path.name + ".", dir=path.parent)
@@ -184,6 +204,7 @@ def atomic_json(path: Path, value: dict) -> None:
             out.flush()
             os.fsync(out.fileno())
         os.replace(name, path)
+        _fsync_dir(path.parent)
     finally:
         if os.path.exists(name):
             os.unlink(name)
@@ -239,14 +260,34 @@ class LiveReplayVerifier:
     """Revalidate a stored receipt for an episode; never trust the episode's own flags.
 
     Hashes detect corruption; they are not a server signature. Keep the directory
-    under the same trust boundary as the configured shard. When
-    ``expected_policy_sha`` is given, the episode must carry exactly that identity.
+    under the same trust boundary as the configured shard. Every episode must
+    carry the current schema and executor fingerprints and a well-formed policy
+    SHA-256; when ``expected_policy_sha`` is given it must be exactly that one.
+    ``directory`` is the collection directory. By default the episode's match
+    must also be closed ``completed`` for the same fixture in its ledger, so an
+    episode left by an interrupted or refused fixture is never accepted. The
+    runner itself checks staged episodes before writing that row.
     """
 
-    def __init__(self, directory, expected_policy_sha: str | None = None):
+    def __init__(
+        self, directory, expected_policy_sha: str | None = None, *, require_ledger: bool = True
+    ):
         self.directory = Path(directory).resolve()
         self.expected_policy_sha = (
             None if expected_policy_sha is None else require_sha256(expected_policy_sha)
+        )
+        self.require_ledger = require_ledger
+
+    def _ledger_completed(self, match_id, fixture) -> bool:
+        try:
+            ledger = Ledger.load(self.directory / "ledger.jsonl")
+        except (CollectionRefused, OSError):
+            return False
+        return any(
+            row["event"] == "completed"
+            and row.get("match_id") == match_id
+            and row["fixture"] == fixture
+            for row in ledger.entries
         )
 
     def __call__(self, episode):
@@ -263,19 +304,22 @@ class LiveReplayVerifier:
             outcome = 0.0 if meta["winner"] is None else (1.0 if meta["winner"] == actor else -1.0)
             transitions = episode["transitions"]
             policy = episode.get("policy_sha")
+            if not isinstance(policy, str) or not SHA256.fullmatch(policy):
+                return False
+            if self.expected_policy_sha is not None and not hmac.compare_digest(
+                policy, self.expected_policy_sha
+            ):
+                return False
+            if self.require_ledger and not self._ledger_completed(match_id, episode.get("fixture")):
+                return False
             return bool(
                 episode.get("schema") == EPISODE_SCHEMA
                 and episode.get("domain") == "servuo"
                 and episode.get("sampling") == "categorical"
                 and episode.get("eligible") is True
                 and not episode.get("invalid_reasons")
-                and episode.get("schema_fingerprint", schema_fingerprint()) == schema_fingerprint()
-                and episode.get("executor_sha256", EXECUTION_FINGERPRINT) == EXECUTION_FINGERPRINT
-                and (
-                    self.expected_policy_sha is None
-                    or isinstance(policy, str)
-                    and hmac.compare_digest(policy, self.expected_policy_sha)
-                )
+                and episode.get("schema_fingerprint") == schema_fingerprint()
+                and episode.get("executor_sha256") == EXECUTION_FINGERPRINT
                 and meta["id"] == match_id
                 and meta["training"] is True
                 and meta.get("ranked", False) is False
@@ -331,13 +375,25 @@ def _scripted_baseline(view, opponent, round_number, log_path):
     return agent
 
 
-def _actor(body, opponent, worker, log, stop, *, deadline=340.0, expected_rules=TRAINING_RULES):
+def _actor(
+    body,
+    opponent,
+    worker,
+    log,
+    stop,
+    *,
+    deadline=340.0,
+    expected_rules=TRAINING_RULES,
+    known_match_ids=frozenset(),
+):
     """All access to one bridge body belongs to this thread during a match.
 
     ``worker`` is a started ``InferenceClient`` for a neural arm, else ``None``
     for the fixed scripted arm. Each Fighting round starts a fresh epoch that
     resets both the executor and the worker's recurrent state; any other phase
     resets them to ``inactive`` so no option or late decision crosses a round.
+    A match identity in ``known_match_ids`` is refused before anything is written
+    under its directory.
     """
     state, last_state, last_ping = {}, time.monotonic(), 0.0
     match_id = epoch = None
@@ -405,6 +461,8 @@ def _actor(body, opponent, worker, log, stop, *, deadline=340.0, expected_rules=
                 ):
                     raise RuntimeError("unexpected live match assignment")
                 if match_id is None:
+                    if state["id"] in known_match_ids:
+                        raise DuplicateMatch(state["id"])
                     match_id = state["id"]
                     (log / match_id).mkdir(parents=True, exist_ok=True)
                     for row in events:
@@ -566,12 +624,22 @@ def _actor(body, opponent, worker, log, stop, *, deadline=340.0, expected_rules=
     raise RuntimeError("live match stopped or timed out; no unverified training result emitted")
 
 
-def fight(bodies, workers, log, stop, *, deadline=340.0):
+def fight(bodies, workers, log, stop, *, deadline=340.0, known_match_ids=frozenset()):
     """Run both actors; the first failure stops the other one immediately."""
     ids = [b.observe().player.serial for b in bodies]
+    known = frozenset(known_match_ids)
     with ThreadPoolExecutor(max_workers=2) as pool:
         futures = [
-            pool.submit(_actor, b, ids[1 - i], workers[i], log, stop, deadline=deadline)
+            pool.submit(
+                _actor,
+                b,
+                ids[1 - i],
+                workers[i],
+                log,
+                stop,
+                deadline=deadline,
+                known_match_ids=known,
+            )
             for i, b in enumerate(bodies)
         ]
         try:
@@ -636,8 +704,42 @@ class CollectionPlan:
 TERMINAL = ("completed", "invalid_fixture", "failed", "unresolved")
 
 
+def _row_problem(row) -> str | None:
+    """Describe why a decoded ledger row is malformed, or return ``None``."""
+    if not isinstance(row, dict):
+        return "not an object"
+    if type(row.get("fixture")) is not int or not 0 <= row["fixture"] < MAX_MATCHES:
+        return "invalid fixture index"
+    if row.get("event") not in ("issued", *TERMINAL):
+        return "unknown event"
+    for key in ("match_id", "duplicate_match_id"):
+        value = row.get(key)
+        if value is not None and not (isinstance(value, str) and MATCH_ID.fullmatch(value)):
+            return f"invalid {key}"
+    episodes = row.get("episodes")
+    if episodes is not None and not (
+        isinstance(episodes, list) and all(isinstance(e, str) and e for e in episodes)
+    ):
+        return "invalid episode list"
+    if "result" in row and not isinstance(row["result"], dict):
+        return "invalid result"
+    if row["event"] == "completed" and not (
+        row.get("match_id") and isinstance(episodes, list) and isinstance(row.get("result"), dict)
+    ):
+        return "completed row lacks match, episodes or result"
+    return None
+
+
 class Ledger:
-    """Append-only fixture ledger; ``issued`` is written before any challenge."""
+    """Append-only fixture ledger; ``issued`` is written before any challenge.
+
+    Every row is a complete line written with one ``write`` and fsynced before the
+    caller proceeds. A torn or otherwise undecodable line (including a final line
+    cut short by a crash) is refused rather than guessed at: inspect and repair
+    the file by hand. A torn ``issued`` line means its challenge was never sent;
+    a torn terminal line leaves the fixture open, which resume closes as
+    ``unresolved``.
+    """
 
     def __init__(self, path: Path, entries: list[dict]):
         self.path = path
@@ -647,17 +749,17 @@ class Ledger:
     def load(cls, path: Path) -> Ledger:
         entries = []
         if path.exists():
-            for n, line in enumerate(path.read_text().splitlines()):
+            text = path.read_text()
+            if text and not text.endswith("\n"):
+                raise CollectionRefused("torn final ledger line; repair the ledger by hand")
+            for n, line in enumerate(text.splitlines()):
                 try:
                     row = json.loads(line)
                 except ValueError:
                     raise CollectionRefused(f"corrupt ledger line {n + 1}") from None
-                if (
-                    not isinstance(row, dict)
-                    or type(row.get("fixture")) is not int
-                    or row.get("event") not in ("issued", *TERMINAL)
-                ):
-                    raise CollectionRefused(f"malformed ledger line {n + 1}")
+                problem = _row_problem(row)
+                if problem:
+                    raise CollectionRefused(f"malformed ledger line {n + 1}: {problem}")
                 entries.append(row)
         ledger = cls(path, entries)
         ledger._check()
@@ -666,6 +768,9 @@ class Ledger:
     def _check(self) -> None:
         issued, closed, seen_ids = [], set(), set()
         for row in self.entries:
+            problem = _row_problem(row)
+            if problem:
+                raise CollectionRefused(f"malformed ledger row: {problem}")
             fixture = row["fixture"]
             if row["event"] == "issued":
                 if fixture in issued or fixture != len(issued):
@@ -683,11 +788,15 @@ class Ledger:
 
     def _append(self, row: dict) -> None:
         Ledger(self.path, [*self.entries, row])._check()
-        self.entries.append(row)
+        created = not self.path.exists()
+        line = json.dumps(row, sort_keys=True) + "\n"
         with self.path.open("a") as out:
-            out.write(json.dumps(row, sort_keys=True) + "\n")
+            out.write(line)
             out.flush()
             os.fsync(out.fileno())
+        if created:
+            _fsync_dir(self.path.parent)
+        self.entries.append(row)
 
     @property
     def issued(self) -> int:
@@ -706,6 +815,10 @@ class Ledger:
     def match_ids(self) -> set[str]:
         return {r["match_id"] for r in self.entries if r.get("match_id")}
 
+    @property
+    def completed(self) -> list[dict]:
+        return [r for r in self.entries if r["event"] == "completed"]
+
     def issue(self, fixture: int, **fields) -> None:
         self._append({"fixture": fixture, "event": "issued", "utc": time.time(), **fields})
 
@@ -713,6 +826,19 @@ class Ledger:
         if event not in TERMINAL:
             raise ValueError("unknown terminal ledger event")
         self._append({"fixture": fixture, "event": event, "utc": time.time(), **fields})
+
+
+def _staged(path: Path) -> Path:
+    return path.parent / STAGING / path.name
+
+
+def _publish(paths) -> None:
+    """Move staged episodes to their published names; only after ``completed``."""
+    for path in map(Path, paths):
+        staged = _staged(path)
+        if staged.exists():
+            os.replace(staged, path)
+            _fsync_dir(path.parent)
 
 
 def open_collection(log: Path, plan: CollectionPlan, *, resume: bool = False) -> Ledger:
@@ -751,6 +877,9 @@ def open_collection(log: Path, plan: CollectionPlan, *, resume: bool = False) ->
             },
         )
     ledger = Ledger.load(log / "ledger.jsonl")
+    for row in ledger.completed:
+        # A crash between the completed row and publication left staged episodes.
+        _publish(row["episodes"])
     for fixture in ledger.open_fixtures:
         # An issued fixture whose outcome was not recorded is spent, never reissued.
         ledger.close(fixture, "unresolved", reason="interrupted before a recorded outcome")
@@ -788,55 +917,63 @@ def run_collection(
     seats)`` returns the server manifest and replay bytes. Neither is called
     before both arms pass preflight and every neural worker reports its
     declared policy SHA-256. Any failure after a challenge is issued is recorded
-    in the ledger and stops the run; it is never retried automatically.
+    in the ledger and stops the run; it is never retried automatically. Returns
+    this run's fixtures; ``results.json`` lists every completed fixture of the
+    collection, rebuilt from the ledger.
     """
+    import fcntl
+
     stop = stop or threading.Event()
     log = Path(log_dir).resolve()
     log.mkdir(parents=True, exist_ok=True)
-    lock = (log / "run.lock").open("a")
-    import fcntl
-
-    try:
-        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        ledger = open_collection(log, plan, resume=resume)
-    except BaseException as exc:
-        lock.close()
-        if isinstance(exc, OSError):
+    results = []
+    with ExitStack() as stack:
+        # Callbacks run in reverse and independently: bodies and workers close
+        # first, then the account locks are released, then the run lock.
+        lock = stack.enter_context((log / "run.lock").open("a"))
+        try:
+            fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError:
             raise CollectionRefused("another runner holds this collection") from None
-        raise
-    bodies, workers, results = [], [], []
+        ledger = open_collection(log, plan, resume=resume)
 
-    def save(status, error=None):
-        atomic_json(
-            log / "results.json",
-            {
-                "domain": "servuo",
-                "plan_sha256": plan.sha256,
-                "matches": results,
-                "issued": ledger.issued,
-                "budget": plan.matches,
-                "automatic_promotion": False,
-                "collection_status": status,
-                "error": error,
-            },
-        )
+        def save(status, error=None):
+            atomic_json(
+                log / "results.json",
+                {
+                    "domain": "servuo",
+                    "plan_sha256": plan.sha256,
+                    "matches": [row["result"] for row in ledger.completed],
+                    "issued": ledger.issued,
+                    "budget": plan.matches,
+                    "automatic_promotion": False,
+                    "collection_status": status,
+                    "error": error,
+                },
+            )
 
-    try:
-        with account_locks(lock_dir, plan.endpoint, list(plan.accounts)):
+        try:
+            stack.enter_context(account_locks(lock_dir, plan.endpoint, list(plan.accounts)))
             for arm in plan.arms:
                 preflight_arm(arm, find_spec=find_spec)
-            workers = [
-                client_factory(
-                    arm.checkpoint, expected_sha256=arm.policy_sha256, deadline_ms=plan.deadline_ms
-                ).start()
-                if arm.neural
-                else None
-                for arm in plan.arms
-            ]
+            workers = []
+            for arm in plan.arms:
+                worker = None
+                if arm.neural:
+                    worker = client_factory(
+                        arm.checkpoint,
+                        expected_sha256=arm.policy_sha256,
+                        deadline_ms=plan.deadline_ms,
+                    ).start()
+                    stack.callback(worker.close)
+                workers.append(worker)
             await_workers(workers, plan.arms, timeout=ready_timeout, stopped=stop.is_set)
+            bodies = []
             for account in plan.accounts:
                 atomic_json(log / "status.json", {"stage": "connecting", "account": account})
-                bodies.append(connect(account))
+                body = connect(account)
+                stack.callback(body.close)
+                bodies.append(body)
             ids = wait_training_idle(bodies, stopped=stop.is_set)
             for fixture in range(ledger.issued, plan.matches):
                 if stop.is_set():
@@ -849,17 +986,10 @@ def run_collection(
                 save("collecting")
             save("stopped" if stop.is_set() else "complete")
             return results
-    except BaseException as exc:
-        save("stopped", f"{type(exc).__name__}: {exc}")
-        atomic_json(log / "status.json", {"stage": "stopped", "error": str(exc)})
-        raise
-    finally:
-        for worker in workers:
-            if worker:
-                worker.close()
-        for body in bodies:
-            body.close()
-        lock.close()
+        except BaseException as exc:
+            save("stopped", f"{type(exc).__name__}: {exc}")
+            atomic_json(log / "status.json", {"stage": "stopped", "error": str(exc)})
+            raise
 
 
 def _one_fixture(plan, log, ledger, fixture, bodies, ids, workers, stop, fetch_receipt):
@@ -887,21 +1017,35 @@ def _one_fixture(plan, log, ledger, fixture, bodies, ids, workers, stop, fetch_r
     order = [0, 1] if fixture % 2 == 0 else [1, 0]
     challenger, receiver = order
     ledger.issue(fixture, challenger=ids[challenger], opponent=ids[receiver])
+    match_id = None
     try:
         request_training_challenge(bodies[challenger], opponent=ids[receiver], stopped=stop.is_set)
         accept_invitation(bodies[receiver], opponent=ids[challenger], stopped=stop.is_set)
         atomic_json(log / "status.json", {"stage": "fighting", "fixture": fixture + 1})
-        actors = fight(bodies, workers, log, stop, deadline=plan.match_deadline_s)
-        match_id = actors[0]["id"]
-        if match_id in ledger.match_ids:
-            raise CollectionRefused("server reported a match identity already in this collection")
+        actors = fight(
+            bodies,
+            workers,
+            log,
+            stop,
+            deadline=plan.match_deadline_s,
+            known_match_ids=ledger.match_ids,
+        )
+        reported = actors[0]["id"]
+        if reported in ledger.match_ids:
+            raise DuplicateMatch(reported)
+        match_id = reported
         for actor, arm in zip(actors, plan.arms, strict=True):
             if actor["policy_sha"] != (arm.policy_sha256 if arm.neural else None):
                 raise RuntimeError("actor policy identity differs from the declared arm")
         seats = [ids[i] for i in order]
         meta, data = _pumping(bodies, fetch_receipt, match_id, seats)
     except BaseException as exc:
-        ledger.close(fixture, "failed", reason=f"{type(exc).__name__}: {exc}"[:500])
+        fields = {"reason": f"{type(exc).__name__}: {exc}"[:500]}
+        if isinstance(exc, DuplicateMatch):
+            fields["duplicate_match_id"] = exc.match_id
+        elif match_id is not None:
+            fields["match_id"] = match_id
+        ledger.close(fixture, "failed", **fields)
         raise
     try:
         rows = verify_receipt(data, meta, seats, expected_match_id=match_id)
@@ -915,7 +1059,10 @@ def _one_fixture(plan, log, ledger, fixture, bodies, ids, workers, stop, fetch_r
     if plan.require_base_template and not starting_template_verified(rows):
         for actor in actors:
             actor["invalid_reasons"].append("wrong_starting_template")
-    files = []
+    # Stage every episode and verify all of them before the ledger row. Only a
+    # completed row publishes them, so no refused or interrupted fixture leaves
+    # an episode under its published name.
+    files, eligible = [], []
     for i, (actor, arm) in enumerate(zip(actors, plan.arms, strict=True)):
         if not arm.neural:
             continue
@@ -946,12 +1093,14 @@ def _one_fixture(plan, log, ledger, fixture, bodies, ids, workers, stop, fetch_r
             },
             "final_result": {"winner": meta["winner"], "outcome": outcome},
         }
-        if episode["eligible"] and not LiveReplayVerifier(log, arm.policy_sha256)(episode):
+        verifier = LiveReplayVerifier(log, arm.policy_sha256, require_ledger=False)
+        if episode["eligible"] and not verifier(episode):
             ledger.close(fixture, "invalid_fixture", match_id=match_id, reason="episode receipt")
             raise CollectionRefused("collected episode failed receipt verification")
         file = root / f"episode-{ids[i]}.json"
-        atomic_json(file, episode)
+        atomic_json(_staged(file), episode)
         files.append(str(file))
+        eligible.append(episode["eligible"])
     result = {
         "fixture": fixture,
         "challenger": ids[challenger],
@@ -959,9 +1108,10 @@ def _one_fixture(plan, log, ledger, fixture, bodies, ids, workers, stop, fetch_r
         "winner": meta["winner"],
         "metrics": replay.metrics(rows),
         "episodes": files,
-        "eligible": all(json.loads(Path(f).read_text())["eligible"] for f in files),
+        "eligible": all(eligible),
     }
-    ledger.close(fixture, "completed", match_id=match_id, episodes=files)
+    ledger.close(fixture, "completed", match_id=match_id, episodes=files, result=result)
+    _publish(files)
     atomic_json(log / "status.json", {"stage": "verified", **result})
     return result
 
