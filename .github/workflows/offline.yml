@@ -25,7 +25,8 @@ jobs:
         run: uv sync --locked --extra dev --extra jeff
       - name: Run offline suite without game or model credentials
         run: uv run --locked --extra dev --extra jeff pytest -q
-      - name: Lint integrated bridge boundary
+      - name: Lint integrated bridge and replay boundaries
         run: >-
           uv run --locked --extra dev --extra jeff ruff check
-          anima3/body.py anima3/contract.py tests/test_bridge_contract.py
+          anima3/body.py anima3/contract.py anima3/replay.py
+          tests/test_bridge_contract.py tests/test_replay.py

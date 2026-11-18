@@ -90,11 +90,42 @@ extra produced **95 passing tests** (81 existing and 14 new). Selected-file Ruff
 checks passed. This dependency requirement is explicit rather than hidden by a
 previously populated development environment. No live acceptance was run.
 
+## Unit 2 Read-only replay evidence
+
+Based on merged unit 1 (`e2ef73b`), this ports the standalone replay reader from
+training commits `9da8784`, `5f442da` and `012436b`. It adds index/download,
+SHA-256 receipt validation and observed damage, healing, cast, potion and burst
+metrics. Self-inflicted damage is separate from offensive damage; unrelated
+participants do not inflate offensive metrics.
+
+The local boundary additionally rejects malformed JSON objects, invalid player
+identities, bool-as-integer counters, inconsistent result types, embedded end or
+header records and missing result fields. It verifies complete recordings,
+ordered sequence/time, match identity, header/manifest agreement where present,
+and final outcome agreement. These are archive-integrity checks, not proof of
+training eligibility or a server signature. Fields consumed by metrics are type-checked before use. Other event semantics, start
+fixtures, policy identity and learning eligibility remain later-unit checks.
+
+Downloads are GET-only, have a 15-second socket timeout, at most three transport
+attempts, and a 34 MiB bound on both wire and expanded gzip data. Declared response
+length must match received bytes. Corrupt evidence and permanent HTTP failures
+are not retried. Callers must supply a trusted server base URL and should apply
+an outer deadline where a whole-job elapsed budget is required; the socket
+timeout is not a total download deadline.
+
+Offline acceptance: **146 passing tests**, including all 95 unit-1/main tests
+and 51 replay cases. The new fixtures cover wrong hashes/IDs, truncation,
+ordering, malformed receipts, retry bounds, URL construction, gzip expansion and
+response length. Network calls are mocked; no live matches, training, promotion,
+server writes or new dependencies are involved. CI now includes
+`anima3/replay.py` and `tests/test_replay.py` in its existing scoped Ruff gate.
+All five primary fixes remain ancestors and their source files are unchanged.
+
 ## Remaining separately verified units
 
 | Order | Unit and likely files | Dependencies and acceptance |
 | --- | --- | --- |
-| 2 | Read-only replay evidence: `replay.py`, validation/metrics tests | Stdlib-only first; corrupt, truncated, reordered and wrong-match records must fail. No network writes or model promotion. |
+| 2 (this unit) | Read-only replay evidence: `replay.py`, validation/metrics tests | Stdlib-only first; corrupt, truncated, reordered and wrong-match records must fail. No network writes or model promotion. |
 | 3 | Arena participant preparation and sparring: `arena.py`, `duel_wait.py`, `sparring.py`, public command/receipt tests | Units 1–2; preserve ordinary-account and challenge-token checks, start templates, exact rules, bounded fixtures, account locks and failure receipts. Reconcile current peer-only server assumptions. |
 | 4 | Combat procedures and executor: selected `magic.py`/`combat_combo.py`, neural executor/schema surface | Units 1 and 3. Carry reflection fix forward explicitly while adopting wall-clock cursor handling; test stun, potion ownership/disposal, recovery and delayed public effects. No training required. |
 | 5 | Frozen neural inference and checkpoint validation | Unit 4; add the minimum Torch optional dependency and regenerate/review the lock deliberately. Require dimensions, schema fingerprint, finite weights and SHA-bound loading. Preserve audited selected and rollback artifacts. |
