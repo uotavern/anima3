@@ -219,14 +219,93 @@ and `magic.py`. Body, contract, lockfile, README and `experiments/run_arm.sh`
 are unchanged. No live fight, model, training or server change was run;
 real-server timing of these procedures needs a separately authorized fixture.
 
+## Unit 5 Frozen neural inference and checkpoint validation
+
+Based on unit 4 (`74d9632`), this ports `neural/model.py` (byte-identical),
+`neural/checkpoints.py` and `neural/inference.py` from the training tip `819f4f4`.
+All three originate in `6b8d6f0` and `3ae14e7`; their tests come from the same
+commits' `test_neural_runtime.py` (the six deferred `InferenceClient` cases, now
+`tests/test_neural_inference.py`) and `test_neural_training.py` (model and
+checkpoint round-trip/schema cases, now `tests/test_neural_checkpoints.py`).
+Training, PPO, live updates, simulator, league and demonstrations stay in units 6–8.
+
+The source already loaded weights with `torch.load(..., weights_only=True)`,
+compared the schema and fingerprint, checked dimensions against the schema,
+rejected non-finite tensors and verified the blob against the SHA-256 written
+in its own manifest. That last check is self-referential: anyone who rewrites
+both blob and manifest passes it. Local hardening:
+
+- `load_checkpoint(..., expected_sha256=...)` and `InferenceClient(...,
+  expected_sha256=...)` require the caller's 64-character lowercase SHA-256 of
+  the weight file (the identity recorded in `model-evidence.md`). There is no
+  default. The manifest must name that digest and the bytes must hash to it.
+  The worker receives it as `--expected-sha256`; the parent also refuses a
+  worker whose ready line reports another identity or non-positive/non-integer
+  dimensions, and a later matching ready line cannot rescue it.
+- The manifest is read with a hard size bound, rejects NaN/Infinity and
+  non-objects, and its config must have exactly the four integer dimensions.
+  Descriptors need an integer, bounded byte count and a bare file name.
+- Tensors must be string-keyed, floating-point and finite, and their names and
+  shapes must equal those of the declared policy before `load_state_dict`.
+  Any deserialization failure, including a pickle payload refused by
+  `weights_only`, is reported as `CheckpointError` (a `ValueError`); a test
+  proves the payload's reducer is never executed.
+- The worker reports a missing `torch` as a startup failure, not a traceback.
+- `save_checkpoint` no longer writes optimizer or RNG blobs, and the
+  `restore_optimizer`/`restore_training_rng` helpers are not ported; training
+  resume belongs to unit 7. Existing manifests that list those blobs still load.
+
+Dependency: a new `neural` extra, `torch>=2.6,<3` (2.6 is the first release
+where `weights_only=True` is the default) and `numpy>=2,<3` (as on the source
+branch; it only stops torch warning that NumPy is missing). On Linux, the lock
+takes torch from the PyTorch CPU index, so CI downloads one wheel (about 0.2 GB)
+instead of about 2.9 GB of CUDA packages. `laya` already locked torch 2.14.0 from
+PyPI with CUDA on Linux. To leave that untouched, the CPU source applies only to
+`neural`, and the two extras are declared conflicting (they cannot share an
+environment). After `uv lock` (plus `--upgrade-package torch==2.14.0` so Linux
+matches the macOS 2.14.0 rather than jumping to 2.15.0+cpu), the lock gains exactly one
+package, `torch 2.14.0+cpu`. No locked version is removed or changed. Fourteen
+existing packages gain extra wheel entries for the same versions in the
+conflict-fork marker space. `uv export` of `dev+jeff`, `qwen`, `laya` and
+`laya+qwen+jeff+dev` is byte-identical before and after.
+
+Importing `anima3`, `anima3.neural`, `executor`, `schema` and `inference` does not
+import torch; a subprocess test refuses any torch import through a meta-path hook
+and checks `sys.modules`. The current schema fingerprint equals the audited
+`cae99f11…0bcb` (schema 3, 76 features, 27 actions). Local copies of the
+selected Reference BC (`af3cb4ad…8175`) and rollback (`0c6ca921…f56d`) weight
+files under the historical `anima3-training-league/.logs` worktree were only
+hashed, and their manifests read as JSON. Both hashes match, and both manifests
+carry this schema and fingerprint with config 76/27/64/64. They were not loaded or
+modified, and the server copies under `/opt/uoarena` were not accessed.
+
+Offline acceptance: without torch (`--extra dev --extra jeff`), **262 passing,
+1 skipped** (236 prior, 26 new inference/import cases; the checkpoint module
+skips through `pytest.importorskip`). With `--extra neural`, **300 passing**
+(38 model, checkpoint and real-worker cases). The real-worker cases start
+`python -m anima3.neural.inference` on a temporary checkpoint, receive a
+masked decision and refuse a mismatched identity. The neural suite passed three
+consecutive local runs. CI keeps the existing job and adds `neural-inference-tests`
+with the same action SHAs, Python 3.12.14 and uv 0.12.17. It asserts a `+cpu`
+build with no CUDA/NVIDIA/Triton distributions, fails if any torch case is
+skipped, and runs the full suite with torch. The scoped Ruff gate adds all five
+new files. Body, contract, README, `experiments/run_arm.sh`, `magic.py`, the
+executor and the schema are unchanged.
+
+Not done: no model was promoted, trained, evaluated or run against a game.
+Inference latency on the production host, GPU/MPS inference and wiring the client
+into a live duel runner are unverified (unit 6). The caller-supplied SHA binds
+only the weight file. The manifest itself is not hashed by the caller, although
+every manifest field that affects inference is validated.
+
 ## Remaining separately verified units
 
 | Order | Unit and likely files | Dependencies and acceptance |
 | --- | --- | --- |
 | 2 (integrated) | Read-only replay evidence: `replay.py`, validation/metrics tests | Stdlib-only first; corrupt, truncated, reordered and wrong-match records must fail. No network writes or model promotion. |
 | 3 (integrated) | Arena participant preparation and sparring: `arena.py`, `duel_wait.py`, `sparring.py`, public command/receipt tests | Units 1–2; preserve ordinary-account and challenge-token checks, start templates, exact rules, bounded fixtures, account locks and failure receipts. Reconcile current peer-only server assumptions. |
-| 4 (this unit) | Combat procedures and executor: selected `magic.py`/`combat_combo.py`, neural executor/schema surface | Units 1 and 3. Carry reflection fix forward explicitly while adopting wall-clock cursor handling; test stun, potion ownership/disposal, recovery and delayed public effects. No training required. |
-| 5 | Frozen neural inference and checkpoint validation | Unit 4; add the minimum Torch optional dependency and regenerate/review the lock deliberately. Require dimensions, schema fingerprint, finite weights and SHA-bound loading. Preserve audited selected and rollback artifacts. |
+| 4 (integrated) | Combat procedures and executor: selected `magic.py`/`combat_combo.py`, neural executor/schema surface | Units 1 and 3. Carry reflection fix forward explicitly while adopting wall-clock cursor handling; test stun, potion ownership/disposal, recovery and delayed public effects. No training required. |
+| 5 (this unit) | Frozen neural inference and checkpoint validation | Unit 4; add the minimum Torch optional dependency and regenerate/review the lock deliberately. Require dimensions, schema fingerprint, finite weights and SHA-bound loading. Preserve audited selected and rollback artifacts. |
 | 6 | Live receipts, evaluation and bounded resume | Units 2–5; prove count/duplicate/invalid-fixture handling, immutable arm policy identities and account locking before any separately authorized live fixture. |
 | 7 | Simulator, demonstrations, BC/PPO and promotion gates | Units 5–6; isolate training from evaluation, preserve holdouts, elapsed-time assumptions, resume idempotence and per-style regression rejection. Simulator gain is not live gain. |
 | 8 | Tactical teacher and optional Jev shadow analysis | Unit 4 plus relevant collectors. Keep teacher demonstrations and off-policy actions out of PPO records; preserve evaluated frozen policy behavior. |
