@@ -180,6 +180,13 @@ Only cursor-targeted spells adopt the wall-clock bound
 from the first observation after the cast request. The neural option set has
 no buff, so the executor cannot reintroduce the reflection bug; a test pins this.
 
+One local hardening beyond the source: the training `explosion_potion_proc`
+targeted whichever cursor was pending, so an outstanding harmful-spell cursor
+could be spent on the potion. It now refuses any described cursor other than
+the neutral ground-capable throw cursor (flag 0, type 1) and returns
+`foreign cursor`; boolean-only cursors from older bridges remain accepted.
+`executor.py`, `schema.py` and `combat_combo.py` are byte-identical to the source.
+
 Behavior change for existing callers: when the duel opponent is more than ten
 tiles away, `mage_verbs` now offers healing/cure or one walkable step toward the
 opponent instead of out-of-range casts. Openers, potions, burst combos and
@@ -193,15 +200,16 @@ checkpoints and model code are not part of this unit. The six `InferenceClient`
 cases of the training `test_neural_runtime.py` were removed and are deferred to
 unit 5 with that module.
 
-Offline acceptance: **233 passing tests** (182 prior and 51 new): 33 executor
+Offline acceptance: **234 passing tests** (182 prior and 52 new): 33 executor
 runtime cases (burst cursor ordering, fizzle/clumsy interrupt before and after
 priming, stale-state potion ownership, safe ground disposal, orphan cursor
 cleanup, public Explosion word expiry, potion defense, landing tracking), 8
-combo, 1 potion, and 9 unit-boundary cases. The boundary cases cover stun
+combo, 1 potion, and 10 unit-boundary cases. The boundary cases cover stun
 request/arming/landing cooldown and skill/reach requirements, round-boundary
 melee reset, stale server state masking, the reflection invariants, cursor waits
 beyond the old eight-observation limit and at the wall-clock deadline, Showdown
-healing and survival abandonment of an opener with its cursor cancelled. The
+healing, survival abandonment of an opener with its cursor cancelled, and
+the potion procedure refusing a described non-throw cursor. The
 suite passed three consecutive runs. The scoped CI lint gate adds all new files
 and `magic.py`. Body, contract, lockfile, README and `experiments/run_arm.sh`
 are unchanged. No live fight, model, training or server change was run;

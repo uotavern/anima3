@@ -14,7 +14,14 @@ from test_neural_runtime import observation
 
 from anima3 import magic
 from anima3.contract import Journal, Skill
-from anima3.magic import NO_CURSOR, SPELLS, cast_proc, mage_verbs, opening_proc
+from anima3.magic import (
+    NO_CURSOR,
+    SPELLS,
+    cast_proc,
+    explosion_potion_proc,
+    mage_verbs,
+    opening_proc,
+)
 from anima3.neural.executor import CombatExecutor
 from anima3.neural.schema import ACTION_INDEX, SPELL_NAMES
 
@@ -145,3 +152,17 @@ def test_opening_abandoned_for_survival_cancels_its_cursor():
         gen.send(world(hp=20))
     assert done.value.value == "opening abandoned for survival"
     assert memory["opening_abandoned"] and memory["opening_attempts"] == {"weaken": 1}
+
+
+def test_explosion_potion_never_spends_a_described_spell_cursor():
+    memory = {"tick": 3}
+    gen = explosion_potion_proc(101, 2)(world(), memory)
+    assert next(gen) == {"type": "Use", "serial": 101}
+    spell_cursor = world(target={"cursor_id": 5, "cursor_flag": 1, "target_type": 0})
+    with pytest.raises(StopIteration) as done:
+        gen.send(spell_cursor)
+    assert done.value.value == "foreign cursor"
+    gen = explosion_potion_proc(101, 2)(world(), memory)
+    next(gen)
+    throw_cursor = world(target={"cursor_id": 6, "cursor_flag": 0, "target_type": 1})
+    assert gen.send(throw_cursor) == {"type": "TargetObject", "serial": 2}
