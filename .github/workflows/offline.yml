@@ -1,0 +1,31 @@
+name: Offline Python checks
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  offline-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: '3.12.14'
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
+        with:
+          version: '0.12.17'
+          enable-cache: false
+      - name: Install locked offline test dependencies
+        run: uv sync --locked --extra dev --extra jeff
+      - name: Run offline suite without game or model credentials
+        run: uv run --locked --extra dev --extra jeff pytest -q
+      - name: Lint integrated bridge boundary
+        run: >-
+          uv run --locked --extra dev --extra jeff ruff check
+          anima3/body.py anima3/contract.py tests/test_bridge_contract.py

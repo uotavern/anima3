@@ -1,8 +1,9 @@
 """Typed views over the anima-client Observation JSON, and Action JSON builders.
 
 Field names mirror `anima-contract-json` (schema 33) verbatim. Only what this
-brain reads is modelled; unknown keys are ignored so additive schema bumps are
-harmless. Actions are plain dicts of exactly the shape `action_from_json` parses.
+brain reads is modelled; unknown keys are ignored so additive fields within
+schema 33 are harmless. BridgeBody still requires an exact schema-version
+handshake. Actions are plain dicts of the shape `action_from_json` parses.
 """
 
 from __future__ import annotations
@@ -287,6 +288,11 @@ class Observation:
     shop_sell: ShopSell | None = None
     corpse_of: dict[int, int] = field(default_factory=dict)   # corpse serial -> killed mobile serial
     skills: list[Skill] = field(default_factory=list)
+    # Append optional fields to preserve existing positional construction.
+    target_cursor_id: int | None = None
+    target_cursor_flag: int | None = None
+    target_cursor_type: int | None = None
+    recent_effects: list[dict[str, Any]] = field(default_factory=list)
 
     @classmethod
     def from_json(cls, d: dict[str, Any]) -> Observation:
@@ -298,6 +304,12 @@ class Observation:
             items=[Item.from_json(i) for i in d.get("items") or []],
             new_journal=[Journal.from_json(j) for j in d.get("new_journal") or []],
             pending_target=bool(d.get("pending_target")),
+            target_cursor_id=(d["pending_target"].get("cursor_id")
+                              if isinstance(d.get("pending_target"), dict) else None),
+            target_cursor_flag=(d["pending_target"].get("cursor_flag")
+                                if isinstance(d.get("pending_target"), dict) else None),
+            target_cursor_type=(d["pending_target"].get("target_type")
+                                if isinstance(d.get("pending_target"), dict) else None),
             war=bool(d.get("war", False)),
             terrain=Terrain.from_json(d.get("terrain")),
             gumps=[Gump.from_json(g) for g in d.get("gumps") or []],
@@ -305,6 +317,7 @@ class Observation:
             shop_sell=ShopSell.from_json(ss) if ss else None,
             corpse_of={int(x.get("corpse", 0)): int(x.get("killed", 0)) for x in d.get("corpse_of") or []},
             skills=[Skill.from_json(x) for x in d.get("skills") or []],
+            recent_effects=list(d.get("recent_effects") or []),
         )
 
     # --- convenience views -------------------------------------------------
