@@ -6,6 +6,9 @@ requires-python = ">=3.12,<3.13"
 dependencies = ["pyyaml>=6"]
 
 [project.optional-dependencies]
+# Frozen policy inference and checkpoint validation only; the base package never imports
+# torch. numpy only silences torch's missing-NumPy import warning; it is not used directly.
+neural = ["torch>=2.6,<3", "numpy>=2,<3"]
 qwen = ["mlx-lm>=0.28"]
 jeff = ["typesafe-sdk>=0.7"]
 laya = ["laya>=0.3.3"]
@@ -14,9 +17,24 @@ dev = ["pytest>=8", "ruff>=0.6"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 
+[tool.uv]
+# The existing laya extra keeps its locked PyPI (CUDA on Linux) torch unchanged; it cannot
+# be installed in the same environment as the CPU-only neural extra.
+conflicts = [[{ extra = "neural" }, { extra = "laya" }]]
+
 [tool.ruff]
 line-length = 100
 target-version = "py312"
+
+# Linux resolves the CPU-only PyTorch wheel so frozen inference and CI do not pull the
+# multi-gigabyte CUDA runtime. macOS wheels come from PyPI (CPU/MPS).
+[tool.uv.sources]
+torch = [{ index = "pytorch-cpu", marker = "sys_platform == 'linux'", extra = "neural" }]
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
 
 [build-system]
 requires = ["setuptools>=68"]
