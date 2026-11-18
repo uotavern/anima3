@@ -32,3 +32,7 @@ jobs:
           tests/test_bridge_contract.py tests/test_replay.py
           anima3/duel_wait.py anima3/sparring.py
           tests/test_duel_wait.py tests/test_sparring.py
+          anima3/magic.py anima3/combat_combo.py anima3/neural/__init__.py
+          anima3/neural/schema.py anima3/neural/executor.py
+          tests/test_combat_combo.py tests/test_explosion_potion.py
+          tests/test_neural_runtime.py tests/test_combat_unit4.py
