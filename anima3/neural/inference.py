@@ -24,6 +24,7 @@ from pathlib import Path
 from typing import Any
 
 _SHA256 = re.compile(r"[0-9a-f]{64}")
+MAX_WORKER_LINE_CHARS = 2_000_000
 
 
 def require_sha256(value: Any) -> str:
@@ -135,9 +136,13 @@ class InferenceClient:
     def _read_stdout(self) -> None:
         assert self.process is not None and self.process.stdout is not None
         try:
-            for line in self.process.stdout:
-                # Responses are one compact hidden vector, never weights.
-                if len(line) > 2_000_000:
+            while True:
+                # Responses are one compact hidden vector, never weights.  Never read
+                # more than the bound plus one character of a single line.
+                line = self.process.stdout.readline(MAX_WORKER_LINE_CHARS + 1)
+                if not line:
+                    break
+                if len(line) > MAX_WORKER_LINE_CHARS:
                     self._inbox.put(
                         ({"type": "fatal", "error": "oversized worker response"}, time.monotonic())
                     )

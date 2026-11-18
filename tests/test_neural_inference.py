@@ -59,7 +59,9 @@ def startup_failure(client):
 
 
 def test_inference_one_inflight_deadline_and_epoch_reset():
-    client = fake_client(deadline_ms=40).start()
+    # A generous real deadline keeps the subprocess round trip from flaking on slow
+    # runners; expiry is then exercised by consuming at an explicitly later clock.
+    client = fake_client(deadline_ms=1000).start()
     try:
         wait_for(lambda: client.ready)
         client.reset("one")
@@ -69,15 +71,16 @@ def test_inference_one_inflight_deadline_and_epoch_reset():
         assert decision.hidden_in == (0, 0) and client.hidden == (1, 1)
         assert decision.policy_sha == POLICY_SHA
         assert client.submit(Frame([1, 0], [True, True]), "one")
-        time.sleep(0.1)
-        assert client.take("one") is None
+        wait_for(lambda: not client._inbox.empty())
+        assert client.take("one", time.monotonic() + 2.0) is None
         assert client.hidden == (1, 1)
         assert any(row.get("reason") == "deadline" for row in client.drain_events())
         assert client.submit(Frame([1, 0], [True, True]), "one")
         client.reset("two")
-        time.sleep(0.1)
+        wait_for(lambda: not client.busy)
         assert client.take("two") is None
         assert client.hidden == (0, 0)
+        assert any(row.get("reason") == "context_changed" for row in client.drain_events())
         assert client.submit(Frame([0, 0], [True, True]), "two")
         decision = wait_for(lambda: client.take("two"))
         assert decision.hidden_in == (0, 0)
@@ -91,9 +94,14 @@ def test_inference_rechecks_sampled_mask():
     try:
         wait_for(lambda: client.ready)
         client.submit(Frame([0, 0], [True, False]), "one")
-        time.sleep(0.03)
+        events = []
+
+        def illegal_action_seen():
+            events.extend(client.drain_events())
+            return any(row.get("reason") == "illegal_action" for row in events)
+
+        wait_for(illegal_action_seen)
         assert client.take("one") is None
-        assert any(row.get("reason") == "illegal_action" for row in client.drain_events())
         assert client.hidden == (0, 0)
     finally:
         client.close()
@@ -277,6 +285,21 @@ def test_fake_worker_with_wrong_identity_is_refused_end_to_end():
         wait_for(lambda: startup_failure(client))
         assert not client.ready
         assert "unexpected policy SHA256" in client.startup_error
+    finally:
+        client.close()
+
+
+def test_oversized_worker_line_is_fatal_without_unbounded_read(monkeypatch):
+    monkeypatch.setattr("anima3.neural.inference.MAX_WORKER_LINE_CHARS", 1000)
+    worker = (
+        "import sys; sys.stdout.write('x' * 5000 + '\\n'); sys.stdout.flush(); sys.stdin.read()"
+    )
+    client = InferenceClient(
+        "unused", expected_sha256=POLICY_SHA, worker_command=[sys.executable, "-u", "-c", worker]
+    ).start()
+    try:
+        assert "oversized" in wait_for(lambda: startup_failure(client))
+        assert not client.ready
     finally:
         client.close()
 

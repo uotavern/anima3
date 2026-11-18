@@ -140,6 +140,25 @@ def test_checkpoint_roundtrip_is_hash_and_schema_checked(tmp_path):
         load_checkpoint(tmp_path, expected_sha256=sha)
 
 
+def test_older_manifest_with_optimizer_and_rng_entries_still_loads(tmp_path):
+    # Training-branch manifests also list optimizer/RNG blobs.  Frozen loading must
+    # accept them and never read them (here they are deliberately not tensors).
+    _, sha = saved(tmp_path)
+
+    def add_resume_blobs(manifest):
+        for kind in ("optimizer", "rng"):
+            payload = f"synthetic {kind} blob, not a tensor".encode()
+            digest = hashlib.sha256(payload).hexdigest()
+            name = f"{kind}-{digest}.pt"
+            (tmp_path / name).write_bytes(payload)
+            manifest[kind] = {"file": name, "sha256": digest, "bytes": len(payload)}
+
+    edit_manifest(tmp_path, add_resume_blobs)
+    loaded = load_checkpoint(tmp_path, expected_sha256=sha)
+    assert loaded.policy_sha == sha
+    assert {"optimizer", "rng"} <= set(loaded.manifest)
+
+
 def test_checkpoint_rejects_schema_drift(tmp_path):
     _, sha = saved(tmp_path)
     edit_manifest(tmp_path, lambda m: m["schema"]["actions"].__setitem__(0, "unknown-new-action"))

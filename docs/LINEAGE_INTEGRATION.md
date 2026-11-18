@@ -251,9 +251,12 @@ both blob and manifest passes it. Local hardening:
   `weights_only`, is reported as `CheckpointError` (a `ValueError`); a test
   proves the payload's reducer is never executed.
 - The worker reports a missing `torch` as a startup failure, not a traceback.
+- The parent reads at most 2,000,001 characters of any worker line, so an
+  oversized response is fatal before it can be buffered in full.
 - `save_checkpoint` no longer writes optimizer or RNG blobs, and the
   `restore_optimizer`/`restore_training_rng` helpers are not ported; training
-  resume belongs to unit 7. Existing manifests that list those blobs still load.
+  resume belongs to unit 7. Existing manifests that list those blobs still load
+  without reading them (covered by a synthetic-manifest test).
 
 Dependency: a new `neural` extra, `torch>=2.6,<3` (2.6 is the first release
 where `weights_only=True` is the default) and `numpy>=2,<3` (as on the source
@@ -279,13 +282,14 @@ hashed, and their manifests read as JSON. Both hashes match, and both manifests
 carry this schema and fingerprint with config 76/27/64/64. They were not loaded or
 modified, and the server copies under `/opt/uoarena` were not accessed.
 
-Offline acceptance: without torch (`--extra dev --extra jeff`), **262 passing,
-1 skipped** (236 prior, 26 new inference/import cases; the checkpoint module
-skips through `pytest.importorskip`). With `--extra neural`, **300 passing**
-(38 model, checkpoint and real-worker cases). The real-worker cases start
+Offline acceptance: without torch (`--extra dev --extra jeff`), **263 passing,
+1 skipped** (236 prior, 27 new inference/import cases; the checkpoint module
+skips through `pytest.importorskip`). With `--extra neural`, **302 passing**
+(39 model, checkpoint and real-worker cases). The real-worker cases start
 `python -m anima3.neural.inference` on a temporary checkpoint, receive a
-masked decision and refuse a mismatched identity. The neural suite passed three
-consecutive local runs. CI keeps the existing job and adds `neural-inference-tests`
+masked decision and refuse a mismatched identity. Both suites passed three
+consecutive local runs. Subprocess tests use generous real deadlines and wait on
+events; deadline expiry is exercised by consuming at an explicitly later clock. CI keeps the existing job and adds `neural-inference-tests`
 with the same action SHAs, Python 3.12.14 and uv 0.12.17. It asserts a `+cpu`
 build with no CUDA/NVIDIA/Triton distributions, fails if any torch case is
 skipped, and runs the full suite with torch. The scoped Ruff gate adds all five
