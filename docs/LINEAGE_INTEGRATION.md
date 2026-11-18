@@ -161,13 +161,59 @@ The scoped CI lint gate includes both participant modules and their tests.
 All primary invariant files and the lockfile remain unchanged. Combat execution,
 fixture orchestration, reconnect/resume and promotion stay in later units.
 
+## Unit 4 Combat procedures and option executor
+
+Based on unit 3 (`a58551e`), this ports the stdlib-only combat surface from the
+training tip `819f4f4`: `combat_combo.py`, `neural/schema.py` (schema 3, 27
+options) and `neural/executor.py` (`pre-aos-options-v12-potion-landing-tracking`),
+plus the Weaken/Clumsy opener, explosion-potion procedure, Showdown no-heal rule
+and out-of-range approach in `magic.py`. The executor is reached through 14
+training commits from `6b8d6f0` to `99f0184`; their behavior is imported with
+its tests rather than replayed commit by commit.
+
+`magic.py` was merged by hand, not replaced. The training copy deleted
+`NO_CURSOR` and moved the reflection clock to a successful cast, which would
+revert `ccbc571` and void the sustain playbook again. This unit keeps both:
+buffs never wait for a cursor and every reflection attempt restarts its clock.
+Only cursor-targeted spells adopt the wall-clock bound
+`max(3, (3 + circle) * 0.25 + 2)` seconds (at most 64 observations), measured
+from the first observation after the cast request. The neural option set has
+no buff, so the executor cannot reintroduce the reflection bug; a test pins this.
+
+Behavior change for existing callers: when the duel opponent is more than ten
+tiles away, `mage_verbs` now offers healing/cure or one walkable step toward the
+opponent instead of out-of-range casts. Openers, potions, burst combos and
+Showdown restrictions only apply when their memory flag is set.
+
+Every emitted wire command (`CastSpell`, `TargetObject`, `TargetGround`,
+`TargetCancel`, `Use`, `UseSkill`, `Walk`, `Attack`, `StunRequest`) is parsed
+by current `anima-client` `anima-contract-json`; no bridge or schema change is
+needed. `neural/__init__.py` does not import torch, and `inference.py`,
+checkpoints and model code are not part of this unit. The six `InferenceClient`
+cases of the training `test_neural_runtime.py` were removed and are deferred to
+unit 5 with that module.
+
+Offline acceptance: **233 passing tests** (182 prior and 51 new): 33 executor
+runtime cases (burst cursor ordering, fizzle/clumsy interrupt before and after
+priming, stale-state potion ownership, safe ground disposal, orphan cursor
+cleanup, public Explosion word expiry, potion defense, landing tracking), 8
+combo, 1 potion, and 9 unit-boundary cases. The boundary cases cover stun
+request/arming/landing cooldown and skill/reach requirements, round-boundary
+melee reset, stale server state masking, the reflection invariants, cursor waits
+beyond the old eight-observation limit and at the wall-clock deadline, Showdown
+healing and survival abandonment of an opener with its cursor cancelled. The
+suite passed three consecutive runs. The scoped CI lint gate adds all new files
+and `magic.py`. Body, contract, lockfile, README and `experiments/run_arm.sh`
+are unchanged. No live fight, model, training or server change was run;
+real-server timing of these procedures needs a separately authorized fixture.
+
 ## Remaining separately verified units
 
 | Order | Unit and likely files | Dependencies and acceptance |
 | --- | --- | --- |
 | 2 (integrated) | Read-only replay evidence: `replay.py`, validation/metrics tests | Stdlib-only first; corrupt, truncated, reordered and wrong-match records must fail. No network writes or model promotion. |
-| 3 (this unit) | Arena participant preparation and sparring: `arena.py`, `duel_wait.py`, `sparring.py`, public command/receipt tests | Units 1–2; preserve ordinary-account and challenge-token checks, start templates, exact rules, bounded fixtures, account locks and failure receipts. Reconcile current peer-only server assumptions. |
-| 4 | Combat procedures and executor: selected `magic.py`/`combat_combo.py`, neural executor/schema surface | Units 1 and 3. Carry reflection fix forward explicitly while adopting wall-clock cursor handling; test stun, potion ownership/disposal, recovery and delayed public effects. No training required. |
+| 3 (integrated) | Arena participant preparation and sparring: `arena.py`, `duel_wait.py`, `sparring.py`, public command/receipt tests | Units 1–2; preserve ordinary-account and challenge-token checks, start templates, exact rules, bounded fixtures, account locks and failure receipts. Reconcile current peer-only server assumptions. |
+| 4 (this unit) | Combat procedures and executor: selected `magic.py`/`combat_combo.py`, neural executor/schema surface | Units 1 and 3. Carry reflection fix forward explicitly while adopting wall-clock cursor handling; test stun, potion ownership/disposal, recovery and delayed public effects. No training required. |
 | 5 | Frozen neural inference and checkpoint validation | Unit 4; add the minimum Torch optional dependency and regenerate/review the lock deliberately. Require dimensions, schema fingerprint, finite weights and SHA-bound loading. Preserve audited selected and rollback artifacts. |
 | 6 | Live receipts, evaluation and bounded resume | Units 2–5; prove count/duplicate/invalid-fixture handling, immutable arm policy identities and account locking before any separately authorized live fixture. |
 | 7 | Simulator, demonstrations, BC/PPO and promotion gates | Units 5–6; isolate training from evaluation, preserve holdouts, elapsed-time assumptions, resume idempotence and per-style regression rejection. Simulator gain is not live gain. |

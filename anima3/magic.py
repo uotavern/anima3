@@ -8,6 +8,7 @@ read from the journal (fixed clilocs) or from the mana actually spent.
 
 from __future__ import annotations
 
+import time
 from dataclasses import dataclass
 
 from .contract import Observation, target_object, use_skill
@@ -42,6 +43,8 @@ class Spell:
 
 
 SPELLS: dict[str, Spell] = {s.key: s for s in [
+    Spell("weaken", 8, 1, frozenset({GARLIC, NIGHTSHADE}), "control", "Weaken: reduce the opponent's strength (4 mana)."),
+    Spell("clumsy", 1, 1, frozenset({BLOODMOSS, NIGHTSHADE}), "control", "Clumsy: reduce the opponent's dexterity (4 mana)."),
     Spell("magic_arrow", 5, 1, frozenset({SULFUROUS_ASH}), "attack", "Magic Arrow: a quick, weak bolt (4 mana)."),
     Spell("harm", 12, 2, frozenset({NIGHTSHADE, SPIDERS_SILK}), "attack", "Harm: instant, hurts more up close (6 mana)."),
     Spell("fireball", 18, 3, frozenset({BLACK_PEARL}), "attack", "Fireball (9 mana)."),
@@ -62,7 +65,7 @@ SELF_TARGET = {"heal", "cure", "buff"}
 #: ("no cursor"), so reflection stayed due and `sustain` cast nothing else (experiment 5's void).
 NO_CURSOR = {"buff"}
 #: Every cast is spoken aloud: the opponent's power words are how a mage reads the other's casting.
-WORDS = {"in por ylem": "Magic Arrow", "an mani": "Harm", "vas flam": "Fireball", "por ort grav": "Lightning",
+WORDS = {"des mani": "Weaken", "uus jux": "Clumsy", "in por ylem": "Magic Arrow", "an mani": "Harm", "vas flam": "Fireball", "por ort grav": "Lightning",
          "corp por": "Energy Bolt", "vas ort flam": "Explosion", "kal vas flam": "Flamestrike", "in mani": "Heal",
          "in vas mani": "Greater Heal", "an nox": "Cure", "in nox": "Poison", "an ex por": "Paralyze",
          "in jux sanct": "Magic Reflection", "flam sanct": "Reactive Armor"}
@@ -85,12 +88,17 @@ def cast_proc(spell: Spell, target_serial: int):
             memory["reflect_at"] = memory.get("tick", 0)   # arrows keep disturbing was retried forever
         obs = yield {"type": "CastSpell", "spell": spell.id}
         if spell.kind not in NO_CURSOR:
-            for _ in range(8):
+            # Wall-clock bound: observation cadence varies, so a tick count alone
+            # either gives up before slower cursors or waits indefinitely.
+            deadline = time.monotonic() + max(3.0, (3 + spell.circle) * 0.25 + 2.0)
+            for _ in range(64):
                 cl = {j.cliloc for j in obs.new_journal}
                 for c, v in VERDICTS.items():
                     if c in cl:
                         return v
                 if obs.pending_target:
+                    break
+                if time.monotonic() >= deadline:
                     break
                 obs = yield None
             if not obs.pending_target:
@@ -109,6 +117,33 @@ def cast_proc(spell: Spell, target_serial: int):
                 return "ok"
             obs = yield None
         return "ok" if low < mana0 else "timeout"
+    return proc
+
+
+OPENING = ("weaken", "clumsy")
+
+
+def opening_proc(key, target_serial):
+    """One bounded opening cast; emergency healing may abandon the opener."""
+    def proc(obs0, memory):
+        attempts = memory.setdefault("opening_attempts", {})
+        attempts[key] = attempts.get(key, 0) + 1
+        gen = cast_proc(SPELLS[key], target_serial)(obs0, memory)
+        step = next(gen)
+        while True:
+            obs = yield step
+            if obs.player.hp_pct < 0.35 or obs.player.poisoned:
+                gen.close()
+                memory["opening_abandoned"] = True
+                if obs.pending_target:
+                    yield {"type": "TargetCancel"}
+                return "opening abandoned for survival"
+            try:
+                step = gen.send(obs)
+            except StopIteration as done:
+                if done.value == "ok" or attempts[key] >= 2:
+                    memory.setdefault("opening_finished", []).append(key)
+                return done.value
     return proc
 
 
@@ -172,6 +207,21 @@ def spell_order(playbook: str, hp: float, poisoned: bool, opp_paralyzed: bool, o
     return [k for k in order if not (k in seen or seen.add(k))]
 
 
+def explosion_potion_proc(serial: int, opponent: int):
+    """Own the cursor until this potion has been thrown or the request times out."""
+    from .contract import use
+    def proc(obs0, memory):
+        memory["potion_after"] = memory.get("tick", 0) + 40
+        obs = yield use(serial)
+        for _ in range(12):
+            if obs.pending_target:
+                yield target_object(opponent)
+                return "thrown"
+            obs = yield None
+        return "no potion cursor"
+    return proc
+
+
 def mage_verbs(obs: Observation, f, memory: dict, threat) -> list:
     """The mage's closed menu in a duel, rule-ordered by the current playbook (`memory["playbook"]`,
     `standard` when none is set): heal when low, cure when poisoned, attacks in the playbook's
@@ -184,6 +234,8 @@ def mage_verbs(obs: Observation, f, memory: dict, threat) -> list:
 
     def cast(key: str, why: str = "") -> None:
         s = SPELLS[key]
+        if memory.get("showdown") and s.kind == "heal":
+            return
         if mana >= s.mana and has_reagents(obs, s) and not any(a.id == f"cast:{key}" for a in out):
             tgt = p.serial if s.kind in SELF_TARGET else threat.serial
             out.append(Affordance(f"cast:{key}", s.blurb + why, procedure=cast_proc(s, tgt)))
@@ -191,6 +243,53 @@ def mage_verbs(obs: Observation, f, memory: dict, threat) -> list:
     if memory.get("tick", 0) < memory.get("recover_until", 0):
         return [Affordance("recover", "Catch your breath for a moment; the last spell still echoes.")]
     hp = f.hp_pct
+    if threat.distance > 10:
+        if hp < 0.5:
+            cast("greater_heal")
+        if p.poisoned:
+            cast("cure")
+        if out:
+            return out
+        # Large native arenas can spawn opponents beyond spell range. Move one
+        # walkable step per observation, so movement stops before casting.
+        from .contract import DIRECTION_DELTAS
+        steps = _step_options(obs)
+        if steps:
+            direction, name = min(steps, key=lambda step: max(
+                abs(p.pos.x + DIRECTION_DELTAS[step[0]][0] - threat.pos.x),
+                abs(p.pos.y + DIRECTION_DELTAS[step[0]][1] - threat.pos.y)))
+            return [Affordance("approach:duel", "Close to casting range: " + name,
+                               (walk(direction, run=True),))]
+        return [Affordance("blocked:duel", "No walkable approach to the opponent.")]
+    if memory.get("opening") == "weaken-clumsy" and not memory.get("opening_abandoned"):
+        if hp < 0.5 or p.poisoned:
+            memory["opening_abandoned"] = True
+        else:
+            done = memory.get("opening_finished", [])
+            key = next((k for k in OPENING if k not in done), None)
+            if key and threat.distance <= 12 and mana >= SPELLS[key].mana and has_reagents(obs, SPELLS[key]):
+                return [Affordance(f"cast:{key}", SPELLS[key].blurb + " Opening sequence.",
+                                   procedure=opening_proc(key, threat.serial))]
+            if key:
+                memory["opening_abandoned"] = True
+    if memory.get("burst_combo") and not obs.pending_target and hp >= 0.65 and not p.poisoned and 3 <= threat.distance <= 10:
+        import time
+
+        from .combat_combo import burst_proc
+        finisher = "flamestrike" if memory.get("playbook") == "control" and mana >= 75 else "energy_bolt"
+        potion = next((i for i in obs.own_pack() if i.graphic == 0xF0D), None)
+        if (potion and time.monotonic() >= memory.get("combo_after_s", 0)
+                and mana >= SPELLS["explosion"].mana + SPELLS[finisher].mana + 11
+                and has_reagents(obs, SPELLS["explosion"]) and has_reagents(obs, SPELLS[finisher])):
+            return [Affordance(f"cast:combo-{finisher}", "Time Explosion, an explosion potion and " + finisher + " together.",
+                               procedure=burst_proc(potion.serial, threat.serial, finisher))]
+    if (memory.get("explosion_potions") and not obs.pending_target and hp >= 0.5
+            and 2 <= threat.distance <= 10
+            and memory.get("tick", 0) >= memory.get("potion_after", 0)):
+        potion = next((i for i in obs.own_pack() if i.graphic == 0xF0D), None)
+        if potion:
+            out.append(Affordance("potion:explosion", "Throw an explosion potion at the duel opponent.",
+                                  procedure=explosion_potion_proc(potion.serial, threat.serial)))
     playbook = memory.get("playbook", "standard")
     reflect_due = memory.get("tick", 0) - memory.get("reflect_at", -999) > 60
     why = {"greater_heal": " You are below half." if hp < 0.5 else "", "cure": " You are poisoned."}
