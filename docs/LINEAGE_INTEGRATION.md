@@ -121,12 +121,52 @@ server writes or new dependencies are involved. CI now includes
 `anima3/replay.py` and `tests/test_replay.py` in its existing scoped Ruff gate.
 All five primary fixes remain ancestors and their source files are unchanged.
 
+## Unit 3 Participant preparation and sparring boundaries
+
+Based on unit 2 (`fc74273`), this ports public skill/stat-ball preparation,
+server-only DuelState parsing and exact supply audits from `duel_wait.py`, and
+separates the bounded handshake/receipt behavior from the training sparring
+runner. Origins include `fcb98ac`, `5e148d4`, `0da70f3`, `5903e2a`, `6e5d778`,
+`bc3f10b` and `a702d24`. No agent, strategy, neural or learning modules are needed.
+
+- `prepare` first requests fresh idle state and refuses active duels or pending
+  invitations before public leave/enter/supply commands. Optional raw-stat proof
+  reads and cancels the Arena stat dialog, even if displayed stats already match.
+- `poll` discards previously buffered journal and accepts only server system
+  state. `wait_training_idle` refuses unrelated opponents/rules and requires
+  fresh idle responses from two distinct participants.
+- `request_training_challenge` issues one explicitly unrated supported challenge.
+  `accept_invitation` checks the fresh token's opponent, rules and round count.
+  Acceptance is not match completion; callers must observe the assigned match ID.
+- `verify_receipt` requires that actual expected match ID, exact ordered seats,
+  rules, complete SHA-bound archive, no abort and explicit training/unranked
+  flags. A historical replay for the same pair cannot satisfy another match.
+- `account_locks` holds nonblocking POSIX locks for each case-insensitive account.
+  All runners must share the same private lock directory and canonical endpoint
+  key; hostname/IP aliases are caller responsibility. This is local coordination,
+  not a remote lease. A runner must hold locks across preparation and the match.
+
+`BoundedBody` checks cancellation and a finite deadline before each operation.
+An RPC already in flight remains subject to the bridge's own timeout; use an
+outer process watchdog where hard elapsed limits are required. Preparation has
+no reconnect/retry loop that can reissue a match. Default bounds are 180 seconds
+for preparation, 30 for state/invitations and 360 for waiting out this pair's
+existing training fixture. No infinite worker or autonomous fight CLI is added.
+
+Offline acceptance: **182 tests** (146 prior and 36 new), with mocked bridge
+operations and no credentials. Cases cover token spoofing/mismatch, cancellation,
+stale state, timeout, preparation guards, stat recovery/raw proof, exact supplies,
+historical/ranked/wrong-seat receipts and overlapping/case-variant account locks.
+The scoped CI lint gate includes both participant modules and their tests.
+All primary invariant files and the lockfile remain unchanged. Combat execution,
+fixture orchestration, reconnect/resume and promotion stay in later units.
+
 ## Remaining separately verified units
 
 | Order | Unit and likely files | Dependencies and acceptance |
 | --- | --- | --- |
-| 2 (this unit) | Read-only replay evidence: `replay.py`, validation/metrics tests | Stdlib-only first; corrupt, truncated, reordered and wrong-match records must fail. No network writes or model promotion. |
-| 3 | Arena participant preparation and sparring: `arena.py`, `duel_wait.py`, `sparring.py`, public command/receipt tests | Units 1–2; preserve ordinary-account and challenge-token checks, start templates, exact rules, bounded fixtures, account locks and failure receipts. Reconcile current peer-only server assumptions. |
+| 2 (integrated) | Read-only replay evidence: `replay.py`, validation/metrics tests | Stdlib-only first; corrupt, truncated, reordered and wrong-match records must fail. No network writes or model promotion. |
+| 3 (this unit) | Arena participant preparation and sparring: `arena.py`, `duel_wait.py`, `sparring.py`, public command/receipt tests | Units 1–2; preserve ordinary-account and challenge-token checks, start templates, exact rules, bounded fixtures, account locks and failure receipts. Reconcile current peer-only server assumptions. |
 | 4 | Combat procedures and executor: selected `magic.py`/`combat_combo.py`, neural executor/schema surface | Units 1 and 3. Carry reflection fix forward explicitly while adopting wall-clock cursor handling; test stun, potion ownership/disposal, recovery and delayed public effects. No training required. |
 | 5 | Frozen neural inference and checkpoint validation | Unit 4; add the minimum Torch optional dependency and regenerate/review the lock deliberately. Require dimensions, schema fingerprint, finite weights and SHA-bound loading. Preserve audited selected and rollback artifacts. |
 | 6 | Live receipts, evaluation and bounded resume | Units 2–5; prove count/duplicate/invalid-fixture handling, immutable arm policy identities and account locking before any separately authorized live fixture. |
