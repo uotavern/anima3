@@ -38,6 +38,7 @@ jobs:
           tests/test_neural_runtime.py tests/test_combat_unit4.py
           anima3/neural/inference.py anima3/neural/checkpoints.py anima3/neural/model.py
           tests/test_neural_inference.py tests/test_neural_checkpoints.py
+          anima3/neural/live.py tests/test_neural_live.py tests/test_neural_live_worker.py
 
   # Frozen-inference checks with the optional CPU-only PyTorch extra. The lock resolves
   # Linux torch from the PyTorch CPU index (about 0.2 GB instead of ~2.9 GB of CUDA wheels).
@@ -64,11 +65,12 @@ jobs:
           assert not torch.backends.cuda.is_built();
           assert not [d.metadata['Name'] for d in m.distributions()
           if d.metadata['Name'].startswith(('nvidia', 'cuda', 'triton'))]"
-      - name: Run checkpoint and inference tests without skipping torch cases
+      - name: Run checkpoint, inference and live-worker tests without skipping torch cases
         shell: bash
         run: |
           uv run --locked --extra dev --extra jeff --extra neural pytest -q -rs \
-            tests/test_neural_checkpoints.py tests/test_neural_inference.py | tee neural.log
+            tests/test_neural_checkpoints.py tests/test_neural_inference.py \
+            tests/test_neural_live_worker.py | tee neural.log
           if grep -qi "skipped" neural.log; then echo "torch tests were skipped"; exit 1; fi
       - name: Run full offline suite with torch installed
         run: uv run --locked --extra dev --extra jeff --extra neural pytest -q

@@ -302,6 +302,109 @@ into a live duel runner are unverified (unit 6). The caller-supplied SHA binds
 only the weight file. The manifest itself is not hashed by the caller, although
 every manifest field that affects inference is validated.
 
+## Unit 6 Frozen policy in the live duel runner
+
+Based on unit 5 (`97a79de`), this adds `neural/live.py`, which joins the SHA-bound
+`InferenceClient` and the unit-4 `CombatExecutor` on one actor thread per game
+socket and records only receipt-verified unrated training fixtures. The actor
+loop, `dispatch_option`, `policy_override`, `LiveReplayVerifier`,
+`starting_template_verified` and `fight` are taken from the training tip
+`819f4f4` (`neural/live.py`, 16 commits from `6b8d6f0` to `5672268`). The
+collection layer around them is rewritten on the unit-3 primitives rather than
+ported, because the source `run` depended on `arena.py`, `arena_learning.py`,
+`arena_policy.py`, the training `sparring` handshake and a password CLI.
+
+Left out of the actor: the melee/cast-dump probes (`neural/melee.py`), the
+tactical teacher and demonstrations (`neural/curriculum.py`, unit 8). The
+scripted arm is the existing scripted `Agent` (`mage_a`, Weaken/Clumsy opener,
+explosion potions) built from `decision.build_client("scripted")`.
+
+Boundaries this unit adds:
+
+- **Immutable arm identity.** `Arm("neural", checkpoint, policy_sha256)` requires
+  the 64-character weight SHA-256; a scripted arm may carry no checkpoint. The
+  worker is started with that SHA; `await_workers` also refuses a ready worker
+  reporting another identity, and each actor's reported `policy_sha` must equal
+  its arm after the match. Episodes record the policy, plan, schema fingerprint
+  and executor SHA, and `LiveReplayVerifier(directory, expected_policy_sha)`
+  rejects an episode with another or no policy and a stale executor fingerprint.
+- **No silent fallback.** A missing checkpoint manifest or an absent `torch`
+  (`importlib.util.find_spec`, so the parent still never imports it) raises
+  `NeuralArmUnavailable` before any account is connected, so a scripted policy
+  can never be recorded under a neural label. A worker startup failure (for
+  example a mismatched checkpoint SHA) is refused the same way within a
+  90-second bound. A worker that fails mid-match stops the actor.
+- **Mask and stale state reach the runner.** A decision consumed when the
+  latest server DuelState is three seconds old or older is recorded with
+  `cancellation_reason: context_stale` and never started; a decision whose
+  action is no longer legal in the current frame is `mask_changed`. Both keep
+  the sampled action (no substitution). Stale state also stops new submissions.
+  A rejected decision in the current round (deadline, illegal, policy change)
+  makes the episode ineligible.
+- **Round reset.** Every new Fighting round gets a fresh epoch that resets the
+  executor and the worker's recurrent state. Any other phase resets both to
+  `inactive`, so neither an option nor a late decision crosses a round. A
+  second round in the one-round training fixture marks `multiple_rounds`.
+- **Bounded resume.** `CollectionPlan` fixes endpoint, two case-distinct
+  accounts, both arms, 1–100 matches, the inference deadline and the match
+  deadline. `collection.json` stores the plan and its SHA-256 once. A second
+  run needs `resume=True` and the identical plan (including policy SHAs and the
+  budget). `ledger.jsonl` is append-only and fsynced: `issued` is written before
+  the challenge, then exactly one of `completed`, `invalid_fixture`, `failed`
+  or `unresolved`. An issued fixture without an outcome (crash) is closed as
+  `unresolved` on resume and still consumes the budget, so no failure path can
+  issue more challenges than planned. Seat alternation follows the fixture
+  index across resumes. Out-of-order, malformed or double-closed ledgers are
+  refused.
+- **Duplicates and invalid fixtures.** A match identity may occur once per
+  collection (ledger check and pre-receipt check). The receipt goes through
+  unit-3 `verify_receipt` (exact ordered seats, rules, unranked training, SHA,
+  no abort); a mismatch is recorded as `invalid_fixture` and stops the run
+  without writing an episode. Any other failure after a challenge is recorded
+  as `failed` and stops the run; nothing is retried automatically. Earlier
+  verified matches remain in `results.json` (`automatic_promotion: false`).
+- **Account locking.** The run holds the unit-3 `account_locks` for both
+  accounts across worker start, connection, preparation and all fixtures, plus
+  a per-collection `run.lock`.
+
+There is no CLI or `__main__` entry: `run_collection(plan, log_dir, connect=...,
+fetch_receipt=..., lock_dir=...)` receives the body factory and receipt source
+from the caller. `server_receipt(web, timeout=...)` provides a bounded
+read-only replay-index poller for a later authorized fixture. The receipt is
+fetched while both sockets keep pumping.
+
+Offline acceptance: without torch (`--extra dev --extra jeff`), **321 passing,
+2 skipped** (263 prior, 58 new in `tests/test_neural_live.py`; the checkpoint
+module and the new `tests/test_neural_live_worker.py` skip through
+`pytest.importorskip`). With `--extra neural`, **362 passing** (302 prior, 60
+new). The new cases cover the seven ported source cases (the bridge pump case is
+already covered by unit 1), arm identity validation, missing checkpoint/torch
+refusal before any login, worker identity refusal (including a real
+`InferenceClient` whose fake worker serves another SHA), stale-state and
+mask-change cancellation, a fresh legal start, round-boundary resets of both
+executor and recurrent state, in-round rejection ineligibility, mid-match worker
+failure, plan bounds, explicit identical-plan resume, budget exhaustion after an
+unresolved fixture, tampered/duplicate ledgers, alternating verified fixtures,
+failure then resume within budget, a repeated server match ID, a receipt for
+other seats, an actor reporting another policy, a held account lock and a
+torch-free import. With torch, a real worker on a temporary checkpoint feeds the
+real executor through `_actor` (first decision from the reset hidden state) and
+a real worker with another identity is refused. Mutating the stale-state check,
+the inactive reset, the duplicate-ledger check or the unresolved close each
+fails a test. Both suites passed three consecutive local runs. CI adds both new
+test files and `live.py` to the scoped Ruff gate, and the torch-only worker
+file to the no-skip neural step. Body, contract, README, lockfile,
+`experiments/run_arm.sh`, `magic.py`, executor, schema, inference and checkpoint
+modules are unchanged.
+
+Not done: no live server, client, bridge, fight, training or promotion was run.
+Real-server timing of the actor loop, inference latency on the production host,
+receipt availability timing, reconnect behaviour and the account/endpoint
+aliasing caveat of unit 3 remain for a separately authorized live fixture with
+its own budget. Evaluation statistics (win-rate confidence, per-style
+regression) and PPO consumption of the episodes belong to unit 7; the teacher
+and probes to unit 8.
+
 ## Remaining separately verified units
 
 | Order | Unit and likely files | Dependencies and acceptance |
@@ -309,8 +412,8 @@ every manifest field that affects inference is validated.
 | 2 (integrated) | Read-only replay evidence: `replay.py`, validation/metrics tests | Stdlib-only first; corrupt, truncated, reordered and wrong-match records must fail. No network writes or model promotion. |
 | 3 (integrated) | Arena participant preparation and sparring: `arena.py`, `duel_wait.py`, `sparring.py`, public command/receipt tests | Units 1–2; preserve ordinary-account and challenge-token checks, start templates, exact rules, bounded fixtures, account locks and failure receipts. Reconcile current peer-only server assumptions. |
 | 4 (integrated) | Combat procedures and executor: selected `magic.py`/`combat_combo.py`, neural executor/schema surface | Units 1 and 3. Carry reflection fix forward explicitly while adopting wall-clock cursor handling; test stun, potion ownership/disposal, recovery and delayed public effects. No training required. |
-| 5 (this unit) | Frozen neural inference and checkpoint validation | Unit 4; add the minimum Torch optional dependency and regenerate/review the lock deliberately. Require dimensions, schema fingerprint, finite weights and SHA-bound loading. Preserve audited selected and rollback artifacts. |
-| 6 | Live receipts, evaluation and bounded resume | Units 2–5; prove count/duplicate/invalid-fixture handling, immutable arm policy identities and account locking before any separately authorized live fixture. |
+| 5 (integrated) | Frozen neural inference and checkpoint validation | Unit 4; add the minimum Torch optional dependency and regenerate/review the lock deliberately. Require dimensions, schema fingerprint, finite weights and SHA-bound loading. Preserve audited selected and rollback artifacts. |
+| 6 (this unit) | Live receipts, evaluation and bounded resume: `neural/live.py` | Units 2–5; prove count/duplicate/invalid-fixture handling, immutable arm policy identities and account locking before any separately authorized live fixture. |
 | 7 | Simulator, demonstrations, BC/PPO and promotion gates | Units 5–6; isolate training from evaluation, preserve holdouts, elapsed-time assumptions, resume idempotence and per-style regression rejection. Simulator gain is not live gain. |
 | 8 | Tactical teacher and optional Jev shadow analysis | Unit 4 plus relevant collectors. Keep teacher demonstrations and off-policy actions out of PPO records; preserve evaluated frozen policy behavior. |
 | 9 | Historical experiment record reconciliation | Preserve chronology and failed candidates; attach completed evidence without interpreting registry selection as public deployment. |
