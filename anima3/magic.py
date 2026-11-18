@@ -217,13 +217,14 @@ def explosion_potion_proc(serial: int, opponent: int):
             if obs.pending_target:
                 # A throw cursor is neutral (flag 0) and ground-capable (type 1).
                 # Any other described cursor belongs to something else, e.g. a
-                # harmful spell still outstanding: never spend it on the potion.
-                # Older bridges send only a boolean, which is still accepted.
+                # stale harmful-spell cursor in the frame after the potion was
+                # lit: never spend it on the throw, and keep owning the lit
+                # potion until its own cursor arrives. Older bridges send only
+                # a boolean, which is still accepted.
                 described = obs.target_cursor_flag is not None or obs.target_cursor_type is not None
-                if described and (obs.target_cursor_flag, obs.target_cursor_type) != (0, 1):
-                    return "foreign cursor"
-                yield target_object(opponent)
-                return "thrown"
+                if not described or (obs.target_cursor_flag, obs.target_cursor_type) == (0, 1):
+                    yield target_object(opponent)
+                    return "thrown"
             obs = yield None
         return "no potion cursor"
     return proc

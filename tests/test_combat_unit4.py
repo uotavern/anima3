@@ -92,8 +92,8 @@ def test_round_boundary_clears_melee_and_stun_state():
 def test_executor_never_owns_a_cursorless_buff():
     # Magic Reflection's fix depends on buffs never waiting for a target cursor.
     # The neural option set must not reintroduce a buff through its own cast path.
+    assert "buff" in NO_CURSOR
     assert all(SPELLS[name].kind not in NO_CURSOR for name in SPELL_NAMES)
-    assert NO_CURSOR == {"buff"}
 
 
 def test_reflection_still_casts_without_cursor_and_restarts_clock_on_attempt():
@@ -136,10 +136,13 @@ def test_cast_cursor_wait_stops_at_wall_clock_deadline(monkeypatch):
 
 
 def test_showdown_offers_no_healing_spell():
-    memory = {"tick": 1, "showdown": True}
-    menu = mage_verbs(world(hp=30), SimpleNamespace(hp_pct=0.3), memory, world().mobiles[0])
-    assert not any(a.id in ("cast:greater_heal", "cast:heal") for a in menu)
-    assert any(a.id.startswith("cast:") for a in menu)
+    def menu(memory):
+        return [a.id for a in mage_verbs(world(hp=30), SimpleNamespace(hp_pct=0.3), memory,
+                                          world().mobiles[0])]
+    assert menu({"tick": 1})[0] == "cast:greater_heal"          # control: healing offered first
+    showdown = menu({"tick": 1, "showdown": True})
+    assert not any(a in ("cast:greater_heal", "cast:heal") for a in showdown)
+    assert any(a.startswith("cast:") for a in showdown)
 
 
 def test_opening_abandoned_for_survival_cancels_its_cursor():
@@ -154,15 +157,30 @@ def test_opening_abandoned_for_survival_cancels_its_cursor():
     assert memory["opening_abandoned"] and memory["opening_attempts"] == {"weaken": 1}
 
 
-def test_explosion_potion_never_spends_a_described_spell_cursor():
+def test_explosion_potion_waits_past_a_stale_spell_cursor_for_its_throw_cursor():
     memory = {"tick": 3}
     gen = explosion_potion_proc(101, 2)(world(), memory)
     assert next(gen) == {"type": "Use", "serial": 101}
-    spell_cursor = world(target={"cursor_id": 5, "cursor_flag": 1, "target_type": 0})
-    with pytest.raises(StopIteration) as done:
-        gen.send(spell_cursor)
-    assert done.value.value == "foreign cursor"
-    gen = explosion_potion_proc(101, 2)(world(), memory)
+    # The frame after lighting the potion can still show an old spell cursor.
+    stale = world(target={"cursor_id": 5, "cursor_flag": 1, "target_type": 0})
+    assert gen.send(stale) is None
+    assert gen.send(stale) is None
+    throw = world(target={"cursor_id": 6, "cursor_flag": 0, "target_type": 1})
+    assert gen.send(throw) == {"type": "TargetObject", "serial": 2}
+
+
+def test_explosion_potion_never_targets_a_persistent_foreign_cursor():
+    gen = explosion_potion_proc(101, 2)(world(), {"tick": 3})
     next(gen)
-    throw_cursor = world(target={"cursor_id": 6, "cursor_flag": 0, "target_type": 1})
-    assert gen.send(throw_cursor) == {"type": "TargetObject", "serial": 2}
+    stale = world(target={"cursor_id": 5, "cursor_flag": 1, "target_type": 0})
+    for _ in range(12):                          # the whole bounded wait, never targeting
+        assert gen.send(stale) is None
+    with pytest.raises(StopIteration) as done:
+        gen.send(stale)
+    assert done.value.value == "no potion cursor"
+
+
+def test_explosion_potion_accepts_boolean_only_cursor_from_older_bridges():
+    gen = explosion_potion_proc(101, 2)(world(), {"tick": 3})
+    next(gen)
+    assert gen.send(world(target=True)) == {"type": "TargetObject", "serial": 2}
