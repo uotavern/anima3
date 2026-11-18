@@ -68,6 +68,7 @@ class BridgeBody:
         self.ready = ready
         self.terrain_radius = terrain_radius
         self.monitor_url: str | None = None
+        self.diagnostics: dict[str, Any] = {}
         self._lock = threading.Lock()
         self._stderr_thread = threading.Thread(target=self._drain_stderr, daemon=True)
         self._stderr_thread.start()
@@ -115,9 +116,16 @@ class BridgeBody:
             self._proc.stdin.write(json.dumps(obj) + "\n")
             self._proc.stdin.flush()
             line = self._proc.stdout.readline()
-        if not line:
-            raise BodyError("bridge closed the pipe")
-        return json.loads(line)
+            if not line:
+                raise BodyError("bridge closed the pipe")
+            response = json.loads(line)
+            if not isinstance(response, dict):
+                raise BodyError("bridge response must be a JSON object")
+            # Optional counters, without packet payloads. Older schema-33 bridges
+            # omit these; retain the last received snapshot in that case.
+            if isinstance(response.get("diagnostics"), dict):
+                self.diagnostics = response["diagnostics"]
+            return response
 
     def observe_raw(self) -> dict[str, Any]:
         r = self._rpc({"cmd": "observe", "terrain_radius": self.terrain_radius})
@@ -135,6 +143,8 @@ class BridgeBody:
 
     def pump(self, ms: int) -> int:
         r = self._rpc({"cmd": "pump", "ms": int(ms)})
+        if not r.get("ok"):
+            raise BodyError(r.get("error", "pump failed"))
         return int(r.get("applied", 0))
 
     def close(self) -> None:
