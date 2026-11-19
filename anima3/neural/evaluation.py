@@ -11,13 +11,20 @@ Stdlib only; importing this module never imports torch, trains or promotes.
   collection, a second collection for the same opponent, or more games than
   planned are refused, so the match count can never grow after looking at scores.
 - Failed, invalid and unresolved fixtures stay in the record as excluded rows.
-  They count against the budget and, beyond the plan's allowance, fail the gate.
-- The gate needs a paired-bootstrap lower bound above the plan's threshold *and*
-  no opponent whose mean score drops by more than ``max_regression``. An average
-  improvement is not superiority against every opponent.
-- Every decision, passed or rejected, is appended to a selection record. A
-  passed gate is evidence for a separate, explicit decision; it never promotes
-  or deploys a checkpoint.
+  They count against the budget and are scored against the candidate: an
+  excluded candidate game is a loss, an excluded incumbent game earns the
+  candidate nothing. Beyond the plan's allowance (at most a tenth of the games)
+  they fail the gate.
+- The gate needs at least 20 paired games per opponent, at least ten complete
+  two-seat blocks, a paired-bootstrap lower bound above the plan's threshold
+  *and* no opponent whose mean score drops by more than ``max_regression``. An
+  average improvement is not superiority against every opponent. Games are only
+  paired from the same seat.
+- Every decision, passed or rejected, is appended to the lineage's selection
+  record after being re-derived from its collections. A candidate/incumbent pair
+  is decided once and a collection serves one decision. A passed gate is
+  evidence for a separate, explicit decision; it never promotes or deploys a
+  checkpoint.
 """
 
 from __future__ import annotations
@@ -29,7 +36,7 @@ import os
 import random
 import re
 import time
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, fields
 from pathlib import Path
 
 from .. import replay
@@ -44,9 +51,17 @@ DOMAINS = ("servuo", "approximate-pre-aos-simulator")
 # Two-sided 95%: the exact normal quantile, not the rounded 1.96.
 Z95 = 1.959963984540054
 # Ported from the training-league gate: 2000 resamples, fixed seed 619, and the
-# 50th/1951st order statistics as the two-sided 95% percentile interval.
+# sorted resample means at indices 49 and 1949 (the 50th and 1950th order
+# statistics) as the two-sided 95% percentile interval.
 BOOTSTRAP_SAMPLES = 2000
 BOOTSTRAP_SEED = 619
+# Evidence floors: a plan cannot be smaller than this, and the bootstrap needs at
+# least MIN_BLOCKS complete two-seat blocks before any decision can pass.
+MIN_GAMES_PER_OPPONENT = 20
+MIN_BLOCKS = 10
+THRESHOLD_STEP = 0.01
+SIDES = ("challenger", "receiver")
+SELECTION_RECORD = "selection.jsonl"
 MAX_GAMES_PER_OPPONENT = 100
 MAX_OPPONENTS = 16
 OPPONENT = re.compile(r"(scripted|neural:[0-9a-f]{64})")
@@ -85,9 +100,25 @@ def bootstrap_mean_interval(
 # --- the fixed plan --------------------------------------------------------------------------
 
 
+def _grid(name: str, value) -> float:
+    """Thresholds live on a 0.01 grid, so a tiny nudge cannot mint a new plan identity."""
+    if type(value) not in (int, float) or not math.isfinite(value):
+        raise ValueError(f"{name} must be a finite number")
+    steps = round(value / THRESHOLD_STEP)
+    if abs(value / THRESHOLD_STEP - steps) > 1e-6:
+        raise ValueError(f"{name} must be a multiple of {THRESHOLD_STEP}")
+    return float(round(steps * THRESHOLD_STEP, 2)) + 0.0  # never -0.0
+
+
 @dataclass(frozen=True)
 class EvaluationPlan:
-    """Everything a selection decision depends on, fixed before results are read."""
+    """Everything a selection decision depends on, fixed before results are read.
+
+    The plan is canonical: opponents are stored sorted and thresholds on a 0.01
+    grid, so reordering or nudging them cannot produce a second identity for the
+    same comparison. Every count has a floor: at least 20 games and 20 paired
+    games per opponent, and an exclusion allowance of at most a tenth of them.
+    """
 
     candidate_sha256: str
     incumbent_sha256: str
@@ -96,7 +127,7 @@ class EvaluationPlan:
     max_regression: float = 0.10
     min_lower_bound: float = 0.0
     max_excluded_per_opponent: int = 0
-    min_paired_games_per_opponent: int = 20
+    min_paired_games_per_opponent: int = MIN_GAMES_PER_OPPONENT
     domain: str = "servuo"
 
     def __post_init__(self):
@@ -104,30 +135,38 @@ class EvaluationPlan:
         require_sha256(self.incumbent_sha256)
         if self.candidate_sha256 == self.incumbent_sha256:
             raise ValueError("candidate and incumbent must be different checkpoints")
+        opponents = self.opponents
         if (
-            not isinstance(self.opponents, tuple)
-            or not 1 <= len(self.opponents) <= MAX_OPPONENTS
-            or len(set(self.opponents)) != len(self.opponents)
-            or not all(isinstance(o, str) and OPPONENT.fullmatch(o) for o in self.opponents)
+            not isinstance(opponents, (tuple, list))
+            or not 1 <= len(opponents) <= MAX_OPPONENTS
+            or not all(isinstance(o, str) and OPPONENT.fullmatch(o) for o in opponents)
+            or len(set(opponents)) != len(opponents)
         ):
             raise ValueError("opponents must be 1..16 distinct 'scripted'/'neural:<sha>' labels")
+        object.__setattr__(self, "opponents", tuple(sorted(opponents)))
         if f"neural:{self.candidate_sha256}" in self.opponents:
             raise ValueError("the candidate cannot be its own evaluation opponent")
+        if f"neural:{self.incumbent_sha256}" in self.opponents:
+            raise ValueError("the incumbent cannot also be an evaluation opponent")
         games = self.games_per_opponent
-        if type(games) is not int or not 2 <= games <= MAX_GAMES_PER_OPPONENT or games % 2:
-            raise ValueError("games per opponent must be an even integer in 2..100")
-        for name in ("max_regression", "min_lower_bound"):
-            value = getattr(self, name)
-            if type(value) not in (int, float) or not math.isfinite(value):
-                raise ValueError(f"{name} must be a finite number")
-        if not 0 <= self.max_regression <= 1 or not -1 <= self.min_lower_bound < 1:
+        if (
+            type(games) is not int
+            or not MIN_GAMES_PER_OPPONENT <= games <= MAX_GAMES_PER_OPPONENT
+            or games % 2
+        ):
+            raise ValueError("games per opponent must be an even integer in 20..100")
+        regression = _grid("max_regression", self.max_regression)
+        lower = _grid("min_lower_bound", self.min_lower_bound)
+        if not 0 <= regression <= 1 or not -1 <= lower < 1:
             raise ValueError("regression limit must be in [0, 1] and lower bound in [-1, 1)")
+        object.__setattr__(self, "max_regression", regression)
+        object.__setattr__(self, "min_lower_bound", lower)
         excluded = self.max_excluded_per_opponent
-        if type(excluded) is not int or not 0 <= excluded < games:
-            raise ValueError("excluded-game allowance must be an integer below the budget")
+        if type(excluded) is not int or not 0 <= excluded <= games // 10:
+            raise ValueError("excluded-game allowance must be an integer of at most games/10")
         minimum = self.min_paired_games_per_opponent
-        if type(minimum) is not int or not 2 <= minimum <= games:
-            raise ValueError("minimum paired games must be an integer in 2..games per opponent")
+        if type(minimum) is not int or not MIN_GAMES_PER_OPPONENT <= minimum <= games:
+            raise ValueError("minimum paired games must be an integer in 20..games per opponent")
         if self.domain not in DOMAINS:
             raise ValueError("unknown evaluation domain")
 
@@ -135,6 +174,12 @@ class EvaluationPlan:
         value = asdict(self)
         value["opponents"] = list(self.opponents)
         return value
+
+    @classmethod
+    def from_json(cls, value) -> EvaluationPlan:
+        if not isinstance(value, dict) or set(value) != {f.name for f in fields(cls)}:
+            raise ValueError("not an evaluation plan")
+        return cls(**{**value, "opponents": tuple(value["opponents"])})
 
     @property
     def sha256(self) -> str:
@@ -233,6 +278,10 @@ def record_from_collection(directory, policy_sha: str) -> dict:
         "opponent": opponent,
         "collection": str(record.root),
         "collection_plan_sha256": record.plan_sha256,
+        # Identical plans have identical SHA-256s, so the evidence itself (the
+        # ledger and its server match identities) identifies a collection.
+        "ledger_sha256": hashlib.sha256((record.root / "ledger.jsonl").read_bytes()).hexdigest(),
+        "match_ids": sorted(ledger.match_ids),
         "budget": budget,
         "rows": rows,
     }
@@ -261,16 +310,21 @@ def combine_records(plan: EvaluationPlan, policy_sha: str, records: list[dict]) 
         "schema": RECORD_SCHEMA,
         "domain": plan.domain,
         "policy_sha": policy_sha,
-        "collections": {o: by_opponent[o].get("collection") for o in plan.opponents},
+        "collections": {
+            o: {
+                "path": by_opponent[o].get("collection"),
+                "plan_sha256": by_opponent[o].get("collection_plan_sha256"),
+                "ledger_sha256": by_opponent[o].get("ledger_sha256"),
+                "match_ids": by_opponent[o].get("match_ids"),
+            }
+            for o in plan.opponents
+        },
         "rows": [row for o in plan.opponents for row in by_opponent[o]["rows"]],
     }
 
 
-# --- the gate --------------------------------------------------------------------------------
-
-
 def _check_rows(plan: EvaluationPlan, evaluation: dict, expected_sha: str) -> dict:
-    if evaluation.get("domain") != plan.domain:
+    if not isinstance(evaluation, dict) or evaluation.get("domain") != plan.domain:
         raise EvaluationRefused("cannot compare evaluations from different domains")
     if evaluation.get("policy_sha") != expected_sha:
         raise EvaluationRefused("evaluation policy SHA-256 differs from the plan")
@@ -293,6 +347,8 @@ def _check_rows(plan: EvaluationPlan, evaluation: dict, expected_sha: str) -> di
                 raise EvaluationRefused("evaluation scores must be loss/draw/win")
             if type(row.get("valid")) is not bool:
                 raise EvaluationRefused("completed row must state its validity")
+            if row.get("side") not in SIDES:
+                raise EvaluationRefused("completed row must state its seat")
         elif status != "excluded":
             raise EvaluationRefused("row status must be completed or excluded")
         keyed[key] = row
@@ -324,55 +380,74 @@ def _arm_summary(rows: list[dict]) -> dict:
 def selection_gate(plan: EvaluationPlan, incumbent: dict, candidate: dict) -> dict:
     """Decide whether the candidate beat the incumbent under the fixed plan. Fail closed.
 
-    Rows are paired by (opponent, fixture): both policies faced the same opponent
-    at the same fixture position and seat. The bootstrap resamples blocks of two
-    consecutive fixtures (both seats stay together), as the source gate did with
-    its seed blocks.
+    Rows pair by (opponent, fixture): both policies faced the same opponent at the
+    same fixture position, and the pair must also share its seat (challenger or
+    receiver), or the evidence is refused. Exclusions are scored against the
+    candidate: an excluded candidate game counts as a candidate loss, and an
+    excluded incumbent game drops that fixture (the candidate gets no credit for
+    it). Each opponent's fixtures 2k and 2k+1 form a block that must hold both
+    seats; as in the source gate only complete two-delta blocks enter the
+    bootstrap, so every resampled block weighs the same. Fewer than ten complete
+    blocks in total is too little evidence to decide, and the incumbent is kept.
     """
     before = _check_rows(plan, incumbent, plan.incumbent_sha256)
     after = _check_rows(plan, candidate, plan.candidate_sha256)
     reasons = []
     opponents = {}
-    blocks: dict[tuple[str, int], list[float]] = {}
+    block_means: list[float] = []
     for opponent in plan.opponents:
         keys = [(opponent, f) for f in range(plan.games_per_opponent)]
-        paired = [
-            k
-            for k in keys
-            if before[k]["status"] == "completed" and after[k]["status"] == "completed"
-        ]
-        deltas = [after[k]["score"] - before[k]["score"] for k in paired]
-        for k, delta in zip(paired, deltas, strict=True):
-            blocks.setdefault((opponent, k[1] // 2), []).append(delta)
-        mean_delta = sum(deltas) / len(deltas) if deltas else None
+        deltas: dict[tuple[str, int], float] = {}
+        both_completed = 0
+        excluded_fixtures = 0
+        for key in keys:
+            b, a = before[key], after[key]
+            if b["status"] == "excluded" or a["status"] == "excluded":
+                excluded_fixtures += 1
+            if b["status"] == "excluded":
+                continue  # no credit for the incumbent's failure
+            if a["status"] == "completed":
+                if a["side"] != b["side"]:
+                    raise EvaluationRefused("paired games were played from different seats")
+                both_completed += 1
+                deltas[key] = a["score"] - b["score"]
+            else:
+                deltas[key] = 0.0 - b["score"]  # the candidate's failure is its loss
+        for block in range(plan.games_per_opponent // 2):
+            first, second = (opponent, 2 * block), (opponent, 2 * block + 1)
+            if first in deltas and second in deltas:
+                if before[first]["side"] == before[second]["side"]:
+                    raise EvaluationRefused("a fixture block must hold both seats")
+                block_means.append((deltas[first] + deltas[second]) / 2)
+        mean_delta = sum(deltas.values()) / len(deltas) if deltas else None
+        regressed = mean_delta is None or mean_delta < -plan.max_regression - 1e-12
         summary = {
             "incumbent": _arm_summary([before[k] for k in keys]),
             "candidate": _arm_summary([after[k] for k in keys]),
-            "paired_games": len(paired),
+            "paired_games": both_completed,
+            "scored_fixtures": len(deltas),
+            "excluded_fixtures": excluded_fixtures,
             "mean_score_delta": mean_delta,
             "max_regression": plan.max_regression,
+            "regressed": regressed,
         }
-        excluded = max(summary["incumbent"]["excluded"], summary["candidate"]["excluded"])
-        if excluded > plan.max_excluded_per_opponent:
+        if excluded_fixtures > plan.max_excluded_per_opponent:
             reasons.append(f"excluded games beyond allowance against {opponent}")
         if summary["incumbent"]["invalid"] or summary["candidate"]["invalid"]:
             reasons.append(f"invalid episode evidence against {opponent}")
-        if len(paired) < plan.min_paired_games_per_opponent:
+        if both_completed < plan.min_paired_games_per_opponent:
             reasons.append(f"insufficient paired games against {opponent}")
-        regressed = mean_delta is not None and mean_delta < -plan.max_regression - 1e-12
         if regressed:
             reasons.append(f"regression beyond limit against {opponent}")
-        summary["regressed"] = regressed
         opponents[opponent] = summary
-    block_means = [sum(v) / len(v) for v in blocks.values()]
-    if block_means:
+    if len(block_means) >= MIN_BLOCKS:
         lower, upper = bootstrap_mean_interval(block_means)
         paired_delta = sum(block_means) / len(block_means)
         if not lower > plan.min_lower_bound:
             reasons.append("paired improvement lower bound not above threshold")
     else:
         lower = upper = paired_delta = None
-        reasons.append("no paired evidence")
+        reasons.append("too few complete blocks to decide")
     passed = not reasons
     return {
         "schema": DECISION_SCHEMA,
@@ -386,7 +461,12 @@ def selection_gate(plan: EvaluationPlan, incumbent: dict, candidate: dict) -> di
         "reasons": reasons,
         "paired_delta": paired_delta,
         "paired_delta_ci95": None if lower is None else [lower, upper],
-        "bootstrap": {"samples": BOOTSTRAP_SAMPLES, "seed": BOOTSTRAP_SEED, "blocks": len(blocks)},
+        "bootstrap": {
+            "samples": BOOTSTRAP_SAMPLES,
+            "seed": BOOTSTRAP_SEED,
+            "blocks": len(block_means),
+            "min_blocks": MIN_BLOCKS,
+        },
         "opponents": opponents,
         "excluded_rows": [
             {"policy": label, **row}
@@ -394,7 +474,7 @@ def selection_gate(plan: EvaluationPlan, incumbent: dict, candidate: dict) -> di
             for row in keyed.values()
             if row["status"] == "excluded"
         ],
-        "collections": {
+        "evidence": {
             "incumbent": incumbent.get("collections"),
             "candidate": candidate.get("collections"),
         },
@@ -404,39 +484,155 @@ def selection_gate(plan: EvaluationPlan, incumbent: dict, candidate: dict) -> di
     }
 
 
+def decide_from_collections(plan: EvaluationPlan, *, incumbent, candidate) -> dict:
+    """Re-derive both evaluations from their held-out collection directories and gate them."""
+    evaluations = {}
+    for sha, directories in (
+        (plan.incumbent_sha256, incumbent),
+        (plan.candidate_sha256, candidate),
+    ):
+        directories = [Path(d) for d in directories]
+        records = [record_from_collection(d, sha) for d in directories]
+        evaluations[sha] = combine_records(plan, sha, records)
+    ledgers = [c["ledger_sha256"] for e in evaluations.values() for c in e["collections"].values()]
+    if len(set(ledgers)) != len(ledgers):
+        raise EvaluationRefused("one collection cannot serve two evaluations")
+    return selection_gate(
+        plan, evaluations[plan.incumbent_sha256], evaluations[plan.candidate_sha256]
+    )
+
+
 # --- the selection record --------------------------------------------------------------------
 
 
-def record_decision(path, decision: dict) -> dict:
-    """Append a gate decision, passed or rejected, to an append-only JSONL record.
+def _evidence_paths(decision: dict, plan: EvaluationPlan, arm: str) -> list[str]:
+    evidence = decision.get("evidence")
+    named = evidence.get(arm) if isinstance(evidence, dict) else None
+    if not isinstance(named, dict) or set(named) != set(plan.opponents):
+        raise EvaluationRefused("a recorded decision must name its collections")
+    paths = []
+    for opponent in plan.opponents:
+        entry = named[opponent]
+        if not isinstance(entry, dict) or not isinstance(entry.get("path"), str):
+            raise EvaluationRefused("a recorded decision must name its collections")
+        paths.append(entry["path"])
+    return paths
 
-    A plan is decided once: a second decision for the same plan SHA-256 is refused,
-    so a rejected plan cannot be silently re-decided. Rows are never rewritten.
-    """
+
+def _evidence_used(row: dict) -> set[tuple[str, str]]:
+    """Every collection ledger and server match a decision's evidence rests on."""
+    evidence = row.get("evidence")
+    if not isinstance(evidence, dict):
+        raise EvaluationRefused("selection record row lacks its evidence")
+    used = set()
+    for named in evidence.values():
+        if not isinstance(named, dict):
+            raise EvaluationRefused("selection record row lacks its evidence")
+        for entry in named.values():
+            ledger = entry.get("ledger_sha256") if isinstance(entry, dict) else None
+            plan_sha = entry.get("plan_sha256") if isinstance(entry, dict) else None
+            matches = entry.get("match_ids") if isinstance(entry, dict) else None
+            if not (
+                isinstance(ledger, str)
+                and isinstance(plan_sha, str)
+                and isinstance(matches, list)
+                and all(isinstance(m, str) for m in matches)
+            ):
+                raise EvaluationRefused("selection record row lacks its evidence")
+            used.add(("ledger", ledger))
+            used |= {("match", m) for m in matches}
+    return used
+
+
+def _validate_decision(decision) -> EvaluationPlan:
     if not isinstance(decision, dict) or decision.get("schema") != DECISION_SCHEMA:
         raise EvaluationRefused("not a selection decision")
     if decision.get("automatic_promotion") is not False or type(decision.get("passed")) is not bool:
         raise EvaluationRefused("a decision never promotes automatically")
-    path = Path(path)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    existing = []
-    if path.exists():
-        text = path.read_text()
-        if text and not text.endswith("\n"):
-            raise EvaluationRefused("torn final selection-record line; repair by hand")
+    try:
+        plan = EvaluationPlan.from_json(decision.get("plan"))
+    except (TypeError, ValueError) as exc:
+        raise EvaluationRefused(f"decision plan is invalid: {exc}") from exc
+    if (
+        plan.to_json() != decision["plan"]
+        or plan.sha256 != decision.get("plan_sha256")
+        or decision.get("candidate_sha256") != plan.candidate_sha256
+        or decision.get("incumbent_sha256") != plan.incumbent_sha256
+    ):
+        raise EvaluationRefused("decision does not match its re-hashed plan")
+    reasons = decision.get("reasons")
+    expected = "candidate_passed_gate" if decision["passed"] else "retain_incumbent"
+    if (
+        not isinstance(reasons, list)
+        or decision["passed"] != (not reasons)
+        or decision.get("decision") != expected
+    ):
+        raise EvaluationRefused("decision outcome is inconsistent with its reasons")
+    return plan
+
+
+def record_decision(lineage_dir, decision: dict) -> dict:
+    """Append a gate decision, passed or rejected, to the lineage's selection record.
+
+    The record is always ``<lineage_dir>/selection.jsonl``: keep one lineage
+    directory per incumbent lineage, so every comparison it ever made is in one
+    file. Before appending, under an exclusive lock, the decision's plan is
+    re-hashed, its outcome checked against its reasons, and the whole decision
+    re-derived from the named held-out collections; it must be identical. A
+    second decision for the same candidate/incumbent pair is refused, as is one
+    whose evidence reuses any collection ledger or server match an earlier
+    decision used. (Collection plan SHA-256s are recorded too, but two
+    collections with identical plans share one, so the ledger and match
+    identities are what make evidence single-use.) Rows are never rewritten.
+    """
+    import fcntl
+
+    plan = _validate_decision(decision)
+    recomputed = decide_from_collections(
+        plan,
+        incumbent=_evidence_paths(decision, plan, "incumbent"),
+        candidate=_evidence_paths(decision, plan, "candidate"),
+    )
+    if recomputed != decision:
+        raise EvaluationRefused("decision differs from the one its collections give")
+    root = Path(lineage_dir)
+    root.mkdir(parents=True, exist_ok=True)
+    path = root / SELECTION_RECORD
+    with (root / f"{SELECTION_RECORD}.lock").open("a") as lock:
         try:
-            existing = [json.loads(line) for line in text.splitlines()]
-        except ValueError:
-            raise EvaluationRefused("corrupt selection record") from None
-    if any(row.get("plan_sha256") == decision.get("plan_sha256") for row in existing):
-        raise EvaluationRefused("this plan already has a recorded decision")
-    row = {"sequence": len(existing), "utc": time.time(), **decision}
-    created = not path.exists()
-    line = json.dumps(row, sort_keys=True, allow_nan=False) + "\n"
-    with path.open("a") as out:
-        out.write(line)
-        out.flush()
-        os.fsync(out.fileno())
-    if created:
-        _fsync_dir(path.parent)
+            fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError:
+            raise EvaluationRefused("another writer holds the selection record") from None
+        existing = []
+        if path.exists():
+            text = path.read_text()
+            if text and not text.endswith("\n"):
+                raise EvaluationRefused("torn final selection-record line; repair by hand")
+            for line in text.splitlines():
+                try:
+                    row = json.loads(line)
+                except ValueError:
+                    raise EvaluationRefused("corrupt selection record") from None
+                if not isinstance(row, dict):
+                    raise EvaluationRefused("selection record line is not an object")
+                existing.append(row)
+        used = set()
+        for row in existing:
+            if (row.get("candidate_sha256"), row.get("incumbent_sha256")) == (
+                plan.candidate_sha256,
+                plan.incumbent_sha256,
+            ):
+                raise EvaluationRefused("this candidate/incumbent pair was already decided")
+            used |= _evidence_used(row)
+        if used & _evidence_used(decision):
+            raise EvaluationRefused("an evaluation collection was already used by a decision")
+        row = {"sequence": len(existing), "utc": time.time(), **decision}
+        created = not path.exists()
+        line = json.dumps(row, sort_keys=True, allow_nan=False) + "\n"
+        with path.open("a") as out:
+            out.write(line)
+            out.flush()
+            os.fsync(out.fileno())
+        if created:
+            _fsync_dir(root)
     return row

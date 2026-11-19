@@ -29,6 +29,8 @@ from .inference import require_sha256
 from .live import COLLECTION_SCHEMA, PURPOSES, Ledger, LiveReplayVerifier
 
 MAX_EPISODE_BYTES = 64 * 1024 * 1024
+# Pass this as ``held_out`` to state explicitly that no evaluation is held out.
+NO_HELD_OUT: tuple = ()
 MAX_COLLECTION_MANIFEST_BYTES = 1024 * 1024
 
 
@@ -141,6 +143,7 @@ class TrainingEpisodeVerifier:
 class TrainingSelection:
     """Accepted training episodes, their per-collection verifiers and every rejection."""
 
+    policy_sha: str
     episodes: list[dict] = field(default_factory=list)
     verifiers: dict[tuple[str, int], TrainingEpisodeVerifier] = field(default_factory=dict)
     rejected: list[dict] = field(default_factory=list)
@@ -148,7 +151,11 @@ class TrainingSelection:
 
     def verify(self, episode: dict) -> bool:
         verifier = self.verifiers.get(episode_identity(episode))
-        return verifier is not None and verifier(episode)
+        return (
+            type(verifier) is TrainingEpisodeVerifier
+            and verifier.policy_sha == self.policy_sha
+            and verifier(episode) is True
+        )
 
 
 def held_out_match_ids(directories) -> set[str]:
@@ -162,14 +169,17 @@ def held_out_match_ids(directories) -> set[str]:
     return ids
 
 
-def select_training_episodes(collections, policy_sha: str, *, held_out=()) -> TrainingSelection:
+def select_training_episodes(collections, policy_sha: str, *, held_out) -> TrainingSelection:
     """Collect training input for ``policy_sha`` from explicit training collections.
 
-    ``held_out`` names evaluation collections whose matches must not occur in the
-    training input; a collection may not appear on both sides.
+    ``held_out`` is required. It names the evaluation collections whose matches
+    must not occur in the training input (a collection may not appear on both
+    sides), or is :data:`NO_HELD_OUT` to state explicitly that there are none.
     """
     policy_sha = require_sha256(policy_sha)
     roots = [Path(c).resolve() for c in collections]
+    if isinstance(held_out, (str, Path)):
+        raise SplitRefused("held_out must be a collection list or NO_HELD_OUT")
     held_roots = {Path(c).resolve() for c in held_out}
     if not roots:
         raise SplitRefused("name at least one training collection explicitly")
@@ -178,7 +188,7 @@ def select_training_episodes(collections, policy_sha: str, *, held_out=()) -> Tr
     if held_roots & set(roots):
         raise SplitRefused("a collection cannot be both training input and held out")
     held_ids = held_out_match_ids(sorted(held_roots))
-    selection = TrainingSelection()
+    selection = TrainingSelection(policy_sha)
     for root in roots:
         verifier = TrainingEpisodeVerifier(root, policy_sha)
         selection.collections.append(str(root))

@@ -25,6 +25,7 @@ from anima3.neural.evaluation import (
     EvaluationRefused,
     bootstrap_mean_interval,
     combine_records,
+    decide_from_collections,
     record_decision,
     record_from_collection,
     selection_gate,
@@ -32,8 +33,10 @@ from anima3.neural.evaluation import (
 )
 from anima3.neural.live import Arm, CollectionPlan
 from anima3.neural.splits import (
+    NO_HELD_OUT,
     SplitRefused,
     TrainingEpisodeVerifier,
+    TrainingSelection,
     read_collection,
     select_training_episodes,
 )
@@ -102,21 +105,28 @@ def plan(**overrides):
     "overrides",
     [
         {"games_per_opponent": 0},
-        {"games_per_opponent": 3},
+        {"games_per_opponent": 2},
+        {"games_per_opponent": 4},
+        {"games_per_opponent": 18},
+        {"games_per_opponent": 21},
         {"games_per_opponent": 102},
         {"games_per_opponent": True},
         {"incumbent_sha256": CANDIDATE},
         {"candidate_sha256": "AB" * 32},
         {"opponents": ()},
         {"opponents": ("scripted", "scripted")},
-        {"opponents": ["scripted"]},
         {"opponents": ("rival",)},
         {"opponents": (f"neural:{CANDIDATE}",)},
+        {"opponents": (f"neural:{INCUMBENT}", "scripted")},
         {"max_regression": float("nan")},
         {"max_regression": -0.1},
+        {"max_regression": 0.105},
         {"min_lower_bound": float("inf")},
+        {"min_lower_bound": 0.001},
+        {"max_excluded_per_opponent": 3},
         {"max_excluded_per_opponent": 20},
-        {"min_paired_games_per_opponent": 1},
+        {"min_paired_games_per_opponent": 2},
+        {"min_paired_games_per_opponent": 19},
         {"min_paired_games_per_opponent": 22},
         {"domain": "elsewhere"},
     ],
@@ -126,13 +136,31 @@ def test_evaluation_plan_is_bounded_and_explicit(overrides):
         plan(**overrides)
 
 
-def test_plan_identity_covers_every_threshold():
+def test_plan_floors_refuse_tiny_budgets_even_with_a_matching_minimum():
+    for games in (2, 4, 18):
+        with pytest.raises(ValueError, match="games per opponent must be an even integer in 20"):
+            plan(games_per_opponent=games, min_paired_games_per_opponent=games)
+
+
+def test_plan_identity_is_canonical_but_covers_every_threshold():
     assert plan().sha256 == plan().sha256
+    # Reordering opponents or nudging a threshold below the 0.01 grid is the same plan.
+    assert plan(opponents=(f"neural:{RIVAL}", "scripted")).sha256 == plan().sha256
+    assert plan(opponents=[f"neural:{RIVAL}", "scripted"]).opponents == plan().opponents
+    assert plan(min_lower_bound=1e-12).sha256 == plan().sha256
+    assert plan(min_lower_bound=-1e-12).to_json()["min_lower_bound"] == 0.0
+    assert plan(max_regression=0.1 + 1e-12).sha256 == plan().sha256
+    assert plan(max_regression=0).sha256 == plan(max_regression=0.0).sha256
     assert plan().sha256 != plan(max_regression=0.2).sha256
     assert plan().sha256 != plan(games_per_opponent=22).sha256
+    assert EvaluationPlan.from_json(plan().to_json()) == plan()
 
 
 # --- the gate on direct rows -----------------------------------------------------------------
+
+
+def side(fixture):
+    return "challenger" if fixture % 2 == 0 else "receiver"
 
 
 def evaluation(sha, scores_by_opponent, *, valid=True):
@@ -150,6 +178,7 @@ def evaluation(sha, scores_by_opponent, *, valid=True):
                         "fixture": fixture,
                         "status": "completed",
                         "score": score,
+                        "side": side(fixture),
                         "valid": valid,
                     }
                 )
@@ -174,7 +203,7 @@ def test_clear_improvement_against_every_opponent_passes():
     after = evaluation(CANDIDATE, {"scripted": scores(16), RIVAL_LABEL: scores(15)})
     gate = selection_gate(p, before, after)
     assert gate["passed"] is True and gate["decision"] == "candidate_passed_gate"
-    assert gate["paired_delta_ci95"][0] > 0
+    assert gate["paired_delta_ci95"][0] > 0 and gate["bootstrap"]["blocks"] == 20
     assert gate["opponents"]["scripted"]["candidate"]["win_rate"] == 0.8
     assert gate["opponents"]["scripted"]["candidate"]["win_rate_ci95"] == list(
         wilson_interval(16, 20)
@@ -197,25 +226,28 @@ def test_single_opponent_regression_fails_even_when_the_average_improves():
     assert selection_gate(plan(max_regression=0.15), before, after)["passed"] is True
 
 
-def test_equal_or_noisy_evidence_retains_the_incumbent():
-    p = plan()
+def test_equal_evidence_retains_the_incumbent():
     same = {"scripted": scores(10), RIVAL_LABEL: scores(10)}
-    gate = selection_gate(p, evaluation(INCUMBENT, same), evaluation(CANDIDATE, same))
+    gate = selection_gate(plan(), evaluation(INCUMBENT, same), evaluation(CANDIDATE, same))
     assert gate["passed"] is False
     assert "paired improvement lower bound not above threshold" in gate["reasons"]
-    # A small budget needs an explicit, recorded minimum; the default is 20 per opponent.
-    with pytest.raises(ValueError, match="minimum paired games"):
-        plan(games_per_opponent=2)
-    lenient = plan(max_excluded_per_opponent=4, min_paired_games_per_opponent=18)
-    candidate_scores = scores(18)
-    candidate_scores[0] = candidate_scores[1] = candidate_scores[2] = None
+
+
+def test_too_few_complete_blocks_cannot_pass_even_when_every_game_improves():
+    p = plan(opponents=("scripted",), max_excluded_per_opponent=2)
+    incumbent = [0.0] * 20
+    incumbent[1] = incumbent[3] = None  # breaks blocks 0 and 1: 8 complete blocks remain
     gate = selection_gate(
-        lenient,
-        evaluation(INCUMBENT, {"scripted": scores(2), RIVAL_LABEL: scores(2)}),
-        evaluation(CANDIDATE, {"scripted": candidate_scores, RIVAL_LABEL: scores(18)}),
+        p,
+        evaluation(INCUMBENT, {"scripted": incumbent}),
+        evaluation(CANDIDATE, {"scripted": [1.0] * 20}),
     )
-    assert gate["passed"] is False
-    assert gate["reasons"] == ["insufficient paired games against scripted"]
+    assert gate["bootstrap"]["blocks"] == 8
+    assert gate["passed"] is False and gate["paired_delta_ci95"] is None
+    assert gate["reasons"] == [
+        "insufficient paired games against scripted",
+        "too few complete blocks to decide",
+    ]
 
 
 def test_a_positive_average_without_a_positive_lower_bound_is_not_an_improvement():
@@ -251,9 +283,58 @@ def test_excluded_games_stay_in_the_record_and_fail_beyond_the_allowance():
         }
     ]
     assert gate["opponents"]["scripted"]["paired_games"] == 19
-    lenient = plan(max_excluded_per_opponent=1, min_paired_games_per_opponent=19)
-    allowed = selection_gate(lenient, before, after)
-    assert allowed["passed"] is True and len(allowed["excluded_rows"]) == 1
+
+
+def test_exclusions_are_scored_against_the_candidate():
+    p = plan(opponents=("scripted",), games_per_opponent=40, max_excluded_per_opponent=4)
+    # The candidate wins every game it finishes; its 4 failures count as losses.
+    candidate = [1.0] * 40
+    for fixture in (0, 2, 4, 6):
+        candidate[fixture] = None
+    before = evaluation(INCUMBENT, {"scripted": [1.0] * 40})
+    gate = selection_gate(p, before, evaluation(CANDIDATE, {"scripted": candidate}))
+    summary = gate["opponents"]["scripted"]
+    assert summary["scored_fixtures"] == 40 and summary["paired_games"] == 36
+    assert summary["mean_score_delta"] == pytest.approx(-0.1)
+    assert gate["passed"] is False
+    # An incumbent failure earns the candidate nothing: that fixture is dropped.
+    incumbent = [0.0] * 40
+    for fixture in (0, 2, 4, 6):
+        incumbent[fixture] = None
+    gate = selection_gate(
+        p,
+        evaluation(INCUMBENT, {"scripted": incumbent}),
+        evaluation(CANDIDATE, {"scripted": [0.0] * 40}),
+    )
+    summary = gate["opponents"]["scripted"]
+    assert summary["scored_fixtures"] == 36 and summary["mean_score_delta"] == 0.0
+    assert gate["bootstrap"]["blocks"] == 16
+    allowed = selection_gate(
+        p,
+        evaluation(INCUMBENT, {"scripted": incumbent}),
+        evaluation(CANDIDATE, {"scripted": [1.0] * 40}),
+    )
+    assert allowed["passed"] is True and len(allowed["excluded_rows"]) == 4
+
+
+def test_paired_games_must_share_their_seat_and_blocks_hold_both_seats():
+    before = evaluation(INCUMBENT, {"scripted": [0.0] * 20, RIVAL_LABEL: [0.0] * 20})
+    after = evaluation(CANDIDATE, {"scripted": [1.0] * 20, RIVAL_LABEL: [1.0] * 20})
+    swapped = copy.deepcopy(after)
+    for row in swapped["rows"]:
+        row["side"] = "receiver" if row["side"] == "challenger" else "challenger"
+    with pytest.raises(EvaluationRefused, match="different seats"):
+        selection_gate(plan(), before, swapped)
+    same_seat = copy.deepcopy(before), copy.deepcopy(after)
+    for evaluation_ in same_seat:
+        for row in evaluation_["rows"]:
+            row["side"] = "challenger"
+    with pytest.raises(EvaluationRefused, match="both seats"):
+        selection_gate(plan(), *same_seat)
+    unseated = copy.deepcopy(after)
+    del unseated["rows"][0]["side"]
+    with pytest.raises(EvaluationRefused, match="seat"):
+        selection_gate(plan(), before, unseated)
 
 
 def test_invalid_episode_evidence_fails_closed():
@@ -318,28 +399,6 @@ def test_gate_refuses_malformed_or_mismatched_evidence(damage, error):
         row.pop("valid")
     with pytest.raises(EvaluationRefused, match=error):
         selection_gate(plan(), before, after)
-
-
-def test_every_decision_is_recorded_once_including_rejections(tmp_path):
-    record = tmp_path / "selection.jsonl"
-    before = evaluation(INCUMBENT, {"scripted": scores(2), RIVAL_LABEL: scores(10)})
-    after = evaluation(CANDIDATE, {"scripted": scores(19), RIVAL_LABEL: scores(7)})
-    rejected = selection_gate(plan(), before, after)
-    record_decision(record, rejected)
-    with pytest.raises(EvaluationRefused, match="already has a recorded decision"):
-        record_decision(record, selection_gate(plan(), before, after))
-    accepted = selection_gate(plan(max_regression=0.15), before, after)
-    record_decision(record, accepted)
-    rows = [json.loads(line) for line in record.read_text().splitlines()]
-    assert [(r["sequence"], r["passed"]) for r in rows] == [(0, False), (1, True)]
-    assert all(r["automatic_promotion"] is False for r in rows)
-    forged = {**accepted, "plan_sha256": "0" * 64, "automatic_promotion": True}
-    with pytest.raises(EvaluationRefused, match="never promotes"):
-        record_decision(record, forged)
-    with record.open("a") as stream:
-        stream.write('{"torn"')
-    with pytest.raises(EvaluationRefused, match="torn"):
-        record_decision(record, {**accepted, "plan_sha256": "1" * 64})
 
 
 # --- records from real unit-6 collections ----------------------------------------------------
@@ -439,64 +498,118 @@ def test_training_collections_and_partial_budgets_are_not_evaluations(sha_dirs, 
         record_from_collection(root, CANDIDATE)
 
 
+WIN, LOSS = 1, 2
+
+
+def evaluation_set(tmp_path, monkeypatch, sha, prefix, scripted, rival):
+    return [
+        collect(tmp_path, monkeypatch, f"{prefix}-s", arms_vs(tmp_path, sha, "scripted"), scripted),
+        collect(tmp_path, monkeypatch, f"{prefix}-r", arms_vs(tmp_path, sha, "neural"), rival),
+    ]
+
+
 def test_live_collections_feed_the_gate_end_to_end(sha_dirs, monkeypatch, tmp_path):
-    p = plan(games_per_opponent=4, max_regression=0.25, min_paired_games_per_opponent=4)
-    win, loss = 1, 2
-    records = {
-        INCUMBENT: [
-            collect(
-                tmp_path,
-                monkeypatch,
-                "i-s",
-                arms_vs(tmp_path, INCUMBENT, "scripted"),
-                [loss, loss, loss, win],
-            ),
-            collect(
-                tmp_path,
-                monkeypatch,
-                "i-r",
-                arms_vs(tmp_path, INCUMBENT, "neural"),
-                [loss, win, loss, loss],
-            ),
-        ],
-        CANDIDATE: [
-            collect(
-                tmp_path,
-                monkeypatch,
-                "c-s",
-                arms_vs(tmp_path, CANDIDATE, "scripted"),
-                [win, win, win, win],
-            ),
-            collect(
-                tmp_path,
-                monkeypatch,
-                "c-r",
-                arms_vs(tmp_path, CANDIDATE, "neural"),
-                [win, win, win, loss],
-            ),
-        ],
-    }
-    joined = {
-        sha: combine_records(p, sha, [record_from_collection(r, sha) for r in roots])
-        for sha, roots in records.items()
-    }
-    gate = selection_gate(p, joined[INCUMBENT], joined[CANDIDATE])
+    p = plan(max_regression=0.25)
+    incumbent = evaluation_set(
+        tmp_path, monkeypatch, INCUMBENT, "i", [LOSS] * 15 + [WIN] * 5, [LOSS, WIN] * 10
+    )
+    candidate = evaluation_set(
+        tmp_path, monkeypatch, CANDIDATE, "c", [WIN] * 20, [WIN] * 15 + [LOSS] * 5
+    )
+    gate = decide_from_collections(p, incumbent=incumbent, candidate=candidate)
     assert gate["opponents"]["scripted"]["mean_score_delta"] == 0.75
-    assert gate["opponents"][RIVAL_LABEL]["mean_score_delta"] == 0.5
+    assert gate["opponents"][RIVAL_LABEL]["mean_score_delta"] == 0.25
     assert gate["passed"] is True
-    assert gate["collections"]["candidate"]["scripted"] == str(records[CANDIDATE][0])
+    evidence = gate["evidence"]["candidate"]["scripted"]
+    assert evidence["path"] == str(candidate[0].resolve())
+    assert evidence["plan_sha256"] == read_collection(candidate[0]).plan_sha256
+    first = record_from_collection(candidate[0], CANDIDATE)
     with pytest.raises(EvaluationRefused, match="one opponent"):
-        combine_records(
-            p, CANDIDATE, [record_from_collection(records[CANDIDATE][0], CANDIDATE)] * 2
-        )
+        combine_records(p, CANDIDATE, [first] * 2)
     with pytest.raises(EvaluationRefused, match="exactly the planned"):
-        combine_records(p, CANDIDATE, [record_from_collection(records[CANDIDATE][0], CANDIDATE)])
+        combine_records(p, CANDIDATE, [first])
     with pytest.raises(EvaluationRefused, match="budget differs"):
         combine_records(
-            plan(games_per_opponent=6, min_paired_games_per_opponent=4),
+            plan(games_per_opponent=22),
             CANDIDATE,
-            [record_from_collection(r, CANDIDATE) for r in records[CANDIDATE]],
+            [record_from_collection(r, CANDIDATE) for r in candidate],
         )
+    with pytest.raises(EvaluationRefused, match="one opponent"):
+        decide_from_collections(p, incumbent=incumbent, candidate=[candidate[0], candidate[0]])
+
+
+def test_every_decision_is_recorded_once_and_rederived(sha_dirs, monkeypatch, tmp_path):
+    lineage = tmp_path / "lineage"
+    p = plan()
+    incumbent = evaluation_set(tmp_path, monkeypatch, INCUMBENT, "i", [LOSS] * 20, [LOSS] * 20)
+    candidate = evaluation_set(
+        tmp_path, monkeypatch, CANDIDATE, "c", [WIN] * 20, [WIN] * 10 + [LOSS] * 10
+    )
+    decision = decide_from_collections(p, incumbent=incumbent, candidate=candidate)
+    # Forged or inconsistent decisions never reach the record.
+    for forged, error in (
+        ({**decision, "plan_sha256": "f" * 64}, "re-hashed plan"),
+        ({**decision, "passed": False}, "inconsistent"),
+        ({**decision, "passed": True, "reasons": ["x"]}, "inconsistent"),
+        ({**decision, "paired_delta": 1.0}, "differs from the one its collections give"),
+        ({**decision, "automatic_promotion": True}, "never promotes"),
+        ({**decision, "evidence": {"incumbent": None, "candidate": None}}, "name its collections"),
+        ({**decision, "plan": {**decision["plan"], "games_per_opponent": 2}}, "plan is invalid"),
+    ):
+        with pytest.raises(EvaluationRefused, match=error):
+            record_decision(lineage, forged)
+    assert not (lineage / "selection.jsonl").exists()
+    row = record_decision(lineage, decision)
+    assert row["sequence"] == 0 and row["passed"] is True
+    # The same pair under a reordered, nudged or loosened plan is not decided again.
+    for again in (
+        plan(opponents=(f"neural:{RIVAL}", "scripted")),
+        plan(min_lower_bound=1e-12),
+        plan(max_regression=0.5),
+    ):
+        with pytest.raises(EvaluationRefused, match="pair was already decided"):
+            record_decision(
+                lineage, decide_from_collections(again, incumbent=incumbent, candidate=candidate)
+            )
+    # Another candidate may not reuse the incumbent's evaluation collections.
+    other = "34" * 32
+    (tmp_path / other[:4]).mkdir()
+    second = evaluation_set(tmp_path, monkeypatch, other, "d", [WIN] * 20, [LOSS] * 20)
+    reuse = decide_from_collections(
+        plan(candidate_sha256=other), incumbent=incumbent, candidate=second
+    )
+    with pytest.raises(EvaluationRefused, match="already used"):
+        record_decision(lineage, reuse)
+    fresh = evaluation_set(tmp_path, monkeypatch, INCUMBENT, "j", [LOSS] * 20, [WIN] * 20)
+    late = decide_from_collections(plan(candidate_sha256=other), incumbent=fresh, candidate=second)
+    assert late["passed"] is False  # regression against the rival
+    assert record_decision(lineage, late)["sequence"] == 1
+    rows = [json.loads(line) for line in (lineage / "selection.jsonl").read_text().splitlines()]
+    assert [(r["sequence"], r["passed"]) for r in rows] == [(0, True), (1, False)]
+    assert all(r["automatic_promotion"] is False for r in rows)
+
+
+def test_selection_record_is_locked_and_refuses_corruption(sha_dirs, monkeypatch, tmp_path):
+    import fcntl
+
+    lineage = tmp_path / "lineage"
+    lineage.mkdir()
+    incumbent = evaluation_set(tmp_path, monkeypatch, INCUMBENT, "i", [LOSS] * 20, [LOSS] * 20)
+    candidate = evaluation_set(tmp_path, monkeypatch, CANDIDATE, "c", [WIN] * 20, [WIN] * 20)
+    decision = decide_from_collections(plan(), incumbent=incumbent, candidate=candidate)
+    with (lineage / "selection.jsonl.lock").open("a") as held:
+        fcntl.flock(held, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        with pytest.raises(EvaluationRefused, match="another writer"):
+            record_decision(lineage, decision)
+    record = lineage / "selection.jsonl"
+    record.write_text("[1, 2]\n")
+    with pytest.raises(EvaluationRefused, match="not an object"):
+        record_decision(lineage, decision)
+    record.write_text('{"torn"')
+    with pytest.raises(EvaluationRefused, match="torn"):
+        record_decision(lineage, decision)
+    record.write_text("")
+    assert record_decision(lineage, decision)["sequence"] == 0
 
 
 # --- the training split ----------------------------------------------------------------------
@@ -532,7 +645,7 @@ def test_training_selection_takes_verified_completed_episodes_and_records_reject
     episode = json.loads(path.read_text())
     episode.update(eligible=False, invalid_reasons=["deadline"])
     path.write_text(json.dumps(episode))
-    selection = select_training_episodes([root], CANDIDATE)
+    selection = select_training_episodes([root], CANDIDATE, held_out=NO_HELD_OUT)
     assert len(selection.episodes) == 2
     assert all(
         e["policy_sha"] == CANDIDATE and e["purpose"] == "training" for e in selection.episodes
@@ -543,11 +656,34 @@ def test_training_selection_takes_verified_completed_episodes_and_records_reject
     assert reasons == [("ineligible", "deadline")] + [("other_policy",)] * 3
 
 
+def test_the_held_out_set_must_be_stated_explicitly(sha_dirs, monkeypatch):
+    train = training_root(sha_dirs, monkeypatch)
+    with pytest.raises(TypeError, match="held_out"):
+        select_training_episodes([train], CANDIDATE)
+    with pytest.raises(SplitRefused, match="NO_HELD_OUT"):
+        select_training_episodes([train], CANDIDATE, held_out=str(train))
+    assert len(select_training_episodes([train], CANDIDATE, held_out=NO_HELD_OUT).episodes) == 2
+
+
+def test_selection_verify_trusts_only_its_own_training_verifiers(sha_dirs, monkeypatch):
+    train = training_root(sha_dirs, monkeypatch)
+    selection = select_training_episodes([train], CANDIDATE, held_out=NO_HELD_OUT)
+    episode = selection.episodes[0]
+    assert selection.verify(episode) is True
+    identity = next(iter(selection.verifiers))
+    forged = TrainingSelection(
+        CANDIDATE, episodes=selection.episodes, verifiers={identity: lambda _: True}
+    )
+    assert forged.verify(episode) is False
+    other = TrainingSelection(INCUMBENT, episodes=selection.episodes, verifiers=selection.verifiers)
+    assert other.verify(episode) is False
+
+
 def test_evaluation_collections_are_never_training_input(sha_dirs, monkeypatch):
     tmp_path = sha_dirs
     held = collect(tmp_path, monkeypatch, "e", arms_vs(tmp_path, CANDIDATE, "neural"), [1, 2])
     with pytest.raises(SplitRefused, match="held out"):
-        select_training_episodes([held], CANDIDATE)
+        select_training_episodes([held], CANDIDATE, held_out=NO_HELD_OUT)
     with pytest.raises(SplitRefused, match="held out"):
         TrainingEpisodeVerifier(held, CANDIDATE)
     # An evaluation episode relabelled as training is still refused by the verifier.
@@ -608,12 +744,12 @@ def test_unverified_training_episodes_refuse_the_batch(sha_dirs, monkeypatch, da
     path.write_text(json.dumps(episode))
     if damage == "ledger":
         # Fixture 0 is now open: its episodes have no completed row and are never read.
-        selection = select_training_episodes([root], CANDIDATE)
+        selection = select_training_episodes([root], CANDIDATE, held_out=NO_HELD_OUT)
         assert all(e["verification"]["match_id"] != row["match_id"] for e in selection.episodes)
         assert TrainingEpisodeVerifier(root, CANDIDATE)(episode) is False
         return
     with pytest.raises(SplitRefused):
-        select_training_episodes([root], CANDIDATE)
+        select_training_episodes([root], CANDIDATE, held_out=NO_HELD_OUT)
 
 
 def test_ledger_episode_paths_cannot_escape_their_match(sha_dirs, monkeypatch):
@@ -624,7 +760,7 @@ def test_ledger_episode_paths_cannot_escape_their_match(sha_dirs, monkeypatch):
     rows[1]["episodes"][0] = str(root / "other" / "episode-1.json")
     ledger.write_text("".join(json.dumps(r) + "\n" for r in rows))
     with pytest.raises(SplitRefused, match="escapes"):
-        select_training_episodes([root], CANDIDATE)
+        select_training_episodes([root], CANDIDATE, held_out=NO_HELD_OUT)
 
 
 def test_evaluation_and_split_modules_do_not_import_torch():

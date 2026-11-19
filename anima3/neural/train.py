@@ -35,7 +35,7 @@ from torch import Tensor
 from .checkpoints import LoadedCheckpoint, load_checkpoint, save_checkpoint, schema_fingerprint
 from .live import EPISODE_SCHEMA, atomic_json
 from .model import RecurrentPolicy, masked_distribution
-from .splits import episode_identity
+from .splits import TrainingEpisodeVerifier, TrainingSelection, episode_identity
 
 MAX_EPOCHS = 64
 MAX_EPISODES = 200
@@ -43,24 +43,33 @@ MAX_TRANSITIONS = 50_000
 MAX_TOTAL_TRANSITIONS = 1_000_000
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, kw_only=True)
 class TrainConfig:
+    """PPO settings. The budget and the discount clock have no defaults.
+
+    ``epochs``, ``sequence_length``, ``burn_in``, ``batch_sequences`` and
+    ``discount_time_unit`` must be stated by the caller. The source live update
+    used ``discount_time_unit=1.0`` (``gamma ** elapsed_seconds``); ``0`` means one
+    discount per decision.
+    """
+
+    epochs: int
+    sequence_length: int
+    burn_in: int
+    batch_sequences: int
+    discount_time_unit: float
     learning_rate: float = 3e-4
     gamma: float = 0.995
     gae_lambda: float = 0.95
     clip_range: float = 0.2
     value_coef: float = 0.5
     entropy_coef: float = 0.01
-    epochs: int = 4
-    sequence_length: int = 64
-    burn_in: int = 8
-    batch_sequences: int = 8
     max_grad_norm: float = 0.5
     target_kl: float = 0.04
-    # 0 means one discount per decision; a positive value uses gamma**(dt/unit).
-    discount_time_unit: float = 0.0
 
     def __post_init__(self) -> None:
+        if type(self.discount_time_unit) not in (int, float):
+            raise ValueError("discount_time_unit must be a number")
         if not all(
             math.isfinite(value)
             for value in (
@@ -269,7 +278,7 @@ def ppo_update(
     episodes: list[Trajectory],
     config: TrainConfig,
     *,
-    seed: int = 0,
+    seed: int,
 ) -> dict:
     if not episodes or not all(len(episode) for episode in episodes):
         raise ValueError("PPO requires non-empty trajectories")
@@ -494,16 +503,60 @@ def _consumed(loaded: LoadedCheckpoint) -> list[list]:
 
 
 def _fresh_output(out, parent: Path) -> Path:
-    out = Path(out).resolve()
+    raw = Path(out).absolute()
+    resolved = raw.resolve()
     parent = Path(parent).resolve()
-    if out == parent or out.is_relative_to(parent) or parent.is_relative_to(out):
+    if resolved == parent or resolved.is_relative_to(parent) or parent.is_relative_to(resolved):
         raise ValueError("output checkpoint must be outside the input checkpoint")
-    if out.exists() or out.is_symlink():
+    # A symbolic link, even a dangling one, could redirect the write elsewhere.
+    if raw.is_symlink() or raw.exists() or resolved.exists():
         raise ValueError("output checkpoint directory already exists; choose a new one")
-    return out
+    return resolved
+
+
+def _discount(config: TrainConfig) -> dict:
+    unit = config.discount_time_unit
+    return {
+        "gamma": config.gamma,
+        "gae_lambda": config.gae_lambda,
+        "discount_time_unit": unit,
+        "rule": f"gamma**(dt_seconds/{unit})" if unit else "gamma per decision",
+    }
 
 
 def update_verified_episodes(
+    loaded: LoadedCheckpoint,
+    selection: TrainingSelection,
+    *,
+    out: str | Path,
+    config: TrainConfig,
+    seed: int,
+) -> dict:
+    """One bounded PPO update from a :class:`TrainingSelection` for this exact checkpoint.
+
+    Every episode is re-verified through the selection's own
+    ``TrainingEpisodeVerifier`` (collection purpose, plan SHA-256,
+    ``LiveReplayVerifier`` with a completed ledger row) for this policy; a
+    caller-supplied verifier is never trusted.
+    """
+    if type(selection) is not TrainingSelection:
+        raise TypeError("training input must be a TrainingSelection from select_training_episodes")
+    if selection.policy_sha != loaded.policy_sha or not all(
+        type(v) is TrainingEpisodeVerifier and v.policy_sha == loaded.policy_sha
+        for v in selection.verifiers.values()
+    ):
+        raise ValueError("training selection was verified for another policy")
+    return _unsafe_update_from_episodes(
+        loaded,
+        selection.episodes,
+        verify_episode=selection.verify,
+        out=out,
+        config=config,
+        seed=seed,
+    )
+
+
+def _unsafe_update_from_episodes(
     loaded: LoadedCheckpoint,
     episodes: list[dict],
     *,
@@ -512,14 +565,14 @@ def update_verified_episodes(
     config: TrainConfig,
     seed: int,
 ) -> dict:
-    """One bounded PPO update from complete duels collected by this exact checkpoint.
+    """Private and unsafe: trusts ``verify_episode``. Use :func:`update_verified_episodes`.
 
-    A JSON ``verified`` flag is insufficient: the caller must provide a trusted
-    verifier (``TrainingSelection.verify``). This function additionally refuses
-    other policies, held-out evaluation episodes, substituted actions, broken
-    recurrent state histories and episodes this lineage already consumed. All
-    episodes are validated before any parameter changes, and nothing is written
-    unless every check passes.
+    Beyond the verifier it refuses other policies, held-out evaluation episodes,
+    substituted actions, broken recurrent state histories and episodes this
+    lineage already consumed. All episodes are validated before any parameter
+    changes, and nothing is written unless every check passes. Training runs on
+    CPU: ``fork_rng`` isolates the CPU generator only, so a model on another
+    device is refused.
     """
     if not isinstance(config, TrainConfig):
         raise TypeError("an explicit TrainConfig budget is required")
@@ -527,6 +580,8 @@ def update_verified_episodes(
         raise ValueError("an explicit non-negative integer seed is required")
     if not callable(verify_episode) or not (1 <= len(episodes) <= MAX_EPISODES):
         raise ValueError(f"trusted verifier and 1..{MAX_EPISODES} live episodes required")
+    if loaded.model.device.type != "cpu":
+        raise ValueError("bounded training runs on CPU only")
     out = _fresh_output(out, loaded.directory)
     consumed = _consumed(loaded)
     seen = {tuple(identity) for identity in consumed}
@@ -573,7 +628,7 @@ def update_verified_episodes(
             }
             for row in episodes
         ],
-        "discount": "gamma**dt_seconds" if config.discount_time_unit == 1 else "configured",
+        "discount": _discount(config),
         "strength_improvement_established": False,
         "live_consumed": consumed,
     }
@@ -591,6 +646,7 @@ def update_verified_episodes(
         "episodes": len(episodes),
         "seed": seed,
         "budget": training["budget"],
+        "discount": training["discount"],
         "metrics": metrics,
         "automatic_promotion": False,
     }
@@ -606,10 +662,14 @@ def train_from_collections(
     out,
     config: TrainConfig,
     seed: int,
-    held_out=(),
+    held_out,
     min_episodes: int = 1,
 ) -> dict:
-    """Load the behaviour checkpoint by SHA, select verified training input, update once."""
+    """Load the behaviour checkpoint by SHA, select verified training input, update once.
+
+    ``held_out`` is required: name the evaluation collections whose matches must
+    not be trained on, or pass ``splits.NO_HELD_OUT`` to state there are none.
+    """
     from .splits import select_training_episodes
 
     if type(min_episodes) is not int or not 1 <= min_episodes <= MAX_EPISODES:
@@ -619,14 +679,7 @@ def train_from_collections(
     selection = select_training_episodes(collections, loaded.policy_sha, held_out=held_out)
     if len(selection.episodes) < min_episodes:
         raise NoEligibleEpisodes(selection.rejected, len(selection.episodes), min_episodes)
-    result = update_verified_episodes(
-        loaded,
-        selection.episodes,
-        verify_episode=selection.verify,
-        out=out,
-        config=config,
-        seed=seed,
-    )
+    result = update_verified_episodes(loaded, selection, out=out, config=config, seed=seed)
     summary = {
         **result,
         "collections": selection.collections,

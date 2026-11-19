@@ -25,13 +25,20 @@ from anima3.neural.checkpoints import load_checkpoint, save_checkpoint, schema_f
 from anima3.neural.live import EPISODE_SCHEMA, Arm, CollectionPlan
 from anima3.neural.model import PolicyConfig, RecurrentPolicy
 from anima3.neural.schema import ACTION_NAMES, FEATURE_NAMES
-from anima3.neural.splits import SplitRefused, read_collection
+from anima3.neural.splits import (
+    NO_HELD_OUT,
+    SplitRefused,
+    TrainingSelection,
+    read_collection,
+    select_training_episodes,
+)
 from anima3.neural.train import (
     MAX_EPOCHS,
     NoEligibleEpisodes,
     TrainConfig,
     Trajectory,
     _targets,
+    _unsafe_update_from_episodes,
     clipped_policy_loss,
     generalized_advantage,
     ppo_update,
@@ -39,6 +46,13 @@ from anima3.neural.train import (
     update_verified_episodes,
 )
 
+BUDGET = {
+    "epochs": 2,
+    "sequence_length": 4,
+    "burn_in": 2,
+    "batch_sequences": 2,
+    "discount_time_unit": 1.0,
+}
 SMALL = TrainConfig(
     epochs=2, sequence_length=4, burn_in=2, batch_sequences=2, discount_time_unit=1.0
 )
@@ -172,7 +186,7 @@ def test_ppo_clipping_both_advantage_signs():
 @pytest.mark.parametrize("value", [float("nan"), float("inf"), -float("inf")])
 def test_training_coefficients_reject_nonfinite(field, value):
     with pytest.raises(ValueError, match="finite"):
-        TrainConfig(**{field: value})
+        TrainConfig(**{**BUDGET, field: value})
 
 
 @pytest.mark.parametrize(
@@ -195,7 +209,7 @@ def test_training_coefficients_reject_nonfinite(field, value):
 )
 def test_training_budget_and_ranges_are_bounded(field, value):
     with pytest.raises(ValueError):
-        TrainConfig(**{field: value})
+        TrainConfig(**{**BUDGET, field: value})
 
 
 def force_hold(episode, indices):
@@ -210,7 +224,7 @@ def test_actor_advantage_normalization_ignores_forced_holds_but_retains_critic_t
     episode.values = [0.0] * 4
     episode.rewards = [1.0, 100.0, 3.0, -100.0]
     force_hold(episode, [1, 3])
-    advantages, returns = _targets([episode], TrainConfig(gamma=1.0, gae_lambda=0.0))[0]
+    advantages, returns = _targets([episode], TrainConfig(**BUDGET, gamma=1.0, gae_lambda=0.0))[0]
     assert advantages.tolist() == pytest.approx([-1.0, 0.0, 1.0, 0.0])
     assert returns.tolist() == pytest.approx(episode.rewards)
 
@@ -225,7 +239,8 @@ def test_all_forced_ppo_rollout_still_trains_critic_without_nan_or_actor_update(
         model,
         torch.optim.Adam(model.parameters(), lr=1e-3),
         [episode],
-        TrainConfig(epochs=1, sequence_length=4, batch_sequences=1),
+        TrainConfig(**{**BUDGET, "epochs": 1, "batch_sequences": 1}),
+        seed=0,
     )
     assert metrics["optimized_steps"] == len(episode)
     assert metrics["policy_optimized_steps"] == 0
@@ -253,7 +268,8 @@ def test_forced_holds_do_not_dilute_actor_kl_early_stop():
         model,
         torch.optim.Adam(model.parameters(), lr=1e-3),
         [episode],
-        TrainConfig(epochs=1, sequence_length=len(episode)),
+        TrainConfig(**{**BUDGET, "epochs": 1, "sequence_length": len(episode)}),
+        seed=0,
     )
     assert metrics["kl_early_stop"] is True
     assert metrics["optimized_steps"] == metrics["policy_optimized_steps"] == 0
@@ -264,8 +280,10 @@ def test_forced_holds_do_not_dilute_actor_kl_early_stop():
 def test_ppo_optimizer_steps_never_exceed_the_epoch_and_batch_budget():
     model = policy()
     episodes = [trajectory(model, seed=s) for s in range(3)]  # 3 x 12 steps -> 9 chunks of 4
-    config = TrainConfig(epochs=3, sequence_length=4, burn_in=2, batch_sequences=2)
-    metrics = ppo_update(model, torch.optim.Adam(model.parameters(), lr=1e-4), episodes, config)
+    config = TrainConfig(**{**BUDGET, "epochs": 3})
+    metrics = ppo_update(
+        model, torch.optim.Adam(model.parameters(), lr=1e-4), episodes, config, seed=0
+    )
     assert metrics["optimizer_steps"] <= config.epochs * math.ceil(9 / config.batch_sequences)
     if not metrics["kl_early_stop"]:
         assert metrics["optimizer_steps"] == 15
@@ -309,7 +327,7 @@ def test_live_updates_fail_closed_before_any_output(tmp_path, corruption, error)
         del episode["purpose"]
     before = tree_digest(tmp_path / "input")
     with pytest.raises(ValueError, match=error):
-        update_verified_episodes(
+        _unsafe_update_from_episodes(
             loaded,
             [episode],
             verify_episode=lambda _: True,
@@ -326,14 +344,14 @@ def test_update_requires_explicit_budget_seed_and_trusted_verifier(tmp_path):
     episode = live_episode(loaded)
     kwargs = {"out": tmp_path / "output", "verify_episode": lambda _: True}
     with pytest.raises(TypeError):
-        update_verified_episodes(loaded, [episode], **kwargs)  # no config/seed
+        _unsafe_update_from_episodes(loaded, [episode], **kwargs)  # no config/seed
     with pytest.raises(TypeError, match="TrainConfig"):
-        update_verified_episodes(loaded, [episode], config={"epochs": 1}, seed=1, **kwargs)
+        _unsafe_update_from_episodes(loaded, [episode], config={"epochs": 1}, seed=1, **kwargs)
     for seed in (-1, True, 1.0, None):
         with pytest.raises(ValueError, match="seed"):
-            update_verified_episodes(loaded, [episode], config=SMALL, seed=seed, **kwargs)
+            _unsafe_update_from_episodes(loaded, [episode], config=SMALL, seed=seed, **kwargs)
     with pytest.raises(ValueError, match="verification failed"):
-        update_verified_episodes(
+        _unsafe_update_from_episodes(
             loaded,
             [episode],
             verify_episode=lambda _: False,
@@ -350,12 +368,12 @@ def test_output_is_a_new_sha_recorded_checkpoint_that_never_overwrites_its_input
     episode = live_episode(loaded)
     for out in (tmp_path / "input", tmp_path / "input" / "child"):
         with pytest.raises(ValueError, match="outside the input"):
-            update_verified_episodes(
+            _unsafe_update_from_episodes(
                 loaded, [episode], verify_episode=lambda _: True, out=out, config=SMALL, seed=1
             )
     (tmp_path / "taken").mkdir()
     with pytest.raises(ValueError, match="already exists"):
-        update_verified_episodes(
+        _unsafe_update_from_episodes(
             loaded,
             [episode],
             verify_episode=lambda _: True,
@@ -364,7 +382,7 @@ def test_output_is_a_new_sha_recorded_checkpoint_that_never_overwrites_its_input
             seed=1,
         )
     assert list((tmp_path / "taken").iterdir()) == []
-    result = update_verified_episodes(
+    result = _unsafe_update_from_episodes(
         loaded,
         [episode],
         verify_episode=lambda _: True,
@@ -389,7 +407,7 @@ def test_output_is_a_new_sha_recorded_checkpoint_that_never_overwrites_its_input
     # The parent's in-memory weights are untouched too.
     assert load_checkpoint(tmp_path / "input", expected_sha256=loaded.policy_sha)
     with pytest.raises(ValueError, match="already exists"):
-        update_verified_episodes(
+        _unsafe_update_from_episodes(
             loaded,
             [episode],
             verify_episode=lambda _: True,
@@ -407,7 +425,7 @@ def test_fixed_seed_gives_identical_weights_and_leaves_global_rng_alone(tmp_path
     torch.manual_seed(99)
     shas = []
     for name, seed in (("a", 7), ("b", 7), ("c", 8)):
-        result = update_verified_episodes(
+        result = _unsafe_update_from_episodes(
             loaded,
             episodes,
             verify_episode=lambda _: True,
@@ -425,7 +443,7 @@ def test_both_sides_of_a_match_are_distinct_and_consumed_identities_are_refused(
     loaded = saved(tmp_path)
     first = live_episode(loaded, actor=57)
     second = live_episode(loaded, actor=58, seed=1)
-    result = update_verified_episodes(
+    result = _unsafe_update_from_episodes(
         loaded,
         [first, second],
         verify_episode=lambda _: True,
@@ -436,7 +454,7 @@ def test_both_sides_of_a_match_are_distinct_and_consumed_identities_are_refused(
     child = load_checkpoint(tmp_path / "child", expected_sha256=result["policy_sha"])
     assert child.manifest["training"]["live_consumed"] == [[f"{1:032x}", 57], [f"{1:032x}", 58]]
     with pytest.raises(ValueError, match="duplicate"):
-        update_verified_episodes(
+        _unsafe_update_from_episodes(
             loaded,
             [first, copy.deepcopy(first)],
             verify_episode=lambda _: True,
@@ -446,7 +464,7 @@ def test_both_sides_of_a_match_are_distinct_and_consumed_identities_are_refused(
         )
     lineage = saved(tmp_path, "lineage", training={"live_consumed": [[f"{1:032x}", 57]]})
     with pytest.raises(ValueError, match="duplicate"):
-        update_verified_episodes(
+        _unsafe_update_from_episodes(
             lineage,
             [live_episode(lineage)],
             verify_episode=lambda _: True,
@@ -468,9 +486,11 @@ def test_batch_size_is_capped(tmp_path):
             episode["verification"]["match_id"] = f"{match:032x}"
             episode["actor"] = actor
             episodes.append(episode)
-    config = TrainConfig(epochs=1, sequence_length=1, burn_in=0, batch_sequences=200)
+    config = TrainConfig(
+        epochs=1, sequence_length=1, burn_in=0, batch_sequences=200, discount_time_unit=1.0
+    )
     with pytest.raises(ValueError, match="1..200"):
-        update_verified_episodes(
+        _unsafe_update_from_episodes(
             loaded,
             episodes + [copy.deepcopy(template)],
             verify_episode=lambda _: True,
@@ -479,7 +499,7 @@ def test_batch_size_is_capped(tmp_path):
             seed=0,
         )
     assert not (tmp_path / "oversized").exists()
-    result = update_verified_episodes(
+    result = _unsafe_update_from_episodes(
         loaded,
         episodes,
         verify_episode=lambda _: True,
@@ -538,6 +558,11 @@ def test_train_from_verified_training_collections_end_to_end(tmp_path, monkeypat
     held = collect_policy(tmp_path, monkeypatch, "held", loaded, [2, 1], "evaluation")
     before = {p: tree_digest(p) for p in (tmp_path / "input", train, held)}
     kwargs = {"expected_sha256": loaded.policy_sha, "config": SMALL, "seed": 3}
+    with pytest.raises(TypeError, match="held_out"):
+        train_from_collections(
+            tmp_path / "input", collections=[train], out=tmp_path / "x", **kwargs
+        )
+    kwargs["held_out"] = NO_HELD_OUT
     with pytest.raises(SplitRefused, match="held out"):
         train_from_collections(tmp_path / "input", collections=[held], out=tmp_path / "x", **kwargs)
     with pytest.raises(NoEligibleEpisodes):
@@ -553,7 +578,10 @@ def test_train_from_verified_training_collections_end_to_end(tmp_path, monkeypat
         )
     assert not (tmp_path / "x").exists()
     summary = train_from_collections(
-        tmp_path / "input", collections=[train], held_out=[held], out=tmp_path / "out", **kwargs
+        tmp_path / "input",
+        collections=[train],
+        out=tmp_path / "out",
+        **{**kwargs, "held_out": [held]},
     )
     assert summary["accepted_episodes"] == 3 and summary["rejected"] == []
     assert summary["held_out"] == [str(held.resolve())]
@@ -587,5 +615,103 @@ def test_tampered_training_receipt_refuses_the_whole_update(tmp_path, monkeypatc
             out=tmp_path / "out",
             config=SMALL,
             seed=3,
+            held_out=NO_HELD_OUT,
         )
     assert not (tmp_path / "out").exists()
+
+
+def test_training_config_has_no_default_budget_or_discount_clock(tmp_path):
+    with pytest.raises(TypeError):
+        TrainConfig()
+    for missing in BUDGET:
+        with pytest.raises(TypeError):
+            TrainConfig(**{k: v for k, v in BUDGET.items() if k != missing})
+    with pytest.raises(ValueError, match="discount_time_unit"):
+        TrainConfig(**{**BUDGET, "discount_time_unit": True})
+    with pytest.raises(TypeError):
+        ppo_update(policy(), None, [], SMALL)  # no seed
+    loaded = saved(tmp_path)
+    per_decision = TrainConfig(**{**BUDGET, "discount_time_unit": 0.0})
+    for name, config in (("seconds", SMALL), ("decisions", per_decision)):
+        result = _unsafe_update_from_episodes(
+            loaded,
+            [live_episode(loaded)],
+            verify_episode=lambda _: True,
+            out=tmp_path / name,
+            config=config,
+            seed=1,
+        )
+        manifest = load_checkpoint(tmp_path / name, expected_sha256=result["policy_sha"]).manifest
+        discount = manifest["training"]["discount"]
+        assert discount == result["discount"]
+        assert discount["gamma"] == config.gamma and discount["gae_lambda"] == config.gae_lambda
+        assert discount["discount_time_unit"] == config.discount_time_unit
+    assert result["discount"]["rule"] == "gamma per decision"
+    assert manifest["training"]["config"]["discount_time_unit"] == 0.0
+
+
+def test_output_symlinks_are_refused_even_when_dangling(tmp_path):
+    loaded = saved(tmp_path)
+    episode = live_episode(loaded)
+    (tmp_path / "into").symlink_to(tmp_path / "input" / "child")
+    (tmp_path / "dangling").symlink_to(tmp_path / "elsewhere")
+    for out, error in (("into", "outside the input"), ("dangling", "already exists")):
+        with pytest.raises(ValueError, match=error):
+            _unsafe_update_from_episodes(
+                loaded,
+                [episode],
+                verify_episode=lambda _: True,
+                out=tmp_path / out,
+                config=SMALL,
+                seed=1,
+            )
+    assert not (tmp_path / "elsewhere").exists()
+
+
+def test_training_on_another_device_is_refused(tmp_path):
+    from types import SimpleNamespace
+
+    loaded = saved(tmp_path)
+    episode = live_episode(loaded)
+    loaded.model = SimpleNamespace(device=SimpleNamespace(type="cuda"))
+    with pytest.raises(ValueError, match="CPU only"):
+        _unsafe_update_from_episodes(
+            loaded,
+            [episode],
+            verify_episode=lambda _: True,
+            out=tmp_path / "out",
+            config=SMALL,
+            seed=1,
+        )
+
+
+def test_public_update_only_trusts_a_real_training_selection(tmp_path, monkeypatch):
+    loaded = saved(tmp_path)
+    train = collect_policy(tmp_path, monkeypatch, "train", loaded, [1, 2], "training")
+    selection = select_training_episodes([train], loaded.policy_sha, held_out=NO_HELD_OUT)
+    kwargs = {"config": SMALL, "seed": 1}
+    with pytest.raises(TypeError, match="TrainingSelection"):
+        update_verified_episodes(loaded, selection.episodes, out=tmp_path / "a", **kwargs)
+    forged = TrainingSelection(
+        loaded.policy_sha,
+        episodes=selection.episodes,
+        verifiers={k: (lambda _: True) for k in selection.verifiers},
+    )
+    with pytest.raises(ValueError, match="another policy"):
+        update_verified_episodes(loaded, forged, out=tmp_path / "b", **kwargs)
+    other = saved(tmp_path, "other", seed=5)
+    with pytest.raises(ValueError, match="another policy"):
+        update_verified_episodes(other, selection, out=tmp_path / "c", **kwargs)
+    # An episode altered after selection fails the selection's own re-verification.
+    tampered = TrainingSelection(
+        loaded.policy_sha,
+        episodes=copy.deepcopy(selection.episodes),
+        verifiers=selection.verifiers,
+    )
+    outcome = tampered.episodes[0]["final_result"]["outcome"]
+    tampered.episodes[0]["final_result"]["outcome"] = -outcome
+    with pytest.raises(ValueError, match="verification failed"):
+        update_verified_episodes(loaded, tampered, out=tmp_path / "d", **kwargs)
+    assert not any((tmp_path / n).exists() for n in "abcd")
+    result = update_verified_episodes(loaded, selection, out=tmp_path / "ok", **kwargs)
+    assert result["episodes"] == 2
