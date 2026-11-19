@@ -19,6 +19,11 @@ Invariants:
   once; it is bound into the plan SHA-256 and every episode.
 - Rejected policy decisions make an episode ineligible. Deterministic option
   failure and recovery remain experience (no success-conditioned sampling).
+- A ``teacher`` arm runs the scripted :class:`~anima3.neural.teacher.TacticalTeacher`
+  and a ``probe`` arm a scripted melee/cast-dump ablation. Both are named by the
+  SHA-256 of their source module, never by a neural label, and neither produces
+  a PPO episode. A teacher's choices are written as receipt-bound demonstrations
+  (supervised imitation input only) next to, never inside, the episode list.
 """
 
 from __future__ import annotations
@@ -52,14 +57,33 @@ from ..sparring import (
 )
 from .executor import CombatExecutor
 from .inference import InferenceClient, require_sha256
+from .melee import CastDumpProbe, MeleeProbe
 from .schema import ACTION_NAMES, schema_fingerprint
+from .teacher import TEACHER_SHA256, TEACHER_STYLES, TEACHER_VERSION, TacticalTeacher
 
 EPISODE_SCHEMA = "anima3-live-policy-v1"
+# The source branch wrote "anima3-live-demonstration-v1" without plan, purpose,
+# teacher identity or ledger binding; those files are never accepted here.
+DEMONSTRATION_SCHEMA = "anima3-live-demonstration-v2"
 COLLECTION_SCHEMA = "anima3-live-collection-v1"
 COLLECTOR_VERSION = "frozen-options-v1"
 EXECUTION_FINGERPRINT = hashlib.sha256(
     Path(__file__).with_name("executor.py").read_bytes()
 ).hexdigest()
+PROBE_SHA256 = hashlib.sha256(Path(__file__).with_name("melee.py").read_bytes()).hexdigest()
+PROBE_VARIANTS = (
+    "magic",
+    "punch",
+    "stun",
+    "magic-resources",
+    "punch-resources",
+    "stun-resources",
+    "dump-baseline",
+    "dump-fast",
+    "dump-held",
+    "dump-primed",
+)
+ARM_KINDS = ("neural", "scripted", "teacher", "probe")
 MATCH_ID = re.compile(r"[0-9a-f]{32}")
 SHA256 = re.compile(r"[0-9a-f]{64}")
 STAGING = ".staged"
@@ -72,7 +96,11 @@ STATE_FRESH_SECONDS = 3.0
 STATE_LOST_SECONDS = 20.0
 
 
-class NeuralArmUnavailable(RuntimeError):
+class ArmUnavailable(RuntimeError):
+    """An arm cannot run as declared; no fixture was issued for it."""
+
+
+class NeuralArmUnavailable(ArmUnavailable):
     """A neural arm cannot run as declared; no fixture was issued for it."""
 
 
@@ -93,22 +121,37 @@ class DuplicateMatch(CollectionRefused):
 
 @dataclass(frozen=True)
 class Arm:
-    """One seat's policy. A neural arm is bound to the SHA-256 of its weight file."""
+    """One seat's policy. A neural arm is bound to the SHA-256 of its weight file.
+
+    ``teacher`` and ``probe`` arms are scripted controllers. They carry no
+    checkpoint or policy SHA-256; instead ``variant`` names the teacher style or
+    probe tactic and ``source_sha256`` the SHA-256 of the controller's source
+    module (``TEACHER_SHA256`` or ``PROBE_SHA256``), checked before any login.
+    """
 
     kind: str
     checkpoint: str | None = None
     policy_sha256: str | None = None
+    variant: str | None = None
+    source_sha256: str | None = None
 
     def __post_init__(self):
+        if self.kind not in ARM_KINDS:
+            raise ValueError("arm kind must be 'neural', 'scripted', 'teacher' or 'probe'")
         if self.kind == "neural":
             if not isinstance(self.checkpoint, str) or not self.checkpoint:
                 raise ValueError("a neural arm needs an explicit checkpoint path")
             require_sha256(self.policy_sha256)
-        elif self.kind == "scripted":
-            if self.checkpoint is not None or self.policy_sha256 is not None:
-                raise ValueError("a scripted arm carries no checkpoint identity")
-        else:
-            raise ValueError("arm kind must be 'neural' or 'scripted'")
+        elif self.checkpoint is not None or self.policy_sha256 is not None:
+            raise ValueError("a scripted, teacher or probe arm carries no checkpoint identity")
+        if self.kind in ("neural", "scripted"):
+            if self.variant is not None or self.source_sha256 is not None:
+                raise ValueError("only teacher and probe arms carry a variant and source SHA-256")
+            return
+        variants = TEACHER_STYLES if self.kind == "teacher" else PROBE_VARIANTS
+        if self.variant not in variants:
+            raise ValueError(f"{self.kind} variant must be one of {', '.join(variants)}")
+        require_sha256(self.source_sha256)
 
     @property
     def neural(self) -> bool:
@@ -116,7 +159,25 @@ class Arm:
 
     @property
     def label(self) -> str:
-        return f"neural {self.policy_sha256[:12]}" if self.neural else "scripted fixed-scripted"
+        """Self-reported model and version labels; never 'neural' for a scripted arm."""
+        if self.neural:
+            return f"neural {self.policy_sha256[:12]}"
+        if self.kind == "scripted":
+            return "scripted fixed-scripted"
+        return f"{self.kind} {self.variant}-{self.source_sha256[:12]}"
+
+    @property
+    def agent_policy(self) -> str:
+        return "recurrent" if self.kind in ("neural", "scripted") else "scripted"
+
+    def to_json(self) -> dict:
+        # Unset teacher/probe fields are omitted so neural/scripted plans keep
+        # the plan SHA-256 they had before these arm kinds existed.
+        value = asdict(self)
+        for key in ("variant", "source_sha256"):
+            if value[key] is None:
+                del value[key]
+        return value
 
 
 def preflight_arm(arm: Arm, *, find_spec=importlib.util.find_spec) -> None:
@@ -125,6 +186,13 @@ def preflight_arm(arm: Arm, *, find_spec=importlib.util.find_spec) -> None:
     The worker subprocess would also report these failures, but only after a
     login. This check uses ``find_spec`` so the parent still never imports torch.
     """
+    if arm.kind in ("teacher", "probe"):
+        current = TEACHER_SHA256 if arm.kind == "teacher" else PROBE_SHA256
+        if not hmac.compare_digest(arm.source_sha256, current):
+            raise ArmUnavailable(
+                f"{arm.kind} source differs from the planned identity {arm.source_sha256}"
+            )
+        return
     if not arm.neural:
         return
     path = Path(arm.checkpoint)
@@ -390,25 +458,52 @@ def _actor(
     deadline=340.0,
     expected_rules=TRAINING_RULES,
     known_match_ids=frozenset(),
+    teacher=None,
+    probe=None,
 ):
     """All access to one bridge body belongs to this thread during a match.
 
-    ``worker`` is a started ``InferenceClient`` for a neural arm, else ``None``
-    for the fixed scripted arm. Each Fighting round starts a fresh epoch that
-    resets both the executor and the worker's recurrent state; any other phase
-    resets them to ``inactive`` so no option or late decision crosses a round.
-    A match identity in ``known_match_ids`` is refused before anything is written
-    under its directory.
+    ``worker`` is a started ``InferenceClient`` for a neural arm, else ``None``.
+    ``teacher`` names a ``TacticalTeacher`` style and ``probe`` a probe variant;
+    with neither (and no worker) this seat is the fixed scripted ``Agent``. Each
+    Fighting round starts a fresh epoch that resets both the executor and the
+    worker's recurrent state; any other phase resets them to ``inactive`` so no
+    option or late decision crosses a round. A match identity in
+    ``known_match_ids`` is refused before anything is written under its directory.
+    A teacher's labelled choices are returned as ``teacher_steps`` (never as
+    transitions); a probe returns neither.
     """
+    if sum(x is not None for x in (worker, teacher, probe)) > 1:
+        raise ValueError("one seat runs exactly one policy")
+    if teacher is not None and teacher not in TEACHER_STYLES:
+        raise ValueError("unknown teacher style")
+    if probe is not None and probe not in PROBE_VARIANTS:
+        raise ValueError("unknown probe variant")
+    kind = "neural" if worker else "teacher" if teacher else "probe" if probe else "scripted"
     state, last_state, last_ping = {}, time.monotonic(), 0.0
     match_id = epoch = None
     seen = False
+    # Timing as on the source branch: neural and teacher seats use the fast
+    # option clock and hold Explosion for the burst; dump arms vary only those.
+    fast_timing = bool(worker or teacher) or probe in ("dump-fast", "dump-held", "dump-primed")
+    hold_explosion = bool(worker or teacher) or probe in ("dump-held", "dump-primed")
     executor = CombatExecutor(
-        opponent, **({"fast_timing": True, "hold_explosion": True} if worker else {})
+        opponent,
+        **({"fast_timing": True, "hold_explosion": hold_explosion} if fast_timing else {}),
     )
-    if worker:
+    if fast_timing:
         # Adjacent movement and safe potion disposal fit within four tiles.
         body.terrain_radius = 4
+    controller = None
+    if probe is not None:
+        tactic = probe.removesuffix("-resources")
+        controller = (
+            CastDumpProbe(tactic)
+            if tactic.startswith("dump-")
+            else MeleeProbe(tactic, resources=probe.endswith("-resources"))
+        )
+    tactical_teacher = TacticalTeacher(teacher) if teacher is not None else None
+    teacher_steps = []
     transitions, invalid, latencies, events, start_times = [], set(), [], [], []
     end = time.monotonic() + deadline
     baseline = None
@@ -516,16 +611,20 @@ def _actor(
             drain_worker_events()
             if start_times:
                 transitions[-1]["dt"] = max(0.001, now - start_times[-1])
-            return {
+            result = {
                 "id": match_id,
                 "actor": body_id,
                 "opponent": opponent,
+                "policy_kind": kind,
                 "transitions": transitions,
                 "invalid_reasons": sorted(invalid),
                 "inference_ms": latencies,
                 "policy_sha": worker.policy_sha if worker else None,
                 "collection_end_phase": state.get("phase"),
             }
+            if tactical_teacher is not None:
+                result["teacher_steps"] = teacher_steps
+            return result
 
         if state.get("phase") == "Fighting":
             current_epoch = f"{match_id}:{state['round']}:{body_id}"
@@ -537,11 +636,97 @@ def _actor(
                 executor.reset(opponent, epoch)
                 if worker:
                     worker.reset(epoch)
-                else:
+                elif kind == "scripted":
                     baseline = _scripted_baseline(
                         view, opponent, state["round"], log / match_id / f"baseline-{body_id}.jsonl"
                     )
-            if worker:
+            if controller is not None:
+                # Ported unchanged from the source probe branch. Raw Attack,
+                # StunRequest and Use packets are this scripted ablation's own.
+                frame = executor.observe(obs, server_state=update, now=now)
+                controller.feedback(obs.new_journal, now)
+                for j in obs.new_journal:
+                    emit({"type": "probe_journal", "serial": j.serial,
+                          "cliloc": j.cliloc, "text": j.text})  # fmt: skip
+                hands_free = not any(
+                    i.container == body_id and i.layer in (1, 2) for i in obs.items
+                )
+                if fast_timing:
+                    for packet in executor.tick(obs, time.monotonic()):
+                        rpc("act:" + packet["type"], body.act, packet)
+                    frame = executor.observe(obs, now=time.monotonic())
+                packets = controller.resource_packet(
+                    executor.view, now, obs.own_pack(), busy=executor.busy, hands_free=hands_free
+                )
+                packets = packets or controller.packets(
+                    executor.view, now, opponent, busy=executor.busy, hands_free=hands_free
+                )
+                for packet in packets:
+                    rpc("probe:" + packet["type"], body.act, packet)
+                    emit({"type": "probe_packet", "packet": packet,
+                          "distance": executor.view.distance})  # fmt: skip
+                if not executor.busy and not packets and now - last_state < STATE_FRESH_SECONDS:
+                    name = controller.choose(executor.view, frame.mask)
+                    executor.start(name, obs, time.monotonic())
+                for packet in executor.tick(obs, time.monotonic()):
+                    rpc("act:" + packet["type"], body.act, packet)
+                for event in executor.drain_events():
+                    emit({**event, "probe_distance": executor.view.distance})
+                rpc("pump", body.pump, 10 if fast_timing else 50)
+            elif tactical_teacher is not None:
+                frame = executor.observe(obs, server_state=update, now=now)
+                defending, defense_packets = (
+                    executor.defend_potions(obs, time.monotonic())
+                    if teacher == "tactical"
+                    else (False, [])
+                )
+                if defending:
+                    # Incoming-potion defense acts outside the 27-option schema.
+                    invalid.add("potion_defense_outside_policy_schema")
+                    for packet in defense_packets:
+                        rpc("act:" + packet["type"], body.act, packet)
+                    for event in executor.drain_events():
+                        emit(event)
+                    rpc("pump", body.pump, 10)
+                    continue
+                for packet in executor.tick(obs, time.monotonic()):
+                    rpc("act:" + packet["type"], body.act, packet)
+                decision_at = time.monotonic()
+                # Death can arrive before the final DuelState receipt. There is
+                # no decision to label outside a fresh, living combat context.
+                if (
+                    decision_at >= next_decision
+                    and decision_at - last_state < STATE_FRESH_SECONDS
+                    and executor.view.ready
+                    and executor.view.fresh
+                ):
+                    frame = executor.observe(obs, now=decision_at)
+                    action = tactical_teacher.choose(executor.view, frame.mask)
+                    accepted = executor.busy and action == 0
+                    if not executor.busy:
+                        accepted = executor.start(action, obs, decision_at)
+                    if not accepted:
+                        invalid.add("teacher_action_rejected")
+                    teacher_steps.append(
+                        {
+                            "at": decision_at,
+                            "features": list(frame.features),
+                            "mask": list(frame.mask),
+                            "action": action,
+                            "accepted": bool(accepted),
+                        }
+                    )
+                    next_decision = decision_at + DECISION_INTERVAL
+                for packet in executor.tick(obs, time.monotonic()):
+                    rpc("act:" + packet["type"], body.act, packet)
+                for event in executor.drain_events():
+                    emit(event)
+                    # Local hardening: any substituted procedure (for example a
+                    # ground rethrow) is not a labelled teacher choice.
+                    if policy_override(event):
+                        invalid.add("policy_override")
+                rpc("pump", body.pump, 10)
+            elif worker:
                 frame = executor.observe(obs, server_state=update, now=now)
                 # Advance an already committed option even across brief state latency.
                 for packet in executor.tick(obs, time.monotonic()):
@@ -629,7 +814,15 @@ def _actor(
     raise RuntimeError("live match stopped or timed out; no unverified training result emitted")
 
 
-def fight(bodies, workers, log, stop, *, deadline=340.0, known_match_ids=frozenset()):
+def _seat_controller(arm: Arm | None) -> dict:
+    if arm is None or arm.kind in ("neural", "scripted"):
+        return {}
+    return {arm.kind: arm.variant}
+
+
+def fight(
+    bodies, workers, log, stop, *, deadline=340.0, known_match_ids=frozenset(), arms=(None, None)
+):
     """Run both actors; the first failure stops the other one immediately."""
     ids = [b.observe().player.serial for b in bodies]
     known = frozenset(known_match_ids)
@@ -644,6 +837,7 @@ def fight(bodies, workers, log, stop, *, deadline=340.0, known_match_ids=frozens
                 stop,
                 deadline=deadline,
                 known_match_ids=known,
+                **_seat_controller(arms[i]),
             )
             for i, b in enumerate(bodies)
         ]
@@ -668,7 +862,9 @@ class CollectionPlan:
 
     ``purpose`` is part of the plan and its SHA-256: an ``evaluation`` collection
     (the default) is a held-out record and is never training input; only an
-    explicitly ``training`` collection can feed the unit-7 learner.
+    explicitly ``training`` collection can feed the unit-7 learner or unit-8
+    imitation. A plan with a teacher arm must verify the base template and
+    supplies, because its demonstrations are bound to that evidence.
     """
 
     endpoint: str
@@ -693,8 +889,10 @@ class CollectionPlan:
             raise ValueError("two distinct dedicated accounts required")
         if len(self.arms) != 2 or not all(isinstance(a, Arm) for a in self.arms):
             raise ValueError("exactly two arms required")
-        if not any(a.neural for a in self.arms):
-            raise ValueError("a live policy collection needs at least one neural arm")
+        if all(a.kind == "scripted" for a in self.arms):
+            raise ValueError("a live collection needs a neural, teacher or probe arm")
+        if any(a.kind == "teacher" for a in self.arms) and self.require_base_template is not True:
+            raise ValueError("a teacher arm requires require_base_template=True")
         if type(self.matches) is not int or not 1 <= self.matches <= MAX_MATCHES:
             raise ValueError(f"matches must be an integer in 1..{MAX_MATCHES}")
         if not 1 <= self.deadline_ms <= 10_000:
@@ -705,7 +903,7 @@ class CollectionPlan:
     def to_json(self) -> dict:
         value = asdict(self)
         value["accounts"] = list(self.accounts)
-        value["arms"] = [asdict(a) for a in self.arms]
+        value["arms"] = [a.to_json() for a in self.arms]
         return value
 
     @property
@@ -730,10 +928,22 @@ def _row_problem(row) -> str | None:
         if value is not None and not (isinstance(value, str) and MATCH_ID.fullmatch(value)):
             return f"invalid {key}"
     episodes = row.get("episodes")
-    if episodes is not None and not (
-        isinstance(episodes, list) and all(isinstance(e, str) and e for e in episodes)
+    for key in ("episodes", "demonstrations"):
+        files = row.get(key)
+        if files is not None and not (
+            isinstance(files, list) and all(isinstance(e, str) and e for e in files)
+        ):
+            return "invalid episode list" if key == "episodes" else "invalid demonstration list"
+    digests = row.get("demonstration_sha256")
+    if digests is not None and not (
+        isinstance(digests, list)
+        and isinstance(row.get("demonstrations"), list)
+        and len(digests) == len(row["demonstrations"])
+        and all(isinstance(d, str) and SHA256.fullmatch(d) for d in digests)
     ):
-        return "invalid episode list"
+        return "invalid demonstration digests"
+    if row.get("demonstrations") is not None and digests is None:
+        return "demonstrations without digests"
     if "result" in row and not isinstance(row["result"], dict):
         return "invalid result"
     if row["event"] == "completed" and not (
@@ -891,8 +1101,8 @@ def open_collection(log: Path, plan: CollectionPlan, *, resume: bool = False) ->
         )
     ledger = Ledger.load(log / "ledger.jsonl")
     for row in ledger.completed:
-        # A crash between the completed row and publication left staged episodes.
-        _publish(row["episodes"])
+        # A crash between the completed row and publication left staged files.
+        _publish([*row["episodes"], *row.get("demonstrations", [])])
     for fixture in ledger.open_fixtures:
         # An issued fixture whose outcome was not recorded is spent, never reissued.
         ledger.close(fixture, "unresolved", reason="interrupted before a recorded outcome")
@@ -1006,6 +1216,45 @@ def run_collection(
             raise
 
 
+def _demonstration(plan, fixture, actor, arm, other, match_id, meta, rows) -> dict:
+    """A teacher seat's labelled choices with their full provenance; never a PPO episode."""
+    steps = actor.pop("teacher_steps")
+    actor.pop("transitions", None)
+    invalid = list(actor["invalid_reasons"])
+    if not starting_template_verified(rows):
+        invalid.append("wrong_starting_template")
+    outcome = 0.0 if meta["winner"] is None else (1.0 if meta["winner"] == actor["actor"] else -1.0)
+    return {
+        "schema": DEMONSTRATION_SCHEMA,
+        "domain": "servuo",
+        "policy_kind": "teacher",
+        # A scripted teacher is never reported under a neural label or SHA.
+        "label": f"teacher:{arm.variant}",
+        "teacher": {
+            "name": "TacticalTeacher",
+            "style": arm.variant,
+            "version": TEACHER_VERSION,
+            "sha256": arm.source_sha256,
+        },
+        "ppo_eligible": False,
+        "eligible": bool(steps) and not invalid,
+        "invalid_reasons": sorted(set(invalid)),
+        "fixture": fixture,
+        "plan_sha256": plan.sha256,
+        "purpose": plan.purpose,
+        "executor_sha256": EXECUTION_FINGERPRINT,
+        "collector_version": COLLECTOR_VERSION,
+        "schema_fingerprint": schema_fingerprint(),
+        "actor": actor["actor"],
+        "opponent": actor["opponent"],
+        "opponent_arm": other.to_json(),
+        "verification": {"match_id": match_id, "replay_sha256": meta["sha256"]},
+        "final_result": {"winner": meta["winner"], "outcome": outcome},
+        "collection_end_phase": actor.get("collection_end_phase"),
+        "steps": steps,
+    }
+
+
 def _one_fixture(plan, log, ledger, fixture, bodies, ids, workers, stop, fetch_receipt):
     atomic_json(log / "status.json", {"stage": "preparing", "fixture": fixture + 1})
     with ThreadPoolExecutor(max_workers=2) as pool:
@@ -1022,15 +1271,23 @@ def _one_fixture(plan, log, ledger, fixture, bodies, ids, workers, stop, fetch_r
         )
     if [p.get("serial", ids[i]) for i, p in enumerate(players)] != ids:
         raise RuntimeError("prepared participants differ from the idle pair")
-    if plan.require_base_template and not all(
-        verify_training_supplies(b)["verified"] for b in bodies
-    ):
-        raise RuntimeError("unequal or incomplete training supplies; no challenge issued")
+    supplies = None
+    if plan.require_base_template:
+        supplies = [verify_training_supplies(b) for b in bodies]
+        if not all(audit["verified"] for audit in supplies):
+            raise RuntimeError("unequal or incomplete training supplies; no challenge issued")
     for body, arm in zip(bodies, plan.arms, strict=True):
-        body.act(say(f"[ArenaAgent {arm.label} recurrent"))
+        body.act(say(f"[ArenaAgent {arm.label} {arm.agent_policy}"))
     order = [0, 1] if fixture % 2 == 0 else [1, 0]
     challenger, receiver = order
-    ledger.issue(fixture, challenger=ids[challenger], opponent=ids[receiver])
+    # The pre-challenge supply audit is part of the durable issued row, so a
+    # demonstration can later be checked against evidence written before play.
+    ledger.issue(
+        fixture,
+        challenger=ids[challenger],
+        opponent=ids[receiver],
+        **({"supplies": supplies} if supplies is not None else {}),
+    )
     match_id = None
     try:
         request_training_challenge(bodies[challenger], opponent=ids[receiver], stopped=stop.is_set)
@@ -1043,6 +1300,7 @@ def _one_fixture(plan, log, ledger, fixture, bodies, ids, workers, stop, fetch_r
             stop,
             deadline=plan.match_deadline_s,
             known_match_ids=ledger.match_ids,
+            arms=plan.arms,
         )
         reported = actors[0]["id"]
         if reported in ledger.match_ids:
@@ -1051,6 +1309,10 @@ def _one_fixture(plan, log, ledger, fixture, bodies, ids, workers, stop, fetch_r
         for actor, arm in zip(actors, plan.arms, strict=True):
             if actor["policy_sha"] != (arm.policy_sha256 if arm.neural else None):
                 raise RuntimeError("actor policy identity differs from the declared arm")
+            if actor.get("policy_kind") != arm.kind:
+                raise RuntimeError("actor policy kind differs from the declared arm")
+            if ("teacher_steps" in actor) != (arm.kind == "teacher"):
+                raise RuntimeError("only a teacher arm may report teacher steps")
         seats = [ids[i] for i in order]
         meta, data = _pumping(bodies, fetch_receipt, match_id, seats)
     except BaseException as exc:
@@ -1076,8 +1338,26 @@ def _one_fixture(plan, log, ledger, fixture, bodies, ids, workers, stop, fetch_r
     # Stage every episode and verify all of them before the ledger row. Only a
     # completed row publishes them, so no refused or interrupted fixture leaves
     # an episode under its published name.
-    files, eligible = [], []
+    files, eligible, demonstrations, digests = [], [], [], []
     for i, (actor, arm) in enumerate(zip(actors, plan.arms, strict=True)):
+        if arm.kind == "teacher":
+            demonstration = _demonstration(
+                plan, fixture, actor, arm, plan.arms[1 - i], match_id, meta, rows
+            )
+            from .demonstrations import DemonstrationReceiptVerifier
+
+            verifier = DemonstrationReceiptVerifier(log, require_ledger=False)
+            if demonstration["eligible"] and not verifier(demonstration):
+                ledger.close(
+                    fixture, "invalid_fixture", match_id=match_id, reason="demonstration receipt"
+                )
+                raise CollectionRefused("collected demonstration failed receipt verification")
+            file = root / f"demonstration-{ids[i]}.json"
+            atomic_json(_staged(file), demonstration)
+            demonstrations.append(str(file))
+            # The completed row binds each demonstration file's bytes.
+            digests.append(hashlib.sha256(_staged(file).read_bytes()).hexdigest())
+            continue
         if not arm.neural:
             continue
         transitions = actor.pop("transitions")
@@ -1124,9 +1404,23 @@ def _one_fixture(plan, log, ledger, fixture, bodies, ids, workers, stop, fetch_r
         "metrics": replay.metrics(rows),
         "episodes": files,
         "eligible": all(eligible),
+        "arms": [arm.label for arm in plan.arms],
     }
-    ledger.close(fixture, "completed", match_id=match_id, episodes=files, result=result)
-    _publish(files)
+    if demonstrations:
+        result["demonstrations"] = demonstrations
+    ledger.close(
+        fixture,
+        "completed",
+        match_id=match_id,
+        episodes=files,
+        result=result,
+        **(
+            {"demonstrations": demonstrations, "demonstration_sha256": digests}
+            if demonstrations
+            else {}
+        ),
+    )
+    _publish([*files, *demonstrations])
     atomic_json(log / "status.json", {"stage": "verified", **result})
     return result
 

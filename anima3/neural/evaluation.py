@@ -198,6 +198,10 @@ class EvaluationPlan:
 def _opponent_label(arm: dict) -> str:
     if arm.get("kind") == "scripted":
         return "scripted"
+    if arm.get("kind") != "neural":
+        # A teacher or probe is a scripted controller: it is never scored under
+        # a neural label, and the fixed plan has no label for it yet.
+        raise EvaluationRefused(f"a {arm.get('kind')!r} arm is not an evaluation opponent")
     return f"neural:{require_sha256(arm.get('policy_sha256'))}"
 
 

@@ -768,6 +768,7 @@ class Harness:
                 "transitions": [{"reward": 0.0, "done": False, "dt": 0.5, "accepted": True}],
                 "invalid_reasons": [],
                 "policy_sha": workers[serial - 1].policy_sha if workers[serial - 1] else None,
+                "policy_kind": "neural" if workers[serial - 1] else "scripted",
             }
             for serial in (1, 2)
         ]

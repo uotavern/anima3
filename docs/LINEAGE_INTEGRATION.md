@@ -898,6 +898,334 @@ Deferred:
   seat, which is valid for independent games but no tighter than an unpaired
   comparison.
 
+## Unit 8 Tactical teacher, probes, demonstrations and imitation
+
+Based on unit 7 (`daca1dc`), this unit adds four modules and changes `live.py`
+and `evaluation.py`:
+
+- `neural/teacher.py`: the scripted `TacticalTeacher` and its identity
+  `TEACHER_SHA256`. Stdlib only.
+- `neural/melee.py`: the scripted melee and cast-dump probes. Stdlib only.
+- `neural/demonstrations.py`: receipt-bound verification and training-only
+  selection of teacher demonstrations. Stdlib only.
+- `neural/imitation.py`: explicit, bounded behaviour cloning (BC) on a verified
+  demonstration selection. Needs torch.
+- `live.py`: `teacher` and `probe` arm kinds, their actor branches and
+  demonstration recording.
+- `evaluation.py`: refuses a teacher or probe arm as an evaluation opponent.
+
+Importing `anima3`, `anima3.neural`, `live`, `teacher`, `melee` or
+`demonstrations` does not import torch. A subprocess test refuses any torch
+import. `imitation.py` is never imported implicitly, and it has no CLI, no
+`__main__` and no schedule.
+
+### Scope against rows 7b and 8
+
+Row 8 named the tactical teacher. Unit 6 deferred the probes and the teacher's
+demonstrations to it, and unit 7 deferred BC on teacher demonstrations to "unit 8
+or row 7b". This unit takes the part that needs only the teacher and live
+receipts: demonstrations recorded by the live runner and BC on them. Row 7b
+keeps everything that needs the simulator: `sim.py`, the drill helper
+`setup_drill`, simulator rollouts (`collect_simulator`), simulator BC, league
+self-play, the simulator gates of `league.py`, and optimizer/RNG resume. The
+optional Jev shadow analysis is not ported (see Deferred).
+
+### Source provenance
+
+| Source at `819f4f4` | Imported | Rewritten or left out |
+| --- | --- | --- |
+| `neural/curriculum.py` `TacticalTeacher`, `STYLES` (`6b8d6f0` to `5672268`) | The class body is byte-identical. | Moved to `teacher.py` so `TEACHER_SHA256` hashes only the teacher. `setup_drill` and `DRILLS` need `sim.py` and stay with row 7b. |
+| `neural/melee.py` `MeleeProbe`, `CastDumpProbe` | Byte-identical. | — |
+| `neural/live.py` probe and `opponent_style` actor branches | The branch bodies, the `fast_timing`/`hold_explosion` choice, `teacher_action_rejected` and `potion_defense_outside_policy_schema`. | Selected by an explicit arm instead of CLI flags. A substituted procedure (`policy_override` event) in a teacher round also marks it ineligible. The source wrote `demonstration-*.json` straight to its published name with no plan, purpose, teacher identity or ledger. Here it is staged, verified and published only after the `completed` row. |
+| `neural/demonstrations.py` `load_demonstration` | The step checks (shape, finite range, legal action, accepted, increasing clock), the receipt checks and the supply-audit checks. | Rewritten as `DemonstrationReceiptVerifier` and `select_demonstrations`. They check the plan's teacher arm for that seat and read the supply audit from the `issued` ledger row, not from a `prepared-supplies.json` that later fixtures overwrite. The trajectory conversion is `imitation.demonstration_trajectory`. |
+| `neural/demonstrations.py` `imitation_metrics`, `neural/train.py` `behavioral_clone` | Ported, with the forced-hold exclusion, action balancing and the frozen-reference KL. | `behavioral_clone` takes an `ImitationConfig` with no default budget and an explicit seed, refuses PPO trajectories and non-finite losses. |
+| `scripts/clone_live_demonstrations.py`, `scripts/fit_collected_demonstrations.py` | The fresh-output rule, the match-disjoint validation and the duplicate refusal. | Rewritten as `clone_from_demonstrations`. Validation is an explicit list of training collections (not "last seat pair per style"), the start checkpoint is loaded by SHA, and the output records full provenance. The scripts, `run_tactical_pilot.py`, `run_melee_probe.py` and their CLIs are not ported. |
+| `scripts/jev_shadow_probe.py`, `report_jev_shadow.py` | — | Not ported (see Deferred). |
+
+### Boundaries
+
+- **A teacher or probe is never labelled neural.** `Arm("teacher",
+  variant=<style>, source_sha256=...)` and `Arm("probe", variant=<tactic>,
+  source_sha256=...)` carry no checkpoint and no policy SHA-256.
+  - The variant is one of the six teacher styles or ten probe variants.
+  - `source_sha256` is required and must be the SHA-256 of `teacher.py` or
+    `melee.py` (`TEACHER_SHA256`, `PROBE_SHA256`). `preflight_arm` checks it
+    before any login, so a changed teacher refuses a plan or a resume made with
+    the old one (`ArmUnavailable`, the new base of `NeuralArmUnavailable`).
+  - The self-reported Arena label is `teacher <style>-<sha12> scripted` or
+    `probe <tactic>-<sha12> scripted`. Neural and scripted labels are unchanged.
+  - Each actor reports its `policy_kind`, and the runner refuses a fixture
+    whose actor kind differs from its planned arm, or whose non-teacher seat
+    reports teacher steps.
+  - `evaluation.record_from_collection` refuses a teacher or probe opponent.
+    It is not scored under a neural label or any other; the plan has no label
+    for it yet.
+  - Unset `variant` and `source_sha256` are left out of the plan JSON, so every
+    neural/scripted plan keeps its unit-7 SHA-256 (a test pins this).
+- **Plans.** A collection now needs at least one neural, teacher or probe arm
+  (a scripted pair is still refused). A plan with a teacher arm needs
+  `require_base_template=True`. With that flag the `issued` row now carries
+  both participants' pre-challenge supply audits, for neural plans too.
+- **Actor behaviour.** The neural and scripted seats run exactly as in unit 6.
+  The teacher seat labels a choice every 0.25 s only from fresh (under 3 s),
+  ready, living state. Every labelled choice is kept, including a rejected
+  one, which makes the round ineligible (`teacher_action_rejected`). Incoming
+  potion defense (`tactical` only) acts outside the option schema and makes
+  the round ineligible. So does any `policy_override` event, which is local
+  hardening. The probe seat records neither steps nor transitions. Its raw
+  `Attack`, `StunRequest` and `Use` packets are the source's and are logged.
+- **Demonstrations are never PPO records.** A demonstration has its own schema
+  (`anima3-live-demonstration-v2`), `policy_kind: teacher`, label
+  `teacher:<style>`, `ppo_eligible: false` and no `policy_sha`.
+  - It is listed in the `completed` row's `demonstrations`, never in
+    `episodes`, with the file's SHA-256 in `demonstration_sha256`. A row with
+    demonstrations but no matching digests is malformed.
+  - `LiveReplayVerifier` refuses it, and the unit-7 episode reader refuses a
+    `demonstration-` file even when it is listed under `episodes`.
+  - `ppo_update` refuses demonstration trajectories, and `behavioral_clone`
+    refuses anything else.
+  - Each demonstration is staged with the episodes and verified before the
+    row. A refused one closes the fixture `invalid_fixture` and publishes
+    nothing. A crash after the row is finished by the next `open_collection`,
+    as for episodes.
+- **Provenance is checked, not trusted.** `DemonstrationReceiptVerifier`
+  re-reads the collection on every call and requires:
+  - exactly the demonstration fields (an added `policy_sha` is refused);
+  - the current schema and executor fingerprints;
+  - a well-formed teacher block whose style and SHA-256 equal the planned arm
+    of that seat (the seat follows from the `issued` row and fixture parity);
+  - the plan SHA-256 and purpose of the re-hashed collection plan, and an
+    integer fixture (a bool is refused);
+  - both seats of the `issued` row and the stored replay;
+  - the replay itself (bounded to 34 MiB, SHA-checked, unranked training, not
+    aborted, training rules, the server's starting template) and its outcome;
+  - verified, equal supply audits for exactly those two participants in the
+    `issued` row;
+  - legal, accepted, finite steps with a strictly increasing clock;
+  - by default, a `completed` row of that fixture listing this file.
+- **Training-only selection with kept rejections.**
+  `select_demonstrations(collections, teacher_sha256=..., held_out=...,
+  styles=None)` requires:
+  - absolute paths;
+  - an explicit teacher SHA-256;
+  - `held_out`: evaluation collections or `NO_HELD_OUT`, as in unit 7. A
+    shared match identity refuses the selection, and a collection cannot be on
+    both sides.
+  - Evaluation collections are refused as input.
+  - Every file read is bounded and must hash to its ledger digest.
+  - Other-teacher, other-style and ineligible demonstrations are kept in
+    `rejected` with their reasons. An eligible demonstration that fails
+    verification refuses the whole selection, as does a duplicate
+    `(match, actor)`.
+  - Each accepted one is recorded with its file, file SHA-256, collection,
+    plan SHA-256, fixture, match, seat, replay SHA-256, teacher block, opponent
+    arm and step count.
+- **Explicit, bounded imitation.** `ImitationConfig` has no default for
+  `epochs` (1–64), `sequence_length` (1–4096), `batch_sequences` (1–1024) or
+  `balance_actions`.
+  - `clone_from_demonstrations` requires:
+    - the start checkpoint's SHA-256;
+    - `held_out`;
+    - `validation`: training collections or `NO_VALIDATION`. They are scored
+      before and after, never fitted, and may share neither a collection nor a
+      match with the input.
+    - `teacher_sha256`, `seed`, `lineage_dir` and `min_demonstrations`
+      (1–200), all with no default;
+    - absolute checkpoint, output, lineage and reference paths.
+  - A reference checkpoint, its SHA-256 and a positive KL coefficient go
+    together.
+  - At most 200 demonstrations and 1,000,000 steps.
+  - CPU only. Training, and each checkpoint load, run inside
+    `torch.random.fork_rng`. A fixed seed gives bit-identical weights, and the
+    caller's global RNG is untouched.
+  - Each demonstration is re-verified through the selection's own collection
+    verifiers. It must still equal the bytes read at selection time (same
+    SHA-256), so an in-memory edit or a rewritten file is refused.
+- **Immutable, SHA-bound output.** The output path follows the unit-7 rules: it
+  must not exist, must not be a symbolic link and must not overlap the input.
+  - The child manifest records:
+    - `source: servuo-teacher-imitation`, the parent SHA, `lineage_dir`;
+    - the teacher block (name, SHA-256, styles, `policy_kind: teacher`);
+    - config, budget, seed and metrics;
+    - before/after imitation metrics on the input and the validation set;
+    - the reference SHA, collections and held-out set;
+    - every demonstration's provenance, every rejection, and the validation
+      provenance;
+    - `ppo_input: false`, `real_server_strength_established: false`,
+      `optimizer_state: fresh-adam-per-update`.
+  - `demonstrations_consumed` carries over the ancestry, so a descendant
+    cannot imitate the same `(match, seat)` twice. `live_consumed` is carried
+    over unchanged.
+  - The child is re-loaded by its own SHA-256 before `imitation-update.json`
+    is written. The input trees are byte-identical afterwards.
+  - Because it records `lineage_dir`, only that lineage's `record_decision`
+    can later decide on it, as for a PPO child. Nothing here evaluates,
+    selects or promotes it.
+- **Crash windows.** Collection staging, publication and resume are unit 6's.
+  A BC crash before `imitation-update.json` leaves a partial output directory
+  that a retry refuses as existing. Delete that directory, then retry. Nothing
+  else was written.
+
+What is enforced and what is convention:
+
+- **Enforced in code:** everything listed above.
+- **Convention: single use only within an ancestry.** A demonstration may be
+  imitated again in an unrelated lineage, for example a hyperparameter sweep
+  from the same parent. Only the ancestry's `demonstrations_consumed` stops
+  reuse. There are no cross-lineage claims as in unit 7, because imitation is
+  not a selection decision.
+- **Trust boundary.** Hashes detect corruption; they are not signatures. Anyone
+  with write access to a collection can rewrite a demonstration, its ledger
+  digest and the issued supply audit consistently. The teacher SHA-256 covers
+  `teacher.py` only; the executor and schema fingerprints are recorded and
+  checked separately. Arena labels are self-reported.
+- **Unbounded reads.** `Ledger.load` reads the whole ledger without a size
+  bound. This is unchanged from unit 6.
+
+### Offline acceptance
+
+| Environment | Result | Change |
+| --- | --- | --- |
+| Without torch (`--extra dev --extra jeff`) | **509 passing, 4 skipped** | 427 prior plus 82 teacher/demonstration cases. The imitation module skips through `pytest.importorskip`. |
+| With `--extra neural` | **616 passing** | 520 prior, 82 teacher/demonstration and 14 imitation cases |
+
+Both suites passed three consecutive local runs.
+
+The torch-free cases (`tests/test_neural_teacher.py`) cover:
+
+- the ported teacher priorities: interrupts before openers or bursts, both dump
+  finishers with reserves, low-mana hysteresis that never chips, distinct
+  burst and potion styles;
+- legal choices for every style on six views;
+- the five ported probe cases plus the cast-dump sequence;
+- the teacher identity equalling the hash of its source, with no drill helper
+  in it;
+- eleven malformed teacher/probe/neural arms;
+- non-neural labels;
+- the unchanged unit-7 plan SHA-256;
+- teacher plan rules;
+- a changed teacher or probe source refused before any login.
+
+They also cover the actor and the runner:
+
+- teacher steps never becoming transitions;
+- rejected actions kept and making the round ineligible;
+- potion defense and `policy_override` marking it;
+- no labels from unready state;
+- a probe seat recording nothing;
+- one policy per seat;
+- real `run_collection` teacher collections (mocked participants, real ledger,
+  receipts and verifier): demonstrations beside episodes, with digests and
+  supply audits;
+- `LiveReplayVerifier` and PPO selection refusing demonstrations;
+- twenty tampered provenance fields;
+- six supply-audit faults;
+- a wrong server starting template;
+- a missing `completed` listing;
+- a kept rejected round;
+- other teacher and other style;
+- evaluation collections refused for imitation and as a teacher opponent;
+- the held-out argument, overlap, relative paths, duplicate collections and
+  missing teacher SHA;
+- a tampered file caught by the ledger digest, and one re-digested but caught
+  by verification;
+- path escape;
+- crash publication on resume;
+- a refused staged demonstration;
+- an actor kind mismatch;
+- four malformed digest rows;
+- a torch-free import.
+
+The imitation cases (`tests/test_neural_imitation.py`) are tiny CPU loops:
+
+- the four ported BC cases: BC-only demonstrations refused by PPO, forced
+  holds excluded from metrics, action balancing, reference regularisation;
+- the required budget and seed, refusing PPO trajectories;
+- end to end on real teacher collections: SHA-bound output with full
+  provenance, unchanged input trees, kept rejections and validation;
+- fixed-seed determinism with an untouched global RNG;
+- refusals: evaluation input or validation, validation overlap, relative
+  paths, missing `held_out`/`validation`, existing or nested output, an unmet
+  minimum, an untied reference, a wrong start SHA;
+- the recorded reference identity;
+- lineage re-imitation;
+- in-memory and on-disk edits after selection;
+- foreign verifiers;
+- the CPU-only check.
+
+Mutations, each of which fails a test (37, run one at a time):
+
+- a teacher label reported as neural;
+- no teacher source SHA preflight;
+- a teacher arm without the base template;
+- rejected teacher actions, potion defense or teacher `policy_override` not
+  marked;
+- no actor policy-kind check;
+- staged demonstrations not verified;
+- demonstrations not published on resume;
+- no ledger digest requirement;
+- no supply audit in the issued row;
+- a demonstration allowed to carry a policy SHA;
+- no teacher-versus-plan-arm check;
+- no label check;
+- no `ppo_eligible: false` check;
+- no supply verification;
+- no starting template;
+- no `completed` listing;
+- a bool fixture accepted;
+- a non-strict step clock;
+- evaluation collections imitated;
+- no held-out overlap check;
+- relative paths accepted;
+- rejections not kept;
+- a tampered eligible demonstration skipped instead of refusing the batch;
+- no ledger digest comparison;
+- re-verification ignoring the file SHA;
+- validation overlap allowed;
+- lineage re-imitation allowed;
+- the start checkpoint load advancing the global RNG;
+- the BC shuffle ignoring the seed;
+- BC accepting PPO trajectories;
+- no verifier type check;
+- no CPU check;
+- no reference tie;
+- a default for `balance_actions`;
+- a teacher scored as an evaluation opponent.
+
+CI adds the six new files to the scoped Ruff gate and `test_neural_imitation.py`
+to the neural step that must not skip. The lockfile and `pyproject.toml` are
+unchanged. Body, contract, README, `experiments/run_arm.sh`, `magic.py`,
+executor, schema, inference, checkpoint, model, splits and train modules are
+also unchanged.
+
+Not done:
+
+- No teacher, probe or neural policy was run against a server, client or
+  bridge. Real-server timing of the teacher and probe branches, potion-defense
+  behaviour and the raw probe packets need a separately authorized fixture.
+- No demonstration was collected, no model was cloned on real data, and
+  nothing was evaluated, selected or promoted. A real imitation run needs a
+  separately authorized plan: `training` teacher collections with
+  `require_base_template`, a stated held-out set and validation set, a fixed
+  budget and seed, and the lineage directory the child will be judged in.
+- The unit-7 `train_from_collections` loads its behaviour checkpoint outside
+  `fork_rng`, so it advances the caller's global RNG (the update itself does
+  not). It was found while writing this unit's determinism test and is left
+  for a follow-up so unit-7 code stays unchanged.
+
+Deferred:
+
+- Row 7b: `sim.py`, `setup_drill`/`DRILLS`, simulator rollouts and BC, league
+  self-play, the simulator gates, and optimizer/RNG resume.
+- Evaluation against a teacher opponent needs a plan label for it (for example
+  `teacher:<style>:<sha>`); until then it is refused.
+- The optional Jev shadow analysis (`scripts/jev_shadow_probe.py`). It calls a
+  remote language-model service with credentials, which the offline-only rule
+  excludes, and controls nothing. Its recorded result
+  (`2026-10-11-jev-shadow-final.json`) was no better than the prevalence
+  baseline: the 95% interval of the Brier difference spans zero. A port needs
+  its own authorization and a mocked client.
+
 ## Remaining separately verified units
 
 | Order | Unit and likely files | Dependencies and acceptance |
@@ -907,9 +1235,9 @@ Deferred:
 | 4 (integrated) | Combat procedures and executor: selected `magic.py`/`combat_combo.py`, neural executor/schema surface | Units 1 and 3. Carry reflection fix forward explicitly while adopting wall-clock cursor handling; test stun, potion ownership/disposal, recovery and delayed public effects. No training required. |
 | 5 (integrated) | Frozen neural inference and checkpoint validation | Unit 4; add the minimum Torch optional dependency and regenerate/review the lock deliberately. Require dimensions, schema fingerprint, finite weights and SHA-bound loading. Preserve audited selected and rollback artifacts. |
 | 6 (integrated) | Live receipts, evaluation and bounded resume: `neural/live.py` | Units 2–5; prove count/duplicate/invalid-fixture handling, immutable arm policy identities and account locking before any separately authorized live fixture. |
-| 7 (this unit) | Evaluation statistics, selection gate and verified PPO: `neural/evaluation.py`, `neural/splits.py`, `neural/train.py` | Units 5–6; isolate training from evaluation, require an explicit held-out set, fixed budget floors, an explicit discount clock (`discount_time_unit` has no default; the source live update used 1.0, elapsed seconds), seat-paired blocks, single-use evidence and per-opponent regression rejection. No training, evaluation or promotion is run. |
-| 7b | Simulator, demonstrations, BC and league self-play: `sim.py`, `demonstrations.py`, `league.py` | Units 7–8 (teacher); seeded simulator evaluation through the unit-7 gate, demonstrations never PPO episodes, optimizer/RNG resume idempotence. Simulator gain is not live gain. |
-| 8 | Tactical teacher and optional Jev shadow analysis | Unit 4 plus relevant collectors. Keep teacher demonstrations and off-policy actions out of PPO records; preserve evaluated frozen policy behavior. |
+| 7 (integrated) | Evaluation statistics, selection gate and verified PPO: `neural/evaluation.py`, `neural/splits.py`, `neural/train.py` | Units 5–6; isolate training from evaluation, require an explicit held-out set, fixed budget floors, an explicit discount clock (`discount_time_unit` has no default; the source live update used 1.0, elapsed seconds), seat-paired blocks, single-use evidence and per-opponent regression rejection. No training, evaluation or promotion is run. |
+| 7b | Simulator, simulator BC and league self-play: `sim.py`, `setup_drill`, `league.py` | Units 7–8; seeded simulator evaluation through the unit-7 gate, simulator rollouts never live PPO episodes, optimizer/RNG resume idempotence. Live demonstrations and BC on them moved to unit 8. Simulator gain is not live gain. |
+| 8 (this unit) | Tactical teacher, probes, live demonstrations and BC: `neural/teacher.py`, `neural/melee.py`, `neural/demonstrations.py`, `neural/imitation.py` | Units 4, 6 and 7. Teacher and probe arms are never neural; demonstrations stay out of PPO records with verified provenance from training collections only; frozen-policy behaviour unchanged. The optional Jev shadow analysis is deferred (remote model service). |
 | 9 | Historical experiment record reconciliation | Preserve chronology and failed candidates; attach completed evidence without interpreting registry selection as public deployment. |
 
 These are dependency boundaries, not permission to launch training or replace
