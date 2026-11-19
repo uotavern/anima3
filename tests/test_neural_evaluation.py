@@ -616,6 +616,14 @@ def test_every_decision_is_recorded_once_and_rederived(sha_dirs, monkeypatch, tm
     rows = [json.loads(line) for line in (lineage / "selection.jsonl").read_text().splitlines()]
     assert [(r["sequence"], r["passed"]) for r in rows] == [(0, True), (1, False)]
     assert all(r["automatic_promotion"] is False for r in rows)
+    # A lost final row is indistinguishable from a crash before the append: only
+    # the identical decision restores it. Losing more than that is tampering.
+    record = lineage / "selection.jsonl"
+    record.write_text(json.dumps(rows[0], sort_keys=True) + "\n")
+    assert record_decision(lineage, late)["sequence"] == 1
+    record.unlink()
+    with pytest.raises(EvaluationRefused, match="deleted, truncated or reordered"):
+        record_decision(lineage, late)
 
 
 def test_selection_record_is_locked_and_refuses_corruption(sha_dirs, monkeypatch, tmp_path):
@@ -670,12 +678,14 @@ def test_evidence_pairs_and_lineages_hold_across_record_locations(sha_dirs, monk
         record_decision(l1, d2)
     with pytest.raises(EvaluationRefused, match="bound to another lineage"):
         record_decision(l3, d2)
-    # Deleting or truncating the record no longer resets the lineage.
+    # Deleting or emptying the record no longer resets the lineage. A lost final
+    # row looks exactly like a crash before the append, so only the identical
+    # decision may restore it; any other decision is refused.
     (l1 / "selection.jsonl").unlink()
-    with pytest.raises(EvaluationRefused, match="deleted, truncated"):
+    with pytest.raises(EvaluationRefused, match="interrupted decision at sequence 0"):
         record_decision(l1, d2)
     (l1 / "selection.jsonl").write_text("")
-    with pytest.raises(EvaluationRefused, match="deleted, truncated"):
+    with pytest.raises(EvaluationRefused, match="interrupted decision at sequence 0"):
         record_decision(l1, d2)
     # Even with record and lineage claims gone, the pair claim in the checkpoint holds.
     (l1 / "selection.jsonl").unlink()
@@ -738,6 +748,188 @@ def test_external_candidates_must_say_so_and_claims_are_all_or_nothing(
     (checkpoint_dir(tmp_path, SECOND) / "weights.pt").write_bytes(b"tampered")
     with pytest.raises(EvaluationRefused, match="hash to its SHA-256"):
         record_decision(l2, {**bound, "external_candidate": False})
+
+
+CRASH = """
+import json, os, sys
+import anima3.neural.evaluation as E
+limit = int(sys.argv[3])
+if limit < 0:
+    E.time.time = lambda: os._exit(9)  # every claim written, the row not yet appended
+else:
+    real, calls = E._claim, []
+    def claim(*args):
+        if len(calls) == limit:
+            os._exit(9)  # crash part-way through claiming
+        calls.append(1)
+        real(*args)
+    E._claim = claim
+E.record_decision(sys.argv[1], json.load(open(sys.argv[2])))
+"""
+
+
+def crash_recording(tmp_path, lineage, decision, after_claims=-1):
+    (tmp_path / "decision.json").write_text(json.dumps(decision))
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            CRASH,
+            str(lineage),
+            str(tmp_path / "decision.json"),
+            str(after_claims),
+        ],
+        cwd=Path(__file__).resolve().parents[1],
+        check=False,
+    )
+    assert result.returncode == 9
+
+
+def claim_files(tmp_path):
+    return sorted(p for p in tmp_path.rglob("*.json") if "claim" in str(p.relative_to(tmp_path)))
+
+
+def test_a_crash_after_claiming_is_finished_by_retrying_the_identical_decision(
+    sha_dirs, monkeypatch, tmp_path
+):
+    l1 = tmp_path / "L1"
+    write_checkpoint(tmp_path, CANDIDATE, l1)
+    write_checkpoint(tmp_path, SECOND, l1)
+    inc = evaluation_set(tmp_path, monkeypatch, INCUMBENT, "i", [LOSS] * 20, [LOSS] * 20)
+    cand = evaluation_set(tmp_path, monkeypatch, CANDIDATE, "c", [WIN] * 20, [WIN] * 20)
+    d = decide_from_collections(plan(), incumbent=inc, candidate=cand)
+    crash_recording(tmp_path, l1, d)
+    assert not (l1 / "selection.jsonl").exists()
+    orphaned = claim_files(tmp_path)
+    assert len(orphaned) == 6  # pair, four collections, lineage row 0
+    # A different decision against the orphaned claims is refused, distinctly.
+    inc2 = evaluation_set(tmp_path, monkeypatch, INCUMBENT, "i2", [LOSS] * 20, [LOSS] * 20)
+    cand2 = evaluation_set(tmp_path, monkeypatch, CANDIDATE, "c2", [WIN] * 20, [WIN] * 20)
+    d2 = decide_from_collections(plan(), incumbent=inc2, candidate=cand2)
+    with pytest.raises(EvaluationRefused, match="interrupted decision at sequence 0"):
+        record_decision(l1, d2)
+    other = decide_from_collections(
+        plan(candidate_sha256=SECOND),
+        incumbent=inc,
+        candidate=evaluation_set(tmp_path, monkeypatch, SECOND, "d", [WIN] * 20, [WIN] * 20),
+    )
+    with pytest.raises(EvaluationRefused, match="interrupted decision at sequence 0"):
+        record_decision(l1, other)
+    # The identical decision adopts its claims and is appended at the right sequence.
+    row = record_decision(l1, d)
+    assert row["sequence"] == 0
+    assert claim_files(tmp_path) == orphaned
+    with pytest.raises(EvaluationRefused, match="pair was already decided"):
+        record_decision(l1, d)
+    fresh = evaluation_set(tmp_path, monkeypatch, INCUMBENT, "j", [LOSS] * 20, [LOSS] * 20)
+    second = [tmp_path / "d-s", tmp_path / "d-r"]
+    later = decide_from_collections(
+        plan(candidate_sha256=SECOND), incumbent=fresh, candidate=second
+    )
+    assert record_decision(l1, later)["sequence"] == 1
+
+
+def test_a_crash_part_way_through_claiming_is_reported_and_repairable(
+    sha_dirs, monkeypatch, tmp_path
+):
+    l1 = tmp_path / "L1"
+    write_checkpoint(tmp_path, CANDIDATE, l1)
+    inc = evaluation_set(tmp_path, monkeypatch, INCUMBENT, "i", [LOSS] * 20, [LOSS] * 20)
+    cand = evaluation_set(tmp_path, monkeypatch, CANDIDATE, "c", [WIN] * 20, [WIN] * 20)
+    d = decide_from_collections(plan(), incumbent=inc, candidate=cand)
+    crash_recording(tmp_path, l1, d, after_claims=3)
+    partial = claim_files(tmp_path)
+    assert len(partial) == 3
+    with pytest.raises(EvaluationRefused, match="only some of its claims exist") as refused:
+        record_decision(l1, d)
+    assert "deleted, truncated" not in str(refused.value)
+    # Repair: every claim names its decision; remove that interrupted decision's claims.
+    digest = json.loads(partial[0].read_text())["decision_sha256"]
+    for path in partial:
+        assert json.loads(path.read_text())["decision_sha256"] == digest
+        path.unlink()
+    assert record_decision(l1, d)["sequence"] == 0
+
+
+def test_a_failed_rollback_names_the_claims_it_left(sha_dirs, monkeypatch, tmp_path):
+    from anima3.neural import evaluation
+
+    l1 = tmp_path / "L1"
+    write_checkpoint(tmp_path, CANDIDATE, l1)
+    inc = evaluation_set(tmp_path, monkeypatch, INCUMBENT, "i", [LOSS] * 20, [LOSS] * 20)
+    cand = evaluation_set(tmp_path, monkeypatch, CANDIDATE, "c", [WIN] * 20, [WIN] * 20)
+    d = decide_from_collections(plan(), incumbent=inc, candidate=cand)
+    real_claim, real_unlink = evaluation._claim, Path.unlink
+    stuck = []
+
+    def claim(path, content, created):
+        if path.parent.name == "claims":
+            raise OSError("disk full")
+        real_claim(path, content, created)
+        if not stuck:
+            stuck.append(path)
+
+    def unlink(self, *args, **kwargs):
+        if stuck and self == stuck[0]:
+            raise PermissionError("read-only")
+        return real_unlink(self, *args, **kwargs)
+
+    monkeypatch.setattr(evaluation, "_claim", claim)
+    monkeypatch.setattr(Path, "unlink", unlink)
+    with pytest.raises(EvaluationRefused, match="rollback left claims behind") as refused:
+        record_decision(l1, d)
+    assert str(stuck[0]) in str(refused.value)
+    monkeypatch.setattr(Path, "unlink", real_unlink)
+    assert claim_files(tmp_path) == [stuck[0]]
+
+
+def test_a_concurrent_claim_from_another_lineage_wins_the_race(sha_dirs, monkeypatch, tmp_path):
+    """Lineage locks do not serialise different lineages; exclusive creation does."""
+    from anima3.neural import evaluation
+
+    l1 = tmp_path / "L1"
+    inc = evaluation_set(tmp_path, monkeypatch, INCUMBENT, "i", [LOSS] * 20, [LOSS] * 20)
+    cand = evaluation_set(tmp_path, monkeypatch, CANDIDATE, "c", [WIN] * 20, [WIN] * 20)
+    d = decide_from_collections(plan(), incumbent=inc, candidate=cand, external_candidate=True)
+    real_claim = evaluation._claim
+    rival = '{"decision_sha256": "another lineage"}\n'
+
+    def racing(path, content, created):
+        if path.name == "selection-claim.json" and not path.exists():
+            path.write_text(rival)  # another lineage's writer got there first
+        real_claim(path, content, created)
+
+    monkeypatch.setattr(evaluation, "_claim", racing)
+    with pytest.raises(EvaluationRefused, match="already claimed"):
+        record_decision(l1, d)
+    claimed = [p for p in claim_files(tmp_path) if p.name == "selection-claim.json"]
+    assert [p.read_text() for p in claimed] == [rival]
+    assert not (l1 / "selection.jsonl").exists()
+
+
+def test_relative_or_oversized_candidate_checkpoints_are_refused(sha_dirs, monkeypatch, tmp_path):
+    l1 = tmp_path / "L1"
+    write_checkpoint(tmp_path, CANDIDATE, l1)
+    inc = evaluation_set(tmp_path, monkeypatch, INCUMBENT, "i", [LOSS] * 20, [LOSS] * 20)
+    monkeypatch.chdir(checkpoint_dir(tmp_path, CANDIDATE).parent)
+    relative = Arm("neural", "checkpoint", CANDIDATE)
+    rival = neural_arm(tmp_path / "o", RIVAL)
+    cand = [
+        collect(tmp_path, monkeypatch, "c-s", (relative, Arm("scripted")), [WIN] * 20),
+        collect(tmp_path, monkeypatch, "c-r", (relative, rival), [WIN] * 20),
+    ]
+    d = decide_from_collections(plan(), incumbent=inc, candidate=cand)
+    with pytest.raises(EvaluationRefused, match="relative path"):
+        record_decision(l1, d)
+    assert claim_files(tmp_path) == []
+    absolute = evaluation_set(tmp_path, monkeypatch, CANDIDATE, "a", [WIN] * 20, [WIN] * 20)
+    manifest = checkpoint_dir(tmp_path, CANDIDATE) / "manifest.json"
+    content = json.loads(manifest.read_text())
+    content["padding"] = "x" * (1024 * 1024)
+    manifest.write_text(json.dumps(content))
+    d = decide_from_collections(plan(), incumbent=inc, candidate=absolute)
+    with pytest.raises(EvaluationRefused, match="size limit"):
+        record_decision(l1, d)
 
 
 # --- the training split ----------------------------------------------------------------------

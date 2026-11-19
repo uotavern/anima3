@@ -63,24 +63,6 @@ fields before `war`; this port appends them to avoid changing positional APIs.
 
 All five commits remain ancestors because this unit branches from `main`.
 
-### Review round 2
-
-The re-review of `341c571` verified all nine fixes. Two issues remained.
-
-- **Medium: the per-lineage location was only a convention.** The reviewer's
-  probe re-recorded the same decision into another lineage directory. It also
-  recorded fresh collections for a decided pair into a third directory, and
-  reset a lineage by deleting `selection.jsonl`. Fixed by:
-  - collection evidence claims;
-  - a pair claim in the candidate checkpoint directory;
-  - per-row lineage claims;
-  - binding the candidate to its lineage via the training manifest, with an
-    explicit `external_candidate` declaration for unbound checkpoints.
-
-  Every case of the probe is now refused, with a bound candidate and with a
-  declared external one.
-- **Low: the re-derivation ran outside the lock.** It now runs under the lock.
-
 ### Offline acceptance
 
 The new offline GitHub Actions job pins action commits, Python 3.12.14 and
@@ -571,17 +553,26 @@ implicitly, and it has no CLI, no `__main__` and no schedule.
     must be identical.
   - **Lineage binding.** The candidate checkpoint is reached by SHA-256 through
     the collections' arms: the manifest must name that weight SHA, and the
-    weight file must hash to it.
+    weight file must hash to it. A relative checkpoint path is refused, because
+    it would resolve against the current directory. The manifest is read with
+    a 1 MiB bound.
     - `train_from_collections` requires a `lineage_dir` and records it in the
       child manifest. Only that lineage may record a decision on the child.
     - A checkpoint without the field, such as an externally supplied one, is
       refused unless the decision declares `external_candidate: true`. A bound
       checkpoint cannot be declared external.
   - **Claims, created all or nothing before the row is appended.** Each is an
-    `O_CREAT|O_EXCL` file, fsynced along with its directory, naming the plan
-    SHA-256, the resolved record path, the row's sequence number and the
-    candidate/incumbent SHAs. If any claim already exists, the ones just created
-    are removed and the decision is refused. There are three kinds:
+    `O_CREAT|O_EXCL` file, fsynced along with its directory. It names the
+    decision's SHA-256, the plan SHA-256, the resolved record path, the row's
+    sequence number and the candidate/incumbent SHAs.
+    - Exclusive creation also settles a race between two lineages, whose locks
+      do not serialise each other.
+    - If another decision's claim exists, the decision is refused and the
+      claims just created are removed.
+    - A rollback that cannot remove a claim raises an error naming every claim
+      left behind.
+
+    There are three kinds of claim:
     - `selection-claim.json` in every evaluation collection directory used, so
       the same evidence can never be decided again in any lineage. A copied
       collection carries its claim with it.
@@ -589,9 +580,25 @@ implicitly, and it has no CLI, no `__main__` and no schedule.
       directory, so the same candidate/incumbent pair can never be decided
       again in any lineage, even with fresh collections or after the lineage
       was reset.
-    - `claims/<sequence>.json` in the lineage directory, one per row. Deleting,
-      truncating or reordering `selection.jsonl` no longer matches these claims
-      and is refused.
+    - `claims/<sequence>.json` in the lineage directory, one per row. Rows and
+      claims must agree. Losing more than the final row, or reordering rows,
+      is refused as tampering.
+  - **Crash between claims and row.** A crash after the claims but before the
+    append leaves every claim of that decision in place with no row. A lost
+    final row looks the same. The decision's claim at `claims/<n>.json` (n is
+    the row count) blocks the lineage with "interrupted decision at sequence
+    n", and its pair and evidence claims block them everywhere.
+    - Retrying the identical decision is idempotent: under the lock, if every
+      one of its claims exists and matches it exactly, the claims are adopted
+      and the row is appended at sequence n. Matching means the same decision
+      SHA-256, plan, record path, sequence and pair.
+    - Any other decision is refused with the interrupted-decision message.
+    - A crash part-way through claiming leaves only some claims. A retry is
+      then refused as "interrupted decision: only some of its claims exist",
+      listing the missing ones.
+    - **Repair:** remove exactly the claim files that name the interrupted
+      decision's `decision_sha256` (pair claim, collection claims, lineage
+      claim n), then retry the decision.
   - Within a record, a second decision for the same pair, or one reusing a
     collection ledger or server match, is also refused. Collection plan
     SHA-256s are recorded, but identical plans share one, so the ledger and
@@ -605,9 +612,14 @@ implicitly, and it has no CLI, no `__main__` and no schedule.
     collections and checkpoints. Someone with write access who deletes claim
     files can reuse evidence: from a collection copy with its claim removed,
     after deleting the checkpoint's pair claim, or after deleting a whole
-    lineage directory. No remote or signed registry exists. Claims are also
-    sidecar files in the candidate checkpoint directory; weights and manifest
-    are never modified.
+    lineage directory. A copied checkpoint whose manifest has
+    `training.lineage_dir` edited or stripped keeps the same weight SHA,
+    because that SHA covers only the weights, not the manifest. Such a copy
+    escapes the lineage binding: stripped, it can be declared external; edited,
+    it can be recorded in another lineage. Its pair claim still lands in the
+    copy's own directory, not the original's. No remote or signed registry
+    exists. Claims are also sidecar files in the candidate checkpoint
+    directory; weights and manifest are never modified.
 - **Explicit budgets, discount clock and seeds.** `TrainConfig` has no default
   for `epochs` (1–64), `sequence_length` (1–4096), `burn_in`, `batch_sequences`
   (1–1024) or `discount_time_unit`. `TrainConfig()` is a `TypeError`.
@@ -681,12 +693,48 @@ test and a mutation check.
 The reviewer's second probe also showed that a dangling symbolic link as the
 output path redirected the write. Such a link is now refused.
 
+### Review round 2
+
+The re-review of `341c571` verified all nine fixes. Two issues remained.
+
+- **Medium: the per-lineage location was only a convention.** The reviewer's
+  probe re-recorded the same decision into another lineage directory. It also
+  recorded fresh collections for a decided pair into a third directory, and
+  reset a lineage by deleting `selection.jsonl`. Fixed by:
+  - collection evidence claims;
+  - a pair claim in the candidate checkpoint directory;
+  - per-row lineage claims;
+  - binding the candidate to its lineage via the training manifest, with an
+    explicit `external_candidate` declaration for unbound checkpoints.
+
+  Every case of the probe is now refused, with a bound candidate and with a
+  declared external one.
+- **Low: the re-derivation ran outside the lock.** It now runs under the lock.
+
+### Review round 3
+
+The third review of `0afcb22` confirmed that the claims, the lineage binding
+and the rollback work, and that nothing regressed. It asked for three changes,
+each now tested with a mutation check:
+
+- **Medium:** a crash between claims and the row orphaned the claims behind a
+  misleading tampering error. Fixed with the idempotent retry and the distinct
+  interrupted-decision refusals described above. Leftover claims after a failed
+  rollback are now reported.
+- **Low:** a relative checkpoint path resolved against the current directory.
+  It is now refused. The stripped-manifest copy is documented as residual risk.
+- **Nit:** the manifest size bound is now enforced on the read itself.
+
+Every case of the reviewer's `test_probe_r3.py` is refused except the retry of
+the identical decision, which succeeds at sequence 0. Round 2's notes were
+first committed under Unit 1 by mistake and now sit here.
+
 ### Offline acceptance
 
 | Environment | Result | Change |
 | --- | --- | --- |
-| Without torch (`--extra dev --extra jeff`) | **422 passing, 3 skipped** | 348 prior plus 74 evaluation/split cases. The training module skips through `pytest.importorskip`. |
-| With `--extra neural` | **515 passing** | 389 prior, 74 evaluation and 52 training cases |
+| Without torch (`--extra dev --extra jeff`) | **427 passing, 3 skipped** | 348 prior plus 79 evaluation/split cases. The training module skips through `pytest.importorskip`. |
+| With `--extra neural` | **520 passing** | 389 prior, 79 evaluation and 52 training cases |
 
 Both suites passed three consecutive local runs.
 
@@ -725,6 +773,12 @@ layer and 20 games per opponent, feed:
   claim-stripped record, a missing external declaration, a bound candidate
   declared external, mis-hashed candidate weights, claim rollback when a later
   claim fails, and a copied collection keeping its claim;
+- the round-3 cases: a subprocess crash after all claims, retried at sequence
+  0, with different decisions refused; a crash part-way through claiming,
+  reported and repaired; a rollback whose unlink fails, naming the leftover
+  claim; a concurrent claim from another lineage winning by exclusive
+  creation; a restored final row versus a deleted record; and a relative or
+  oversized candidate checkpoint;
 - refusal of training collections for evaluation and of evaluation collections
   for training, including a relabelled episode;
 - the required held-out argument and overlap;
@@ -801,6 +855,18 @@ Mutations of the round-2 fixes, each of which also fails a test:
 
 Both the in-record pair check and the pair claim are needed: removing either
 fails a test.
+
+Mutations of the round-3 fixes, each of which also fails a test:
+
+- not adopting matching claims on retry;
+- accepting partial claims;
+- no distinct interrupted-row refusal;
+- claims not naming the exact decision;
+- the rollback not reporting leftovers;
+- accepting relative checkpoint paths;
+- no manifest size bound;
+- allowing more than one orphaned lineage claim;
+- non-exclusive claim creation.
 
 CI adds the five new files to the scoped Ruff gate and `test_neural_training.py`
 to the neural step that must not skip. The lockfile and `pyproject.toml` are

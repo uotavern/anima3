@@ -65,6 +65,8 @@ MIN_BLOCKS = 10
 THRESHOLD_STEP = 0.01
 SIDES = ("challenger", "receiver")
 SELECTION_RECORD = "selection.jsonl"
+MAX_MANIFEST_BYTES = 1024 * 1024
+MAX_CLAIM_BYTES = 64 * 1024
 MAX_GAMES_PER_OPPONENT = 100
 MAX_OPPONENTS = 16
 OPPONENT = re.compile(r"(scripted|neural:[0-9a-f]{64})")
@@ -601,10 +603,17 @@ def _candidate_checkpoints(
         ]
         if len(paths) != 1 or not isinstance(paths[0], str):
             raise EvaluationRefused("collection does not name the candidate checkpoint")
+        if not Path(paths[0]).is_absolute():
+            # A relative path would resolve against whatever the current directory is.
+            raise EvaluationRefused("collection names the candidate checkpoint by a relative path")
         root = Path(paths[0]).resolve()
         root = root if root.is_dir() else root.parent
         try:
-            manifest = json.loads((root / "manifest.json").read_bytes()[: 1024 * 1024 + 1])
+            with (root / "manifest.json").open("rb") as stream:
+                payload = stream.read(MAX_MANIFEST_BYTES + 1)
+            if len(payload) > MAX_MANIFEST_BYTES:
+                raise ValueError("checkpoint manifest exceeds size limit")
+            manifest = json.loads(payload)
             weights = manifest["weights"]
             name = weights["file"]
             if Path(name).name != name or weights["sha256"] != plan.candidate_sha256:
@@ -640,13 +649,27 @@ def _claim(path: Path, content: dict, created: list[Path]) -> None:
     _fsync_dir(path.parent)
 
 
-def _release(created: list[Path]) -> None:
+def _release(created: list[Path]) -> list[str]:
+    """Remove claims created by a failed decision; return any that could not be removed."""
+    remaining = []
     for path in reversed(created):
         try:
             path.unlink()
             _fsync_dir(path.parent)
-        except OSError:
+        except FileNotFoundError:
             pass
+        except OSError as exc:
+            remaining.append(f"{path} ({type(exc).__name__})")
+    return remaining
+
+
+def _read_claim(path: Path):
+    try:
+        with path.open("rb") as stream:
+            payload = stream.read(MAX_CLAIM_BYTES + 1)
+        return json.loads(payload) if len(payload) <= MAX_CLAIM_BYTES else None
+    except (OSError, ValueError):
+        return None
 
 
 def record_decision(lineage_dir, decision: dict) -> dict:
@@ -717,9 +740,12 @@ def record_decision(lineage_dir, decision: dict) -> dict:
                 existing.append(row)
         claims_dir = root / "claims"
         claimed = sorted(p.name for p in claims_dir.glob("*.json")) if claims_dir.is_dir() else []
-        if claimed != [f"{i:06d}.json" for i in range(len(existing))] or [
-            r.get("sequence") for r in existing
-        ] != list(range(len(existing))):
+        sequence = len(existing)
+        rows_claimed = [f"{i:06d}.json" for i in range(sequence)]
+        if [r.get("sequence") for r in existing] != list(range(sequence)) or claimed not in (
+            rows_claimed,
+            [*rows_claimed, f"{sequence:06d}.json"],
+        ):
             raise EvaluationRefused("selection record was deleted, truncated or reordered")
         used = set()
         for row in existing:
@@ -731,26 +757,48 @@ def record_decision(lineage_dir, decision: dict) -> dict:
             used |= _evidence_used(row)
         if used & _evidence_used(decision):
             raise EvaluationRefused("an evaluation collection was already used by a decision")
-        sequence = len(existing)
         claim = {
+            # The exact decision, so a retry is recognised and any other refused.
+            "decision_sha256": hashlib.sha256(
+                json.dumps(decision, sort_keys=True, allow_nan=False).encode()
+            ).hexdigest(),
             "plan_sha256": plan.sha256,
             "record": str(path),
             "sequence": sequence,
             "candidate_sha256": plan.candidate_sha256,
             "incumbent_sha256": plan.incumbent_sha256,
         }
+        pairs = [c / "selection-claims" / f"{plan.incumbent_sha256}.json" for c in checkpoints]
+        evidence = [
+            Path(d) / "selection-claim.json"
+            for d in sorted({str(Path(d).resolve()) for d in incumbent_dirs + candidate_dirs})
+        ]
+        own_row = claims_dir / f"{sequence:06d}.json"
+        targets = [*pairs, *evidence, own_row]
+        present = {t: _read_claim(t) for t in targets if t.exists() or t.is_symlink()}
+        foreign = [t for t, content in present.items() if content != claim]
+        if own_row in foreign:
+            raise EvaluationRefused(
+                f"interrupted decision at sequence {sequence} in this lineage holds its claims;"
+                " retry that identical decision or see the repair procedure"
+            )
+        if any(t in foreign for t in pairs):
+            raise EvaluationRefused("this candidate/incumbent pair was already decided")
+        if foreign:
+            raise EvaluationRefused(f"evidence already claimed by a decision: {foreign[0]}")
+        if present and len(present) != len(targets):
+            missing = [str(t) for t in targets if t not in present]
+            raise EvaluationRefused(
+                "interrupted decision: only some of its claims exist; retry the identical"
+                f" decision or see the repair procedure (missing: {missing})"
+            )
+        # Either no claim exists yet, or every claim matches this exact decision
+        # (a crash after claiming but before the row): adopt them and append.
         created: list[Path] = []
         try:
-            for checkpoint in checkpoints:
-                pair = checkpoint / "selection-claims" / f"{plan.incumbent_sha256}.json"
-                if pair.exists():
-                    raise EvaluationRefused("this candidate/incumbent pair was already decided")
-                _claim(pair, claim, created)
-            for directory in sorted(
-                {str(Path(d).resolve()) for d in incumbent_dirs + candidate_dirs}
-            ):
-                _claim(Path(directory) / "selection-claim.json", claim, created)
-            _claim(claims_dir / f"{sequence:06d}.json", claim, created)
+            if not present:
+                for target in targets:
+                    _claim(target, claim, created)
             row = {"sequence": sequence, "utc": time.time(), **decision}
             new_file = not path.exists()
             line = json.dumps(row, sort_keys=True, allow_nan=False) + "\n"
@@ -760,7 +808,13 @@ def record_decision(lineage_dir, decision: dict) -> dict:
                 os.fsync(out.fileno())
             if new_file:
                 _fsync_dir(root)
-        except BaseException:
-            _release(created)
+        except BaseException as exc:
+            remaining = _release(created)
+            if remaining:
+                raise EvaluationRefused(
+                    f"decision failed and rollback left claims behind: {remaining}"
+                ) from exc
+            if isinstance(exc, OSError):
+                raise EvaluationRefused(f"claim could not be written: {exc}") from exc
             raise
     return row
