@@ -145,13 +145,39 @@ def test_every_teacher_style_only_chooses_legal_actions(style):
         TacticalTeacher("neural")
 
 
-def test_teacher_identity_is_the_sha256_of_its_source():
+def test_teacher_identity_covers_every_module_its_choice_depends_on(tmp_path):
+    import shutil
+
     from anima3.neural import teacher
 
-    source = Path(teacher.__file__).read_bytes()
-    assert TEACHER_SHA256 == hashlib.sha256(source).hexdigest()
-    assert b"def setup_drill" not in source  # the simulator drill stays with row 7b
+    package = Path(teacher.__file__).resolve().parents[1]
+    assert set(teacher.TEACHER_SOURCES) == {
+        "neural/teacher.py", "neural/schema.py", "neural/executor.py", "magic.py", "contract.py",
+    }  # fmt: skip
+    assert teacher.TEACHER_SOURCES == teacher.source_hashes(teacher.TEACHER_MODULES, package)
+    assert TEACHER_SHA256 == teacher.source_identity(teacher.TEACHER_SOURCES)
+    assert b"def setup_drill" not in (package / "neural/teacher.py").read_bytes()
     assert STYLES == ("balanced", "pressure", "burst", "defensive", "potions")
+    copy = tmp_path / "anima3"
+    for module in teacher.TEACHER_MODULES:
+        (copy / module).parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy(package / module, copy / module)
+    same = teacher.source_identity(teacher.source_hashes(teacher.TEACHER_MODULES, copy))
+    assert same == TEACHER_SHA256
+    # A spell circle (behind cast_seconds) or a mask change is a different teacher.
+    for module, old, new in (
+        ("magic.py", "circle", "circle "),
+        ("neural/schema.py", "def legal_mask", "def legal_mask "),
+        ("neural/executor.py", "def cast_seconds", "def cast_seconds "),
+    ):
+        original = (copy / module).read_text()
+        assert old in original
+        (copy / module).write_text(original.replace(old, new, 1))
+        changed = teacher.source_identity(teacher.source_hashes(teacher.TEACHER_MODULES, copy))
+        assert changed != TEACHER_SHA256
+        (copy / module).write_text(original)
+    assert PROBE_SHA256 == teacher.source_identity(live.PROBE_SOURCES)
+    assert set(live.PROBE_SOURCES) == {"neural/melee.py", *teacher.DEPENDENCIES}
 
 
 # --- ported probes -----------------------------------------------------------------------------
@@ -450,6 +476,34 @@ def test_potion_defense_and_substituted_procedures_are_outside_the_teacher_label
     assert result["invalid_reasons"] == ["policy_override"]
 
 
+def test_a_busy_executor_accepts_only_a_held_teacher_choice(tmp_path, monkeypatch):
+    class Busy(TeacherExecutor):
+        def __init__(self, hold_only):
+            super().__init__()
+            self.busy = True
+            self.hold_only = hold_only
+
+        def observe(self, *a, **k):
+            frame = super().observe()
+            if self.hold_only:
+                frame.mask = [True] + [False] * (len(ACTION_NAMES) - 1)
+            return frame
+
+    held = Busy(hold_only=True)
+    result, _ = run_actor(
+        tmp_path, monkeypatch, held, [("Fighting", 1)] * 2 + [("Idle", 1)], teacher="tactical"
+    )
+    assert [(s["action"], s["accepted"]) for s in result["teacher_steps"]] == [(0, True)] * 2
+    assert held.started == [] and result["invalid_reasons"] == []
+    moving = Busy(hold_only=False)
+    result, _ = run_actor(
+        tmp_path, monkeypatch, moving, [("Fighting", 1), ("Idle", 1)], teacher="tactical"
+    )
+    assert result["teacher_steps"][0]["action"] != 0
+    assert result["teacher_steps"][0]["accepted"] is False and moving.started == []
+    assert result["invalid_reasons"] == ["teacher_action_rejected"]
+
+
 def test_teacher_labels_nothing_from_stale_or_unready_state(tmp_path, monkeypatch):
     executor = TeacherExecutor(view=supplied(ready=False))
     result, _ = run_actor(
@@ -534,6 +588,7 @@ class TeacherHarness(Harness):
         actors = super().fight(bodies, workers, log, stop)
         for i, arm in enumerate(arms):
             actors[i]["policy_kind"] = arm.kind
+            actors[i]["collection_end_phase"] = "RoundOver"
             if arm.kind == "teacher":
                 actors[i]["transitions"] = []
                 actors[i]["teacher_steps"] = [
@@ -630,7 +685,9 @@ def valid_demo(tmp_path, monkeypatch):
     [
         "teacher_sha", "style", "label", "policy_sha", "ppo_eligible", "kind", "plan", "purpose",
         "replay_sha", "executor", "fingerprint", "illegal", "rejected_step", "clock", "fixture",
-        "fixture_bool", "seat", "result", "empty", "feature_range",
+        "fixture_bool", "seat", "result", "empty", "feature_range", "version", "collector",
+        "end_phase", "teacher_key", "verification_key", "result_key", "opponent_arm",
+        "sources", "sources_key", "consistent_other_teacher",
     ],
 )  # fmt: skip
 def test_demonstration_provenance_is_checked_not_trusted(tmp_path, monkeypatch, damage):
@@ -674,6 +731,30 @@ def test_demonstration_provenance_is_checked_not_trusted(tmp_path, monkeypatch, 
         demo["final_result"]["outcome"] = 1.0
     elif damage == "empty":
         demo["steps"] = []
+    elif damage == "version":
+        demo["teacher"]["version"] = "tactical-teacher-v0"
+    elif damage == "collector":
+        demo["collector_version"] = "fixed-cadence-options-v4"
+    elif damage == "end_phase":
+        demo["collection_end_phase"] = "Fighting"
+    elif damage == "teacher_key":
+        demo["teacher"]["policy_sha256"] = POLICY_SHA
+    elif damage == "verification_key":
+        demo["verification"]["verified"] = True
+    elif damage == "result_key":
+        demo["final_result"]["score"] = [1, 0]
+    elif damage == "opponent_arm":
+        demo["opponent_arm"] = {"kind": "scripted", "checkpoint": None, "policy_sha256": None}
+    elif damage == "sources":
+        demo["teacher"]["sources"]["magic.py"] = OTHER
+    elif damage == "sources_key":
+        del demo["teacher"]["sources"]["magic.py"]
+    elif damage == "consistent_other_teacher":
+        # A self-consistent identity of other teacher code still differs from the plan.
+        from anima3.neural.teacher import source_identity
+
+        demo["teacher"]["sources"]["magic.py"] = OTHER
+        demo["teacher"]["sha256"] = source_identity(demo["teacher"]["sources"])
     else:
         step["features"][0] = 1.5
     verifier = DemonstrationReceiptVerifier(root)
@@ -914,3 +995,47 @@ def test_ledger_rows_bind_each_demonstration_to_a_digest(tmp_path, monkeypatch, 
     (root / "ledger.jsonl").write_text("".join(json.dumps(r) + "\n" for r in rows))
     with pytest.raises(live.CollectionRefused, match="malformed ledger line"):
         Ledger.load(root / "ledger.jsonl")
+
+
+def test_teacher_against_teacher_records_both_seats(tmp_path, monkeypatch):
+    arms = (teacher_arm("burst"), teacher_arm("tactical"))
+    root = collect(tmp_path, monkeypatch, "pair", arms=arms)
+    for row in Ledger.load(root / "ledger.jsonl").completed:
+        assert row["episodes"] == [] and len(row["demonstrations"]) == 2
+    selection = select_demonstrations([root], teacher_sha256=TEACHER_SHA256, held_out=NO_HELD_OUT)
+    assert len(selection.demonstrations) == 4
+    for demo in selection.demonstrations:
+        other = arms[0] if demo["teacher"]["style"] == "tactical" else arms[1]
+        assert demo["opponent_arm"] == other.to_json()
+    assert {d["teacher"]["style"] for d in selection.demonstrations} == {"burst", "tactical"}
+
+
+def test_selection_caps_count_and_total_bytes(tmp_path, monkeypatch):
+    from anima3.neural import demonstrations
+
+    root = collect(tmp_path, monkeypatch, "demos")
+    monkeypatch.setattr(demonstrations, "MAX_SELECTED", 1)
+    with pytest.raises(DemonstrationRefused, match="at most 1"):
+        select_demonstrations([root], teacher_sha256=TEACHER_SHA256, held_out=NO_HELD_OUT)
+    monkeypatch.setattr(demonstrations, "MAX_SELECTED", 200)
+    size = demo_files(root)[0].stat().st_size
+    monkeypatch.setattr(demonstrations, "MAX_SELECTION_BYTES", size + 1)
+    with pytest.raises(DemonstrationRefused, match="total read budget"):
+        select_demonstrations([root], teacher_sha256=TEACHER_SHA256, held_out=NO_HELD_OUT)
+    # Rejected files count toward the budget too.
+    with pytest.raises(DemonstrationRefused, match="total read budget"):
+        select_demonstrations([root], teacher_sha256=OTHER, held_out=NO_HELD_OUT)
+
+
+def test_a_refused_arm_writes_no_fresh_collection_manifest(tmp_path):
+    plan = CollectionPlan(
+        "lab.invalid:2593", ("alpha", "beta"), (teacher_arm(sha=OTHER), Arm("scripted")), 2,
+        require_base_template=True,
+    )  # fmt: skip
+    with pytest.raises(ArmUnavailable):
+        live.run_collection(
+            plan, tmp_path / "run", connect=Spy().connect, fetch_receipt=Spy().receipt,
+            lock_dir=tmp_path / "locks", find_spec=lambda name: object(),
+        )  # fmt: skip
+    assert not (tmp_path / "run" / "collection.json").exists()
+    assert not (tmp_path / "run" / "ledger.jsonl").exists()

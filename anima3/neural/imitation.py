@@ -52,8 +52,8 @@ from .train import (
     Trajectory,
     _batch,
     _chunks,
-    _consumed,
     _fresh_output,
+    ancestry_consumed,
 )
 
 # Pass this as ``validation`` to state explicitly that nothing is scored on the side.
@@ -273,16 +273,6 @@ def imitation_metrics(model, episodes: list[Trajectory]) -> dict:
     }
 
 
-def _demonstrations_consumed(loaded: LoadedCheckpoint) -> list[list]:
-    consumed = loaded.manifest.get("training", {}).get("demonstrations_consumed", [])
-    if not isinstance(consumed, list) or not all(
-        isinstance(i, list) and len(i) == 2 and isinstance(i[0], str) and type(i[1]) is int
-        for i in consumed
-    ):
-        raise ValueError("checkpoint lineage has a malformed consumed-demonstration list")
-    return [list(i) for i in consumed]
-
-
 def _absolute(path, what: str) -> Path:
     if not isinstance(path, (str, Path)) or not str(path) or not Path(path).is_absolute():
         raise ValueError(f"{what} must be an absolute path")
@@ -369,6 +359,13 @@ def clone_from_demonstrations(
         )
     if len(selection.demonstrations) > MAX_EPISODES:
         raise DemonstrationRefused(f"at most {MAX_EPISODES} demonstrations per update")
+    protected = [
+        *(Path(c) for c in selection.collections),
+        *(Path(c) for c in selection.held_out),
+        *(Path(c) for c in (scored.collections if scored else [])),
+        *([reference.directory] if reference is not None else []),
+    ]
+    _outside(out, protected)
     return _clone_selection(
         loaded,
         selection,
@@ -379,6 +376,14 @@ def clone_from_demonstrations(
         lineage=lineage,
         reference=reference,
     )
+
+
+def _outside(out: Path, protected) -> None:
+    """The output may not equal, sit inside or contain any input, symbolic links resolved."""
+    for path in protected:
+        path = Path(path).resolve()
+        if out == path or out.is_relative_to(path) or path.is_relative_to(out):
+            raise ValueError(f"output checkpoint overlaps an input: {path}")
 
 
 def _clone_selection(
@@ -396,8 +401,9 @@ def _clone_selection(
         raise TypeError("imitation input must be a DemonstrationSelection")
     if not all(type(v) is TrainingDemonstrationVerifier for v in selection.verifiers.values()):
         raise ValueError("imitation input was not verified by its own collections")
-    consumed = _demonstrations_consumed(loaded)
-    seen = {tuple(identity) for identity in consumed}
+    live_consumed, consumed = ancestry_consumed(loaded)
+    ancestry = {tuple(identity) for identity in consumed}
+    seen = set(ancestry)
     hidden_size = loaded.model.config.hidden_size
     trajectories = []
     for demonstration in selection.demonstrations:
@@ -412,9 +418,15 @@ def _clone_selection(
         trajectories.append(demonstration_trajectory(demonstration, hidden_size))
     if sum(map(len, trajectories)) > MAX_TOTAL_TRANSITIONS:
         raise DemonstrationRefused("imitation batch exceeds the fixed step budget")
-    validation = [
-        demonstration_trajectory(d, hidden_size) for d in (scored.demonstrations if scored else [])
-    ]
+    validation = []
+    for demonstration in scored.demonstrations if scored else []:
+        identity = demonstration_identity(demonstration)
+        # A demonstration this ancestry fitted is not a validation sample for it.
+        if identity in seen:
+            raise DemonstrationRefused("a validation demonstration was already imitated")
+        if scored.verify(demonstration) is not True:
+            raise DemonstrationRefused("validation demonstration failed re-verification")
+        validation.append(demonstration_trajectory(demonstration, hidden_size))
     candidate = copy.deepcopy(loaded.model)
     before = {
         "train": imitation_metrics(candidate, trajectories),
@@ -473,7 +485,7 @@ def _clone_selection(
         "real_server_strength_established": False,
         "demonstrations_consumed": consumed,
         # Imitation consumes no live PPO episode; the lineage's record carries over.
-        "live_consumed": _consumed(loaded),
+        "live_consumed": live_consumed,
     }
     out.mkdir(parents=True, exist_ok=False)
     manifest = save_checkpoint(out, candidate, training=training)

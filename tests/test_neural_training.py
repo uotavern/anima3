@@ -765,3 +765,41 @@ def test_a_trained_candidate_is_bound_to_a_named_lineage(tmp_path):
     )
     manifest = load_checkpoint(tmp_path / "b", expected_sha256=result["policy_sha"]).manifest
     assert manifest["training"]["lineage_dir"] == str((tmp_path / "L1").resolve())
+
+
+def test_train_from_collections_leaves_the_global_rng_alone(tmp_path, monkeypatch):
+    """Unit 8: the behaviour checkpoint load runs in fork_rng as well."""
+    loaded = saved(tmp_path)
+    train = collect_policy(tmp_path, monkeypatch, "train", loaded, [1, 2], "training")
+    torch.manual_seed(99)
+    expected = torch.rand(3)
+    torch.manual_seed(99)
+    train_from_collections(
+        tmp_path / "input", expected_sha256=loaded.policy_sha, collections=[train],
+        out=tmp_path / "out", config=SMALL, seed=3, held_out=NO_HELD_OUT, lineage_dir=LINEAGE,
+    )  # fmt: skip
+    assert torch.equal(torch.rand(3), expected)
+
+
+def test_ppo_children_carry_the_ancestry_demonstration_record(tmp_path):
+    """Unit 8: a PPO step neither resets nor drops the demonstration ledger."""
+    record = [["a" * 32, 2]]
+    parent = saved(
+        tmp_path,
+        training={"parent_policy_sha": "f" * 64, "live_consumed": [],
+                  "demonstrations_consumed": record},
+    )  # fmt: skip
+    result = _unsafe_update_from_episodes(
+        parent, [live_episode(parent, match=7)], verify_episode=lambda _: True,
+        out=tmp_path / "child", config=SMALL, seed=1, lineage_dir=LINEAGE,
+    )  # fmt: skip
+    child = load_checkpoint(tmp_path / "child", expected_sha256=result["policy_sha"])
+    assert child.manifest["training"]["demonstrations_consumed"] == record
+    stripped = saved(tmp_path, "stripped", training={"parent_policy_sha": "f" * 64,
+                                                     "live_consumed": []})  # fmt: skip
+    with pytest.raises(ValueError, match="ancestry's consumed record"):
+        _unsafe_update_from_episodes(
+            stripped, [live_episode(stripped, match=8)], verify_episode=lambda _: True,
+            out=tmp_path / "x", config=SMALL, seed=1, lineage_dir=LINEAGE,
+        )  # fmt: skip
+    assert not (tmp_path / "x").exists()

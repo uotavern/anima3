@@ -415,3 +415,79 @@ def test_imitation_runs_on_cpu_only(tmp_path, monkeypatch):
     with pytest.raises(ValueError, match="CPU only"):
         clone(loaded, [train], tmp_path / "x")
     assert policy  # the shared tiny policy factory stays importable
+
+
+# --- review round 1 ----------------------------------------------------------------------------
+
+
+def test_bc_then_ppo_then_bc_never_reimitates_a_demonstration(tmp_path, monkeypatch):
+    from test_neural_training import live_episode
+
+    from anima3.neural.train import _unsafe_update_from_episodes
+
+    loaded = saved(tmp_path)
+    train = collect(tmp_path, monkeypatch, "train")
+    first = clone(loaded, [train], tmp_path / "bc1")
+    bc1 = load_checkpoint(first["checkpoint"], expected_sha256=first["policy_sha"])
+    ppo = _unsafe_update_from_episodes(
+        bc1, [live_episode(bc1, match=99)], verify_episode=lambda _: True,
+        out=tmp_path / "ppo", config=SMALL, seed=1, lineage_dir=LINEAGE,
+    )  # fmt: skip
+    child = load_checkpoint(tmp_path / "ppo", expected_sha256=ppo["policy_sha"])
+    consumed = bc1.manifest["training"]["demonstrations_consumed"]
+    assert child.manifest["training"]["demonstrations_consumed"] == consumed
+    with pytest.raises(DemonstrationRefused, match="already imitated"):
+        clone(child, [train], tmp_path / "bc2")
+    assert not (tmp_path / "bc2").exists()
+
+
+def test_a_trained_parent_without_its_consumed_record_is_refused(tmp_path, monkeypatch):
+    stripped = saved(tmp_path, training={"parent_policy_sha": "f" * 64, "live_consumed": []})
+    train = collect(tmp_path, monkeypatch, "train")
+    with pytest.raises(ValueError, match="ancestry's consumed record"):
+        clone(stripped, [train], tmp_path / "x")
+    assert not (tmp_path / "x").exists()
+
+
+def test_validation_demonstrations_are_checked_against_the_ancestry(tmp_path, monkeypatch):
+    loaded = saved(tmp_path)
+    train = collect(tmp_path, monkeypatch, "train")
+    other = collect(tmp_path, monkeypatch, "other")
+    first = clone(loaded, [train], tmp_path / "first")
+    child = load_checkpoint(first["checkpoint"], expected_sha256=first["policy_sha"])
+    with pytest.raises(DemonstrationRefused, match="validation demonstration was already"):
+        clone(child, [other], tmp_path / "second", validation=[train])
+    fit = select_demonstrations([other], teacher_sha256=TEACHER_SHA256, held_out=NO_HELD_OUT)
+    scored = select_demonstrations([train], teacher_sha256=TEACHER_SHA256, held_out=NO_HELD_OUT)
+    scored.demonstrations[0]["steps"][0]["action"] = 0
+    with pytest.raises(DemonstrationRefused, match="validation demonstration failed"):
+        _clone_selection(
+            loaded, fit, scored, out=tmp_path / "x", config=BC, seed=1,
+            lineage=str(LINEAGE), reference=None,
+        )  # fmt: skip
+    assert not (tmp_path / "second").exists() and not (tmp_path / "x").exists()
+
+
+def test_output_may_not_overlap_any_input_even_through_a_symlink(tmp_path, monkeypatch):
+    loaded = saved(tmp_path)
+    reference = saved(tmp_path, "reference", seed=5)
+    train = collect(tmp_path, monkeypatch, "train")
+    checked = collect(tmp_path, monkeypatch, "validation")
+    held = collect(tmp_path, monkeypatch, "held", purpose="evaluation")
+    link = tmp_path / "link"
+    link.symlink_to(train, target_is_directory=True)
+    config = ImitationConfig(
+        epochs=1, sequence_length=4, batch_sequences=2, balance_actions=False,
+        reference_kl_coef=0.5,
+    )  # fmt: skip
+    for out in (
+        train / "student", link / "student", checked / "student", held / "student",
+        reference.directory / "student",
+    ):  # fmt: skip
+        with pytest.raises(ValueError, match="overlaps an input"):
+            clone(
+                loaded, [train], out, validation=[checked], held_out=[held], config=config,
+                reference_checkpoint=reference.directory, reference_sha256=reference.policy_sha,
+            )  # fmt: skip
+        assert not out.exists()
+    assert clone(loaded, [train], tmp_path / "fine", validation=[checked], held_out=[held])

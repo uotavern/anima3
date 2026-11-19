@@ -39,6 +39,7 @@ from ..duel_wait import TRAINING_SUPPLIES
 from ..sparring import TRAINING_RULES
 from .live import (
     COLLECTION_SCHEMA,
+    COLLECTOR_VERSION,
     DEMONSTRATION_SCHEMA,
     EXECUTION_FINGERPRINT,
     MATCH_ID,
@@ -53,10 +54,16 @@ from .splits import (
     held_out_match_ids,
     read_collection,
 )
-from .teacher import TEACHER_STYLES
+from .teacher import TEACHER_MODULES, TEACHER_STYLES, TEACHER_VERSION, source_identity
 
 MAX_DEMONSTRATION_BYTES = 64 * 1024 * 1024
 MAX_STEPS = 50_000
+# One selection accepts at most this many demonstrations (the imitation batch
+# cap) and reads at most this many bytes in total, rejected files included.
+MAX_SELECTED = 200
+MAX_SELECTION_BYTES = 512 * 1024 * 1024
+TEACHER_FIELDS = frozenset({"name", "style", "version", "sha256", "sources"})
+END_PHASES = ("Idle", "RoundOver")
 # The demonstration's own fields; anything else (for example a policy SHA) is refused.
 FIELDS = frozenset(
     {
@@ -200,13 +207,28 @@ class DemonstrationReceiptVerifier:
         teacher = d.get("teacher")
         if not (
             isinstance(teacher, dict)
+            and set(teacher) == TEACHER_FIELDS
             and teacher.get("name") == "TacticalTeacher"
             and teacher.get("style") in TEACHER_STYLES
+            and teacher.get("version") == TEACHER_VERSION
             and isinstance(teacher.get("sha256"), str)
             and SHA256.fullmatch(teacher["sha256"])
             and d.get("label") == f"teacher:{teacher['style']}"
         ):
             raise DemonstrationRefused("demonstration lacks a well-formed teacher identity")
+        sources = teacher["sources"]
+        if not (
+            isinstance(sources, dict)
+            and set(sources) == set(TEACHER_MODULES)
+            and all(isinstance(v, str) and SHA256.fullmatch(v) for v in sources.values())
+            and hmac.compare_digest(source_identity(sources), teacher["sha256"])
+        ):
+            raise DemonstrationRefused("teacher module hashes do not give its identity")
+        if (
+            d.get("collector_version") != COLLECTOR_VERSION
+            or d.get("collection_end_phase") not in END_PHASES
+        ):
+            raise DemonstrationRefused("demonstration collector version or end phase differs")
         if (
             d.get("schema_fingerprint") != schema_fingerprint()
             or d.get("executor_sha256") != EXECUTION_FINGERPRINT
@@ -222,7 +244,14 @@ class DemonstrationReceiptVerifier:
             raise DemonstrationRefused("demonstrations need a base-template collection")
         fixture, actor, opponent = d.get("fixture"), d.get("actor"), d.get("opponent")
         verification = d.get("verification")
-        match_id = verification.get("match_id") if isinstance(verification, dict) else None
+        if not isinstance(verification, dict) or set(verification) != {"match_id", "replay_sha256"}:
+            raise DemonstrationRefused("demonstration verification has unknown or missing fields")
+        if not isinstance(d.get("final_result"), dict) or set(d["final_result"]) != {
+            "winner",
+            "outcome",
+        }:
+            raise DemonstrationRefused("demonstration result has unknown or missing fields")
+        match_id = verification.get("match_id")
         if not isinstance(match_id, str) or not MATCH_ID.fullmatch(match_id):
             raise DemonstrationRefused("demonstration lacks a match identity")
         if type(fixture) is not int:
@@ -248,6 +277,8 @@ class DemonstrationReceiptVerifier:
             and hmac.compare_digest(arm["source_sha256"], teacher["sha256"])
         ):
             raise DemonstrationRefused("demonstration teacher differs from the planned seat arm")
+        if d.get("opponent_arm") != _seat_arm(record, issued, opponent):
+            raise DemonstrationRefused("demonstration opponent arm differs from the plan")
         if {issued.get("challenger"), issued.get("opponent")} != {actor, opponent}:
             raise DemonstrationRefused("demonstration seats differ from the issued fixture")
         if self.require_ledger:
@@ -421,6 +452,7 @@ def select_demonstrations(
         raise DemonstrationRefused("a collection cannot be both imitation input and held out")
     held_ids = held_out_match_ids(sorted(held_roots))
     selection = DemonstrationSelection(teacher_sha256, held_out=sorted(map(str, held_roots)))
+    total_bytes = 0
     for root in roots:
         verifier = TrainingDemonstrationVerifier(root)
         selection.collections.append(str(root))
@@ -433,6 +465,9 @@ def select_demonstrations(
                 row.get("demonstrations", []), row.get("demonstration_sha256", []), strict=True
             ):
                 path, payload = _read_demonstration(verifier.record, row, name)
+                total_bytes += len(payload)
+                if total_bytes > MAX_SELECTION_BYTES:
+                    raise DemonstrationRefused("selection exceeds its total read budget")
                 if not hmac.compare_digest(hashlib.sha256(payload).hexdigest(), recorded):
                     raise DemonstrationRefused(
                         f"demonstration differs from the SHA-256 in its ledger row: {path}"
@@ -464,6 +499,10 @@ def select_demonstrations(
                 if identity in selection.verifiers:
                     raise DemonstrationRefused(
                         "duplicate demonstration identity across collections"
+                    )
+                if len(selection.demonstrations) >= MAX_SELECTED:
+                    raise DemonstrationRefused(
+                        f"at most {MAX_SELECTED} demonstrations per selection"
                     )
                 selection.verifiers[identity] = verifier
                 digest = hashlib.sha256(payload).hexdigest()

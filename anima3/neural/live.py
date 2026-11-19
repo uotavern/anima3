@@ -59,7 +59,16 @@ from .executor import CombatExecutor
 from .inference import InferenceClient, require_sha256
 from .melee import CastDumpProbe, MeleeProbe
 from .schema import ACTION_NAMES, schema_fingerprint
-from .teacher import TEACHER_SHA256, TEACHER_STYLES, TEACHER_VERSION, TacticalTeacher
+from .teacher import (
+    DEPENDENCIES,
+    TEACHER_SHA256,
+    TEACHER_SOURCES,
+    TEACHER_STYLES,
+    TEACHER_VERSION,
+    TacticalTeacher,
+    source_hashes,
+    source_identity,
+)
 
 EPISODE_SCHEMA = "anima3-live-policy-v1"
 # The source branch wrote "anima3-live-demonstration-v1" without plan, purpose,
@@ -70,7 +79,10 @@ COLLECTOR_VERSION = "frozen-options-v1"
 EXECUTION_FINGERPRINT = hashlib.sha256(
     Path(__file__).with_name("executor.py").read_bytes()
 ).hexdigest()
-PROBE_SHA256 = hashlib.sha256(Path(__file__).with_name("melee.py").read_bytes()).hexdigest()
+# Like the teacher, a probe is identified by its module and every module it uses.
+PROBE_MODULES = ("neural/melee.py", *DEPENDENCIES)
+PROBE_SOURCES = source_hashes(PROBE_MODULES)
+PROBE_SHA256 = source_identity(PROBE_SOURCES)
 PROBE_VARIANTS = (
     "magic",
     "punch",
@@ -1158,6 +1170,9 @@ def run_collection(
             fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
         except BlockingIOError:
             raise CollectionRefused("another runner holds this collection") from None
+        # Refuse an unavailable arm before a fresh run writes its collection.json.
+        for arm in plan.arms:
+            preflight_arm(arm, find_spec=find_spec)
         ledger = open_collection(log, plan, resume=resume)
 
         def save(status, error=None):
@@ -1178,8 +1193,6 @@ def run_collection(
 
         try:
             stack.enter_context(account_locks(lock_dir, plan.endpoint, list(plan.accounts)))
-            for arm in plan.arms:
-                preflight_arm(arm, find_spec=find_spec)
             workers = []
             for arm in plan.arms:
                 worker = None
@@ -1235,6 +1248,7 @@ def _demonstration(plan, fixture, actor, arm, other, match_id, meta, rows) -> di
             "style": arm.variant,
             "version": TEACHER_VERSION,
             "sha256": arm.source_sha256,
+            "sources": dict(TEACHER_SOURCES),
         },
         "ppo_eligible": False,
         "eligible": bool(steps) and not invalid,

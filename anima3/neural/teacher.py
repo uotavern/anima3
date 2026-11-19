@@ -5,16 +5,23 @@ training tip ``819f4f4`` (``6b8d6f0`` to ``5672268``). The simulator drill helpe
 ``setup_drill`` from the same source file needs ``sim.py`` and stays with the
 simulator (row 7b), so this module holds only the teacher and its identity.
 
-``TEACHER_SHA256`` is the SHA-256 of this file. A live teacher arm names it, and
-every demonstration records it, so a demonstration always says exactly which
-teacher code chose its actions. Any edit to this file changes that identity and
-refuses resumption of a collection planned with the old one. A teacher's choices
-are demonstrations for supervised imitation only: they are never PPO
+``TEACHER_SHA256`` identifies the teacher's behaviour, not just this file. It
+is the SHA-256 of the canonical JSON map ``TEACHER_SOURCES`` from each module
+the choice depends on to that module's SHA-256: this file, ``schema.py``
+(``legal_mask``, ``ACTION_INDEX``, ``CombatView``), ``executor.py``
+(``cast_seconds``), ``magic.py`` (spell circles behind ``cast_seconds``) and
+``contract.py`` (imported by both). A live teacher arm names it, and every
+demonstration records it with the map, so a demonstration says exactly which
+code chose its actions. An edit to any of those modules changes the identity
+and refuses resumption of a collection planned with the old one. The schema
+fingerprint covers only feature and action names, not this logic. A teacher's
+choices are demonstrations for supervised imitation only: they are never PPO
 experience and never reported under a neural policy label.
 """
 from __future__ import annotations
 
 import hashlib
+import json
 from pathlib import Path
 
 from .executor import cast_seconds
@@ -23,7 +30,25 @@ from .schema import ACTION_INDEX, CombatView, legal_mask
 STYLES = ("balanced", "pressure", "burst", "defensive", "potions")
 TEACHER_STYLES = (*STYLES, "tactical")
 TEACHER_VERSION = "tactical-teacher-v1"
-TEACHER_SHA256 = hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
+PACKAGE = Path(__file__).resolve().parents[1]
+# Every module whose code decides a teacher (or probe) choice, relative to anima3/.
+DEPENDENCIES = ("neural/schema.py", "neural/executor.py", "magic.py", "contract.py")
+
+
+def source_hashes(modules, root=PACKAGE) -> dict[str, str]:
+    """``{module: SHA-256}`` for the given modules under ``root`` (the anima3 package)."""
+    return {m: hashlib.sha256((Path(root) / m).read_bytes()).hexdigest() for m in sorted(modules)}
+
+
+def source_identity(hashes: dict[str, str]) -> str:
+    """The SHA-256 of a canonical module-hash map."""
+    canonical = json.dumps(hashes, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(canonical.encode()).hexdigest()
+
+
+TEACHER_MODULES = ("neural/teacher.py", *DEPENDENCIES)
+TEACHER_SOURCES = source_hashes(TEACHER_MODULES)
+TEACHER_SHA256 = source_identity(TEACHER_SOURCES)
 
 
 class TacticalTeacher:

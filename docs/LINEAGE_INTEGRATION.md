@@ -900,8 +900,8 @@ Deferred:
 
 ## Unit 8 Tactical teacher, probes, demonstrations and imitation
 
-Based on unit 7 (`daca1dc`), this unit adds four modules and changes `live.py`
-and `evaluation.py`:
+Based on unit 7 (`daca1dc`), this unit adds four modules and changes `live.py`,
+`evaluation.py` and (after review round 1) the unit-7 `train.py`:
 
 - `neural/teacher.py`: the scripted `TacticalTeacher` and its identity
   `TEACHER_SHA256`. Stdlib only.
@@ -913,6 +913,9 @@ and `evaluation.py`:
 - `live.py`: `teacher` and `probe` arm kinds, their actor branches and
   demonstration recording.
 - `evaluation.py`: refuses a teacher or probe arm as an evaluation opponent.
+- `train.py`: PPO children carry the ancestry's `demonstrations_consumed`, a
+  trained parent without its consumed record is refused, and
+  `train_from_collections` loads its checkpoint inside `fork_rng`.
 
 Importing `anima3`, `anima3.neural`, `live`, `teacher`, `melee` or
 `demonstrations` does not import torch. A subprocess test refuses any torch
@@ -934,7 +937,7 @@ optional Jev shadow analysis is not ported (see Deferred).
 
 | Source at `819f4f4` | Imported | Rewritten or left out |
 | --- | --- | --- |
-| `neural/curriculum.py` `TacticalTeacher`, `STYLES` (`6b8d6f0` to `5672268`) | The class body is byte-identical. | Moved to `teacher.py` so `TEACHER_SHA256` hashes only the teacher. `setup_drill` and `DRILLS` need `sim.py` and stay with row 7b. |
+| `neural/curriculum.py` `TacticalTeacher`, `STYLES` (`6b8d6f0` to `5672268`) | The class body is byte-identical. | Moved to `teacher.py`, whose `TEACHER_SHA256` hashes the teacher and every module its choice depends on, without the drill helper. `setup_drill` and `DRILLS` need `sim.py` and stay with row 7b. |
 | `neural/melee.py` `MeleeProbe`, `CastDumpProbe` | Byte-identical. | — |
 | `neural/live.py` probe and `opponent_style` actor branches | The branch bodies, the `fast_timing`/`hold_explosion` choice, `teacher_action_rejected` and `potion_defense_outside_policy_schema`. | Selected by an explicit arm instead of CLI flags. A substituted procedure (`policy_override` event) in a teacher round also marks it ineligible. The source wrote `demonstration-*.json` straight to its published name with no plan, purpose, teacher identity or ledger. Here it is staged, verified and published only after the `completed` row. |
 | `neural/demonstrations.py` `load_demonstration` | The step checks (shape, finite range, legal action, accepted, increasing clock), the receipt checks and the supply-audit checks. | Rewritten as `DemonstrationReceiptVerifier` and `select_demonstrations`. They check the plan's teacher arm for that seat and read the supply audit from the `issued` ledger row, not from a `prepared-supplies.json` that later fixtures overwrite. The trajectory conversion is `imitation.demonstration_trajectory`. |
@@ -948,10 +951,17 @@ optional Jev shadow analysis is not ported (see Deferred).
   variant=<style>, source_sha256=...)` and `Arm("probe", variant=<tactic>,
   source_sha256=...)` carry no checkpoint and no policy SHA-256.
   - The variant is one of the six teacher styles or ten probe variants.
-  - `source_sha256` is required and must be the SHA-256 of `teacher.py` or
-    `melee.py` (`TEACHER_SHA256`, `PROBE_SHA256`). `preflight_arm` checks it
-    before any login, so a changed teacher refuses a plan or a resume made with
-    the old one (`ArmUnavailable`, the new base of `NeuralArmUnavailable`).
+  - `source_sha256` is required and must equal `TEACHER_SHA256` or
+    `PROBE_SHA256`. Each is the SHA-256 of the canonical JSON map from module
+    to module SHA-256 for the controller and every module its choice depends
+    on: `teacher.py` or `melee.py`, plus `neural/schema.py` (`legal_mask`,
+    `ACTION_INDEX`, `CombatView`), `neural/executor.py` (`cast_seconds`),
+    `magic.py` (the spell circles behind `cast_seconds`) and `contract.py`
+    (imported by both). The schema fingerprint covers only feature and action
+    names, not this logic. `preflight_arm` checks the identity before any
+    login, and before a fresh run writes `collection.json`. A change to any of
+    these modules therefore refuses a plan or a resume made with the old
+    identity (`ArmUnavailable`, the new base of `NeuralArmUnavailable`).
   - The self-reported Arena label is `teacher <style>-<sha12> scripted` or
     `probe <tactic>-<sha12> scripted`. Neural and scripted labels are unchanged.
   - Each actor reports its `policy_kind`, and the runner refuses a fixture
@@ -990,10 +1000,17 @@ optional Jev shadow analysis is not ported (see Deferred).
     as for episodes.
 - **Provenance is checked, not trusted.** `DemonstrationReceiptVerifier`
   re-reads the collection on every call and requires:
-  - exactly the demonstration fields (an added `policy_sha` is refused);
-  - the current schema and executor fingerprints;
-  - a well-formed teacher block whose style and SHA-256 equal the planned arm
-    of that seat (the seat follows from the `issued` row and fixture parity);
+  - exactly the demonstration fields (an added `policy_sha` is refused), and
+    exactly the fields of the `teacher`, `verification` and `final_result`
+    blocks;
+  - the current schema and executor fingerprints, `collector_version`, and a
+    `collection_end_phase` of `Idle` or `RoundOver`;
+  - a well-formed teacher block: name, style, `TEACHER_VERSION`, and a module
+    hash map (`sources`) over exactly the teacher modules that hashes to its
+    SHA-256;
+  - that style and SHA-256 equal the planned arm of that seat (the seat
+    follows from the `issued` row and fixture parity), and `opponent_arm`
+    equals the planned arm of the other seat;
   - the plan SHA-256 and purpose of the re-hashed collection plan, and an
     integer fixture (a bool is refused);
   - both seats of the `issued` row and the stored replay;
@@ -1012,7 +1029,9 @@ optional Jev shadow analysis is not ported (see Deferred).
     shared match identity refuses the selection, and a collection cannot be on
     both sides.
   - Evaluation collections are refused as input.
-  - Every file read is bounded and must hash to its ledger digest.
+  - Every file read is bounded (64 MiB each, 512 MiB in total for one
+    selection, rejected files included) and must hash to its ledger digest.
+    A selection accepts at most 200 demonstrations.
   - Other-teacher, other-style and ineligible demonstrations are kept in
     `rejected` with their reasons. An eligible demonstration that fails
     verification refuses the whole selection, as does a duplicate
@@ -1027,7 +1046,8 @@ optional Jev shadow analysis is not ported (see Deferred).
     - the start checkpoint's SHA-256;
     - `held_out`;
     - `validation`: training collections or `NO_VALIDATION`. They are scored
-      before and after, never fitted, and may share neither a collection nor a
+      before and after, never fitted, re-verified like the input, refused if
+      the ancestry already imitated them, and may share neither a collection nor a
       match with the input.
     - `teacher_sha256`, `seed`, `lineage_dir` and `min_demonstrations`
       (1–200), all with no default;
@@ -1053,9 +1073,14 @@ optional Jev shadow analysis is not ported (see Deferred).
       provenance;
     - `ppo_input: false`, `real_server_strength_established: false`,
       `optimizer_state: fresh-adam-per-update`.
-  - `demonstrations_consumed` carries over the ancestry, so a descendant
-    cannot imitate the same `(match, seat)` twice. `live_consumed` is carried
-    over unchanged.
+  - The output may not equal, sit inside or contain the start or reference
+    checkpoint or any training, validation or held-out collection, with
+    symbolic links resolved.
+  - `demonstrations_consumed` and `live_consumed` are carried by every child,
+    imitation and PPO alike (`train.ancestry_consumed`). A parent's lists
+    therefore already cover its whole ancestry, so BC on D, then PPO, then BC
+    on D is refused. A trained checkpoint (one naming `parent_policy_sha`)
+    missing either list is refused rather than read as an empty record.
   - The child is re-loaded by its own SHA-256 before `imitation-update.json`
     is written. The input trees are byte-identical afterwards.
   - Because it records `lineage_dir`, only that lineage's `record_decision`
@@ -1076,18 +1101,87 @@ What is enforced and what is convention:
   not a selection decision.
 - **Trust boundary.** Hashes detect corruption; they are not signatures. Anyone
   with write access to a collection can rewrite a demonstration, its ledger
-  digest and the issued supply audit consistently. The teacher SHA-256 covers
-  `teacher.py` only; the executor and schema fingerprints are recorded and
-  checked separately. Arena labels are self-reported.
+  digest and the issued supply audit consistently. A copied checkpoint whose
+  manifest is edited to drop a consumed entry keeps its weight SHA (the SHA
+  covers weights only), as in unit 7. The teacher identity covers the listed
+  modules only, not the Python interpreter or standard library. Arena labels
+  are self-reported.
 - **Unbounded reads.** `Ledger.load` reads the whole ledger without a size
   bound. This is unchanged from unit 6.
+
+### Review round 1
+
+The independent review of `98d5023` requested changes. The reviewer's repro
+(BC on D, then PPO, then BC on D accepted) is refused now. Each item has a test
+and a mutation check.
+
+1. **Medium: a PPO step reset the demonstration record.** The unit-7 trainer
+   wrote no `demonstrations_consumed`. Every PPO and imitation child now
+   carries both consumed lists, and `ancestry_consumed` refuses a trained
+   parent missing either list. `train_from_collections` also loads its
+   checkpoint inside `fork_rng` now (the unit-7 follow-up).
+2. **Medium: the teacher identity bound only `teacher.py`.** `choose()`
+   depends on `magic.SPELLS` circles (through `executor.cast_seconds`) and on
+   `schema.legal_mask`. `TEACHER_SHA256` and `PROBE_SHA256` now hash a
+   per-module map over the controller, `schema.py`, `executor.py`, `magic.py`
+   and `contract.py`. Each demonstration records the map, and the verifier
+   checks that the map gives the identity. A test edits copies of `magic.py`,
+   `schema.py` and `executor.py` and sees the identity change.
+3. **Low: validation demonstrations were neither checked against the
+   ancestry nor re-verified.** Both are done now.
+4. **Low: loose demonstration fields.** `opponent_arm` must equal the plan.
+   `teacher.version`, `collector_version` and `collection_end_phase` are
+   checked. Unknown keys in `teacher`, `verification` and `final_result` are
+   refused.
+5. **Low: output overlap.** The BC output may not equal, sit inside or contain
+   the reference checkpoint or any training, validation or held-out
+   collection, symbolic links included.
+6. **Low: unbounded total reads.** A selection accepts at most 200
+   demonstrations and reads at most 512 MiB, rejected files included.
+7. **Low: preflight after the manifest.** `preflight_arm` now runs before a
+   fresh run writes `collection.json`. A refused run leaves no manifest,
+   ledger or `results.json`. The unit-6 absent-torch test now checks that
+   instead of a `stopped` results file.
+
+Test gaps filled:
+
+- a busy executor accepts a held teacher choice without starting anything,
+  and records any other choice as rejected;
+- a teacher-versus-teacher plan is allowed and tested: both seats write
+  demonstrations, each naming the other seat's planned arm.
+
+Mutations of the round-1 fixes, each of which fails a test (17):
+
+- the PPO child dropping the demonstration record;
+- a stripped trained parent accepted;
+- the `train_from_collections` load advancing the global RNG;
+- the teacher identity over `teacher.py` only, or without `magic.py`;
+- the source map not tied to the identity;
+- unknown teacher keys allowed;
+- no teacher version check;
+- no end-phase check;
+- unknown verification keys allowed;
+- no opponent-arm check;
+- no total read budget;
+- no selection count cap;
+- validation not checked against the ancestry;
+- validation not re-verified;
+- no output-overlap check;
+- preflight after `collection.json`.
+
+All 37 earlier mutations were re-run and are still killed. One of them, "no
+teacher-versus-plan-arm check", first survived: the new module-map check also
+caught the old tampered SHA. A self-consistent identity for other teacher code
+was added as a test case, and that mutation is killed again.
 
 ### Offline acceptance
 
 | Environment | Result | Change |
 | --- | --- | --- |
-| Without torch (`--extra dev --extra jeff`) | **509 passing, 4 skipped** | 427 prior plus 82 teacher/demonstration cases. The imitation module skips through `pytest.importorskip`. |
-| With `--extra neural` | **616 passing** | 520 prior, 82 teacher/demonstration and 14 imitation cases |
+| Without torch (`--extra dev --extra jeff`) | **523 passing, 4 skipped** | 427 prior plus 96 teacher/demonstration cases. The imitation module skips through `pytest.importorskip`. |
+| With `--extra neural` | **636 passing** | 520 prior, 96 teacher/demonstration, 18 imitation and 2 new unit-7 training cases |
+
+These are the counts after review round 1; the first push had 509/4 and 616.
 
 Both suites passed three consecutive local runs.
 
@@ -1098,8 +1192,8 @@ The torch-free cases (`tests/test_neural_teacher.py`) cover:
   burst and potion styles;
 - legal choices for every style on six views;
 - the five ported probe cases plus the cast-dump sequence;
-- the teacher identity equalling the hash of its source, with no drill helper
-  in it;
+- the teacher identity over its module map, with no drill helper in it
+  (round 1: edits to `magic.py`, `schema.py` or `executor.py` change it);
 - eleven malformed teacher/probe/neural arms;
 - non-neural labels;
 - the unchanged unit-7 plan SHA-256;
@@ -1118,7 +1212,7 @@ They also cover the actor and the runner:
   receipts and verifier): demonstrations beside episodes, with digests and
   supply audits;
 - `LiveReplayVerifier` and PPO selection refusing demonstrations;
-- twenty tampered provenance fields;
+- thirty tampered provenance fields;
 - six supply-audit faults;
 - a wrong server starting template;
 - a missing `completed` listing;
@@ -1153,7 +1247,8 @@ The imitation cases (`tests/test_neural_imitation.py`) are tiny CPU loops:
 - foreign verifiers;
 - the CPU-only check.
 
-Mutations, each of which fails a test (37, run one at a time):
+Mutations, each of which fails a test (37 at first push, run one at a time,
+and re-run after review round 1):
 
 - a teacher label reported as neural;
 - no teacher source SHA preflight;
@@ -1195,8 +1290,8 @@ Mutations, each of which fails a test (37, run one at a time):
 CI adds the six new files to the scoped Ruff gate and `test_neural_imitation.py`
 to the neural step that must not skip. The lockfile and `pyproject.toml` are
 unchanged. Body, contract, README, `experiments/run_arm.sh`, `magic.py`,
-executor, schema, inference, checkpoint, model, splits and train modules are
-also unchanged.
+executor, schema, inference, checkpoint, model and splits modules are also
+unchanged; `train.py` changes only as described in review round 1.
 
 Not done:
 
@@ -1208,10 +1303,6 @@ Not done:
   separately authorized plan: `training` teacher collections with
   `require_base_template`, a stated held-out set and validation set, a fixed
   budget and seed, and the lineage directory the child will be judged in.
-- The unit-7 `train_from_collections` loads its behaviour checkpoint outside
-  `fork_rng`, so it advances the caller's global RNG (the update itself does
-  not). It was found while writing this unit's determinism test and is left
-  for a follow-up so unit-7 code stays unchanged.
 
 Deferred:
 

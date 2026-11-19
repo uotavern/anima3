@@ -502,6 +502,35 @@ def _consumed(loaded: LoadedCheckpoint) -> list[list]:
     return [list(i) for i in consumed]
 
 
+def _demonstrations_consumed(loaded: LoadedCheckpoint) -> list[list]:
+    """Teacher demonstrations this ancestry already imitated; carried by every child."""
+    consumed = loaded.manifest.get("training", {}).get("demonstrations_consumed", [])
+    if not isinstance(consumed, list) or not all(
+        isinstance(i, list) and len(i) == 2 and isinstance(i[0], str) and type(i[1]) is int
+        for i in consumed
+    ):
+        raise ValueError("checkpoint lineage has a malformed consumed-demonstration list")
+    return [list(i) for i in consumed]
+
+
+def ancestry_consumed(loaded: LoadedCheckpoint) -> tuple[list[list], list[list]]:
+    """The live episodes and demonstrations consumed by the whole ancestry of ``loaded``.
+
+    Every trained child (PPO or imitation) carries both lists forward from its
+    parent, so a parent's lists already cover its full ancestry. A trained
+    checkpoint (one naming ``parent_policy_sha``) that lacks either list would
+    silently reset the record, and is refused.
+    """
+    training = loaded.manifest.get("training", {})
+    if not isinstance(training, dict):
+        raise TypeError("checkpoint training metadata is not an object")
+    if "parent_policy_sha" in training and not (
+        "live_consumed" in training and "demonstrations_consumed" in training
+    ):
+        raise ValueError("trained checkpoint lacks its ancestry's consumed record")
+    return _consumed(loaded), _demonstrations_consumed(loaded)
+
+
 def _fresh_output(out, parent: Path) -> Path:
     raw = Path(out).absolute()
     resolved = raw.resolve()
@@ -589,7 +618,7 @@ def _unsafe_update_from_episodes(
     if loaded.model.device.type != "cpu":
         raise ValueError("bounded training runs on CPU only")
     out = _fresh_output(out, loaded.directory)
-    consumed = _consumed(loaded)
+    consumed, demonstrations_consumed = ancestry_consumed(loaded)
     seen = {tuple(identity) for identity in consumed}
     trajectories = []
     for episode in episodes:
@@ -639,6 +668,8 @@ def _unsafe_update_from_episodes(
         "discount": _discount(config),
         "strength_improvement_established": False,
         "live_consumed": consumed,
+        # PPO imitates nothing; the ancestry's demonstration record carries over.
+        "demonstrations_consumed": demonstrations_consumed,
     }
     out.mkdir(parents=True, exist_ok=False)
     manifest = save_checkpoint(out, candidate, training=training)
@@ -686,7 +717,9 @@ def train_from_collections(
 
     if type(min_episodes) is not int or not 1 <= min_episodes <= MAX_EPISODES:
         raise ValueError(f"minimum batch must be an integer in 1..{MAX_EPISODES}")
-    loaded = load_checkpoint(checkpoint, expected_sha256=expected_sha256)
+    # Building the model to load weights draws from the RNG; keep the caller's untouched.
+    with torch.random.fork_rng(devices=[]):
+        loaded = load_checkpoint(checkpoint, expected_sha256=expected_sha256)
     _fresh_output(out, loaded.directory)
     selection = select_training_episodes(collections, loaded.policy_sha, held_out=held_out)
     if len(selection.episodes) < min_episodes:

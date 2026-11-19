@@ -574,8 +574,9 @@ def test_absent_torch_refuses_the_run_before_any_login_or_challenge(tmp_path):
     assert spy.calls == []
     ledger = Ledger.load(tmp_path / "run" / "ledger.jsonl")
     assert ledger.issued == 0
-    report = json.loads((tmp_path / "run" / "results.json").read_text())
-    assert report["collection_status"] == "stopped" and report["issued"] == 0
+    # Unit 8: the refusal precedes the fresh collection's manifest and results.
+    assert not (tmp_path / "run" / "collection.json").exists()
+    assert not (tmp_path / "run" / "results.json").exists()
 
 
 @pytest.mark.parametrize(
