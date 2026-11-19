@@ -15,6 +15,8 @@ Invariants:
   plan, and every issued challenge consumes the fixed budget whether or not it
   completed, so a crash or failure can never reissue more fixtures than planned.
 - A match identity may appear in a collection at most once.
+- A plan declares its purpose (held-out ``evaluation`` by default, or ``training``)
+  once; it is bound into the plan SHA-256 and every episode.
 - Rejected policy decisions make an episode ineligible. Deterministic option
   failure and recovery remain experience (no success-conditioned sampling).
 """
@@ -62,6 +64,9 @@ MATCH_ID = re.compile(r"[0-9a-f]{32}")
 SHA256 = re.compile(r"[0-9a-f]{64}")
 STAGING = ".staged"
 MAX_MATCHES = 100
+# A collection is either a training source or a held-out evaluation; never both.
+# Unless a plan explicitly says "training", its episodes are not training input.
+PURPOSES = ("evaluation", "training")
 DECISION_INTERVAL = 0.25
 STATE_FRESH_SECONDS = 3.0
 STATE_LOST_SECONDS = 20.0
@@ -659,7 +664,12 @@ def fight(bodies, workers, log, stop, *, deadline=340.0, known_match_ids=frozens
 
 @dataclass(frozen=True)
 class CollectionPlan:
-    """The fixed, immutable description of one evaluation collection."""
+    """The fixed, immutable description of one collection.
+
+    ``purpose`` is part of the plan and its SHA-256: an ``evaluation`` collection
+    (the default) is a held-out record and is never training input; only an
+    explicitly ``training`` collection can feed the unit-7 learner.
+    """
 
     endpoint: str
     accounts: tuple[str, str]
@@ -668,8 +678,11 @@ class CollectionPlan:
     deadline_ms: float = 500.0
     require_base_template: bool = False
     match_deadline_s: float = 340.0
+    purpose: str = "evaluation"
 
     def __post_init__(self):
+        if self.purpose not in PURPOSES:
+            raise ValueError("collection purpose must be 'evaluation' or 'training'")
         if not isinstance(self.endpoint, str) or not self.endpoint:
             raise ValueError("explicit endpoint required")
         if (
@@ -943,6 +956,7 @@ def run_collection(
                 {
                     "domain": "servuo",
                     "plan_sha256": plan.sha256,
+                    "purpose": plan.purpose,
                     "matches": [row["result"] for row in ledger.completed],
                     "issued": ledger.issued,
                     "budget": plan.matches,
@@ -1077,6 +1091,7 @@ def _one_fixture(plan, log, ledger, fixture, bodies, ids, workers, stop, fetch_r
             "sampling": "categorical",
             "fixture": fixture,
             "plan_sha256": plan.sha256,
+            "purpose": plan.purpose,
             "executor_sha256": EXECUTION_FINGERPRINT,
             "collector_version": COLLECTOR_VERSION,
             "schema_fingerprint": schema_fingerprint(),

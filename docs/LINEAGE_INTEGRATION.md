@@ -434,6 +434,470 @@ its own budget. Evaluation statistics (win-rate confidence, per-style
 regression) and PPO consumption of the episodes belong to unit 7; the teacher
 and probes to unit 8.
 
+## Unit 7 Evaluation statistics, selection gate and verified PPO
+
+Based on unit 6 (`9765dc2`), this unit adds three modules. It changes `live.py`
+in one place.
+
+- `neural/evaluation.py`: fixed-budget evaluation statistics and a selection
+  gate that fails closed. Stdlib only.
+- `neural/splits.py`: the training/held-out split over unit-6 collections.
+  Stdlib only.
+- `neural/train.py`: explicit, bounded recurrent PPO on verified training
+  episodes. Needs torch.
+- `live.py`: `CollectionPlan` gains a `purpose` field.
+
+Importing `anima3`, `anima3.neural`, `evaluation` or `splits` does not import torch.
+A subprocess test refuses any torch import. `train.py` is never imported
+implicitly, and it has no CLI, no `__main__` and no schedule.
+
+### Source provenance
+
+| Source at `819f4f4` | Imported | Rewritten or left out |
+| --- | --- | --- |
+| `neural/train.py` (`6b8d6f0`, `3ae14e7`) | `Trajectory`, `generalized_advantage`, `clipped_policy_loss`, `_targets`, `_chunks`, `_batch`, `ppo_update`, `_live_trajectory` and `_episode_actor`. `TrainConfig`'s coefficients and checks are kept. | `TrainConfig`'s budget fields and discount clock lose their defaults. `ppo_update` needs an explicit seed and reports `optimizer_steps`. `update_verified_episodes` is rewritten: it takes a `TrainingSelection`, loads by SHA, and needs explicit config and seed. It writes a new output directory and never restores an optimizer. `collect_simulator`, `behavioral_clone`, `evaluate` and the CLI are left out. |
+| `neural/league.py` `promotion_gate` (`94051a2`) | The paired bootstrap: complete two-sided seed blocks, 2000 resamples, `random.Random(619)`, sorted indices 49 and 1949 (the 50th and 1950th order statistics). Also kept: the domain checks, the duplicate/mismatched-pair checks, the loss/draw/win score check, invalid evidence failing the gate, the per-style regression limit and the 20-games-per-style minimum. | Rewritten as `selection_gate` around an explicit, canonical `EvaluationPlan`. Styles become planned opponents. Added: seat checks, candidate-penalising exclusions, a block floor, Wilson intervals, `decide_from_collections` and an append-only decision record that re-derives each decision. `evaluate_suite` and the league `main` need the simulator and teacher and are left out. |
+| `neural/online.py` `update_collection(s)` (`6b8d6f0`, `94051a2`) | Ineligible and off-policy episodes are rejected and recorded. A collection batch needs a minimum size. Duplicate episodes are refused. | Rewritten as `splits.select_training_episodes` and `train.train_from_collections`. They read the ledger rather than `results.json`, check the collection's purpose and require an explicit held-out set. `cycle_main`, which collected and trained in a loop, is not ported. |
+| `anima3/stats.py` (already on primary) | `wilson`, reused by `wilson_interval` | — |
+
+### Boundaries
+
+- **Training and evaluation splits.** `CollectionPlan.purpose` is either
+  `evaluation`, the default, or `training`. It is part of the plan JSON and its
+  SHA-256, and it is copied into `results.json` and every episode. The default is
+  held out, so a collection becomes training input only by saying so
+  explicitly. Adding the field changes the plan SHA-256 of every unit-6 plan; no
+  unit-6 collection had been run.
+  - `TrainingEpisodeVerifier` refuses an evaluation collection outright.
+  - It also needs the episode's purpose and plan SHA-256 to match the
+    collection's recorded and re-hashed plan, and needs `LiveReplayVerifier` to
+    accept the episode for the behaviour SHA-256, including a `completed` ledger
+    row.
+  - `select_training_episodes` reads only episodes listed in `completed` rows.
+    Their paths must stay inside the match directory.
+  - Ineligible and other-policy episodes are kept in `rejected` with their
+    reasons. An eligible episode that fails verification refuses the whole batch.
+  - `held_out` is required, with no default. It lists the evaluation
+    collections that must not share a match identity with the training input,
+    or is the explicit `NO_HELD_OUT`. A collection cannot be on both sides.
+  - In the other direction, `record_from_collection` refuses a training
+    collection.
+- **Fixed, canonical plan with floors.** `EvaluationPlan` fixes, before any
+  result is read:
+  - the candidate and incumbent SHA-256s, which must differ, and neither of
+    which may be an opponent;
+  - 1–16 opponents (`scripted` or `neural:<sha>`), stored sorted;
+  - an even number of games per opponent, from 20 to 100;
+  - `max_regression` (per opponent, default 0.10) and `min_lower_bound`
+    (default 0), both on a 0.01 grid and normalised, so reordering opponents or
+    a 1e-12 nudge gives the same plan SHA-256;
+  - `max_excluded_per_opponent` (default 0, at most a tenth of the games);
+  - `min_paired_games_per_opponent` (default and floor 20);
+  - the domain.
+
+  Each policy/opponent pair is exactly one held-out collection whose own plan
+  budget equals the evaluation plan's and whose ledger has spent the budget with
+  no open fixture. Refused as an interim result or a grown count: a partly
+  spent collection, a second collection for the same opponent, a missing
+  opponent, a different budget, or rows outside the fixture range or
+  duplicated. Unit 6 already makes a collection's budget unchangeable on resume.
+- **Seats and blocks.** Every completed row states its seat (challenger or
+  receiver).
+  - Games pair by opponent and fixture, and a pair from different seats is
+    refused.
+  - Fixtures 2k and 2k+1 form a block that must hold both seats.
+  - As in the source, only complete two-delta blocks enter the bootstrap, so
+    every resampled block weighs the same.
+  - With fewer than ten complete blocks in total, no interval is computed and
+    the incumbent is retained. The plan floors already require ten per
+    opponent; only exclusions can bring the count below that.
+- **Failed and excluded fixtures stay in the record, scored against the
+  candidate.** `failed`, `invalid_fixture` and `unresolved` ledger outcomes
+  become `excluded` rows with their reason, and the decision lists them.
+  - An excluded candidate game counts as a candidate loss.
+  - An excluded incumbent game drops that fixture, so the candidate gains
+    nothing from the incumbent's failure.
+  - The choice is deliberately asymmetric in the incumbent's favour.
+  - Fixtures excluded on either side beyond the allowance fail the gate, as do
+    fewer than the minimum completed pairs.
+- **Outcomes come from receipts.** A completed row's score (1 win, 0.5 draw,
+  0 loss) is re-read from the stored SHA-checked replay and its seat, not from
+  the episode. `valid` needs the full unit-6 episode verification. Invalid
+  evidence fails the gate, as in the source.
+- **Win-rate confidence.** `wilson_interval` (exact z = 1.95996…) reports each
+  policy's wins over completed games, with draws counted as non-wins, for every
+  opponent. Mean score, draws and exclusions are reported alongside.
+- **Average is not superiority.** The gate passes only when every one of these
+  holds:
+  - the paired-bootstrap 95% lower bound of the block mean difference is above
+    `min_lower_bound`;
+  - no opponent's mean difference is below `-max_regression`;
+  - the exclusion, minimum-pairing and block rules hold;
+  - all evidence is valid.
+
+  Tests cover two failing cases: a candidate that improves the average by 0.35
+  but drops 0.15 against one opponent, and a +0.075 average whose interval spans
+  zero.
+- **Decisions are re-derived and decided once, never acted on.** Every decision
+  carries `automatic_promotion: false`, `public_deployment: false` and
+  `real_server_strength_established: false`. Its outcome is
+  `candidate_passed_gate` or `retain_incumbent`, never `promoted`.
+  - `decide_from_collections` re-derives both evaluations from their collection
+    directories. The decision names each collection by path, plan SHA-256,
+    ledger SHA-256 and server match IDs. It also states `external_candidate`.
+  - `record_decision(lineage_dir, decision)` writes
+    `<lineage_dir>/selection.jsonl`. Everything below runs under an exclusive
+    lock on that lineage, including the re-derivation.
+  - It re-hashes the plan, checks that `passed`, the outcome and `reasons`
+    agree, and re-derives the decision from the named collections. The result
+    must be identical.
+  - **Lineage binding.** The candidate checkpoint is reached by SHA-256 through
+    the collections' arms: the manifest must name that weight SHA, and the
+    weight file must hash to it. A relative checkpoint path is refused, because
+    it would resolve against the current directory. The manifest is read with
+    a 1 MiB bound.
+    - `train_from_collections` requires a `lineage_dir` and records it in the
+      child manifest. Only that lineage may record a decision on the child.
+    - A checkpoint without the field, such as an externally supplied one, is
+      refused unless the decision declares `external_candidate: true`. A bound
+      checkpoint cannot be declared external.
+  - **Claims, created all or nothing before the row is appended.** Each is an
+    `O_CREAT|O_EXCL` file, fsynced along with its directory. It names the
+    decision's SHA-256, the plan SHA-256, the resolved record path, the row's
+    sequence number and the candidate/incumbent SHAs.
+    - Exclusive creation also settles a race between two lineages, whose locks
+      do not serialise each other.
+    - If another decision's claim exists, the decision is refused and the
+      claims just created are removed.
+    - A rollback that cannot remove a claim raises an error naming every claim
+      left behind.
+
+    There are three kinds of claim:
+    - `selection-claim.json` in every evaluation collection directory used, so
+      the same evidence can never be decided again in any lineage. A copied
+      collection carries its claim with it.
+    - `selection-claims/<incumbent>.json` in the candidate checkpoint
+      directory, so the same candidate/incumbent pair can never be decided
+      again in any lineage, even with fresh collections or after the lineage
+      was reset.
+    - `claims/<sequence>.json` in the lineage directory, one per row. Rows and
+      claims must agree. Losing more than the final row, or reordering rows,
+      is refused as tampering.
+  - **Crash between claims and row.** A crash after the claims but before the
+    append leaves every claim of that decision in place with no row. A lost
+    final row looks the same. The decision's claim at `claims/<n>.json` (n is
+    the row count) blocks the lineage with "interrupted decision at sequence
+    n", and its pair and evidence claims block them everywhere.
+    - Retrying the identical decision is idempotent: under the lock, if every
+      one of its claims exists and matches it exactly, the claims are adopted
+      and the row is appended at sequence n. Matching means the same decision
+      SHA-256, plan, record path, sequence and pair.
+    - Any other decision is refused with the interrupted-decision message.
+    - A crash part-way through claiming leaves only some claims. A retry is
+      then refused as "interrupted decision: only some of its claims exist",
+      listing the missing ones.
+    - **Repair:** remove exactly the claim files that name the interrupted
+      decision's `decision_sha256` (pair claim, collection claims, lineage
+      claim n), then retry the decision.
+  - Within a record, a second decision for the same pair, or one reusing a
+    collection ledger or server match, is also refused. Collection plan
+    SHA-256s are recorded, but identical plans share one, so the ledger and
+    match identities make evidence single-use. A new comparison against the
+    same incumbent therefore needs fresh incumbent collections.
+  - It also refuses a torn final line, a non-object line, an unreachable or
+    mis-hashed candidate checkpoint, and any decision claiming automatic
+    promotion.
+  - Passed and rejected decisions are appended alike and never rewritten.
+  - **Residual risk.** The claims are files under the same trust boundary as the
+    collections and checkpoints. Someone with write access who deletes claim
+    files can reuse evidence: from a collection copy with its claim removed,
+    after deleting the checkpoint's pair claim, or after deleting a whole
+    lineage directory. A copied checkpoint whose manifest has
+    `training.lineage_dir` edited or stripped keeps the same weight SHA,
+    because that SHA covers only the weights, not the manifest. Such a copy
+    escapes the lineage binding: stripped, it can be declared external; edited,
+    it can be recorded in another lineage. Its pair claim still lands in the
+    copy's own directory, not the original's. No remote or signed registry
+    exists. Claims are also sidecar files in the candidate checkpoint
+    directory; weights and manifest are never modified.
+- **Explicit budgets, discount clock and seeds.** `TrainConfig` has no default
+  for `epochs` (1–64), `sequence_length` (1–4096), `burn_in`, `batch_sequences`
+  (1–1024) or `discount_time_unit`. `TrainConfig()` is a `TypeError`.
+  - The source's live update used `discount_time_unit=1.0` (`gamma **
+    elapsed_seconds`), and the caller must now state it. The manifest records
+    `gamma`, `gae_lambda`, `discount_time_unit` and the rule applied.
+  - `ppo_update` has no default seed. `update_verified_episodes` and
+    `train_from_collections` need an explicit integer seed.
+  - A batch is 1–200 episodes, each with at most 50,000 transitions, and at most
+    1,000,000 transitions in total.
+  - `optimizer_steps` never exceeds epochs × ⌈chunks/batch⌉. The KL early stop
+    can only lower it.
+  - Training runs on CPU only, inside `torch.random.fork_rng(devices=[])`,
+    seeded explicitly. `fork_rng` isolates only the CPU generator, so a model on
+    another device is refused. A fixed seed gives bit-identical weights on the
+    same platform and torch build, and leaves the caller's global RNG untouched.
+- **The trainer verifies for itself.** `update_verified_episodes` accepts only a
+  `TrainingSelection` from `select_training_episodes` for the loaded policy.
+  - Its verifiers must be that policy's `TrainingEpisodeVerifier` instances.
+  - Every episode is re-verified through them; a caller-supplied callable is
+    never trusted.
+  - The callable-based path is `_unsafe_update_from_episodes`, private and
+    documented as unsafe. Only tests use it.
+- **Immutable, SHA-bound checkpoints.** The behaviour checkpoint is loaded by
+  the caller's expected SHA-256 (unit 5).
+  - Every episode is re-derived against those exact weights before any
+    parameter changes: action likelihood, value, recurrent state chain, legal
+    mask, single terminal and accepted actions.
+  - The output path must not exist and must not be a symbolic link, even a
+    dangling one.
+  - Once resolved, it must not be the input, inside it, or contain it.
+  - It is created only after every check passes.
+  - The new manifest records the parent SHA, config, budget, discount, seed,
+    metrics, consumed `(match, actor)` identities, `optimizer_state:
+    fresh-adam-per-update` and `automatic_promotion: false`.
+  - The new checkpoint is re-loaded by its own weight SHA-256 before
+    `training-update.json` is written. The input tree is byte-identical
+    afterwards.
+  - `live_consumed` carries over the lineage, so a descendant cannot train on
+    the same match/seat twice.
+  - The source restored the parent's Adam state. That needs the optimizer blobs
+    left out in unit 5, so each update now starts a fresh Adam.
+
+### Review round 1
+
+The independent review of `9bea5d1` requested changes. Each item below has a
+test and a mutation check.
+
+1. A two-game plan, or four games, passed on a degenerate bootstrap. Fixed with
+   plan floors and the ten-block minimum.
+2. A decision could be made again on the same evidence. Fixed with the
+   canonical plan, one decision per pair and single-use evidence within a
+   record; the record file name is derived from the lineage directory. Round 2
+   showed this still depended on callers reusing one directory, and closed it.
+3. A forged or inconsistent decision could be recorded. Fixed with the
+   re-hash, the outcome/reasons check, re-derivation from the collections, the
+   lock, refusal of non-object lines and collection plan SHA-256s in the
+   evidence.
+4. Seats were never paired. Fixed with the seat requirement and two-seat
+   blocks.
+5. Training budgets and the discount clock had defaults. They are now
+   required, and the discount is recorded.
+6. The held-out set was optional. It is now required.
+7. Exclusions went unpenalised. They are now capped and scored against the
+   candidate.
+8. The trainer trusted the caller's verifier. It now takes a selection, and
+   the callable path is private.
+9. Nits: the order-statistic comment, an incumbent listed as an opponent, the
+   default `ppo_update` seed, and CUDA (now CPU only).
+
+The reviewer's second probe also showed that a dangling symbolic link as the
+output path redirected the write. Such a link is now refused.
+
+### Review round 2
+
+The re-review of `341c571` verified all nine fixes. Two issues remained.
+
+- **Medium: the per-lineage location was only a convention.** The reviewer's
+  probe re-recorded the same decision into another lineage directory. It also
+  recorded fresh collections for a decided pair into a third directory, and
+  reset a lineage by deleting `selection.jsonl`. Fixed by:
+  - collection evidence claims;
+  - a pair claim in the candidate checkpoint directory;
+  - per-row lineage claims;
+  - binding the candidate to its lineage via the training manifest, with an
+    explicit `external_candidate` declaration for unbound checkpoints.
+
+  Every case of the probe is now refused, with a bound candidate and with a
+  declared external one.
+- **Low: the re-derivation ran outside the lock.** It now runs under the lock.
+
+### Review round 3
+
+The third review of `0afcb22` confirmed that the claims, the lineage binding
+and the rollback work, and that nothing regressed. It asked for three changes,
+each now tested with a mutation check:
+
+- **Medium:** a crash between claims and the row orphaned the claims behind a
+  misleading tampering error. Fixed with the idempotent retry and the distinct
+  interrupted-decision refusals described above. Leftover claims after a failed
+  rollback are now reported.
+- **Low:** a relative checkpoint path resolved against the current directory.
+  It is now refused. The stripped-manifest copy is documented as residual risk.
+- **Nit:** the manifest size bound is now enforced on the read itself.
+
+Every case of the reviewer's `test_probe_r3.py` is refused except the retry of
+the identical decision, which succeeds at sequence 0. Round 2's notes were
+first committed under Unit 1 by mistake and now sit here.
+
+### Offline acceptance
+
+| Environment | Result | Change |
+| --- | --- | --- |
+| Without torch (`--extra dev --extra jeff`) | **427 passing, 3 skipped** | 348 prior plus 79 evaluation/split cases. The training module skips through `pytest.importorskip`. |
+| With `--extra neural` | **520 passing** | 389 prior, 79 evaluation and 52 training cases |
+
+Both suites passed three consecutive local runs.
+
+The evaluation cases cover:
+
+- Wilson intervals against the published Newcombe (1998) Table I values:
+  81/263, 15/148, 0/20, 1/29, plus 8/10, 5/10 and 10/10;
+- deterministic bootstrap;
+- plan bounds and floors;
+- canonical plan identity;
+- a pass;
+- the single-opponent regression and lower-bound failures above;
+- equal evidence;
+- too few blocks;
+- excluded rows, candidate-penalising exclusions and the allowance cap;
+- seat mismatch and single-seat blocks;
+- invalid evidence;
+- growth, shrinkage and duplicates;
+- malformed scores (bool, NaN, 0.75);
+- domain and policy mismatch.
+
+Real unit-6 `run_collection` collections, built with the mocked participant
+layer and 20 games per opponent, feed:
+
+- receipt scoring with seat alternation;
+- a failed fixture kept after resume;
+- interim refusal;
+- the end-to-end gate;
+- the record, covering forged plan SHA, inconsistent outcome, altered
+  statistics, promotion claims, missing evidence, an invalid plan, pairs
+  re-decided under reordered, nudged or loosened plans, reused incumbent
+  evidence, the lock (including re-derivation under it), a non-object line and
+  a torn line;
+- the round-2 probe: same evidence in another lineage, fresh evidence for a
+  decided pair in the same or another lineage, a deleted, emptied or
+  claim-stripped record, a missing external declaration, a bound candidate
+  declared external, mis-hashed candidate weights, claim rollback when a later
+  claim fails, and a copied collection keeping its claim;
+- the round-3 cases: a subprocess crash after all claims, retried at sequence
+  0, with different decisions refused; a crash part-way through claiming,
+  reported and repaired; a rollback whose unlink fails, naming the leftover
+  claim; a concurrent claim from another lineage winning by exclusive
+  creation; a restored final row versus a deleted record; and a relative or
+  oversized candidate checkpoint;
+- refusal of training collections for evaluation and of evaluation collections
+  for training, including a relabelled episode;
+- the required held-out argument and overlap;
+- tampered receipts, plan SHA-256s, purposes and relabelled plans;
+- a dropped `completed` row;
+- path escape;
+- a selection that trusts only its own verifiers.
+
+The training cases are tiny CPU loops on synthetic data:
+
+- the ported GAE, clipping, forced-hold normalisation, critic-only and KL
+  early-stop cases;
+- the ported live fail-closed cases, plus evaluation or unlabelled episodes;
+- required budget and discount fields with the recorded discount, and seed
+  refusal;
+- the required lineage directory recorded in the child manifest;
+- output refusal (existing, inside or equal to the input, symbolic links,
+  dangling links);
+- the CPU-only refusal;
+- SHA-recorded output with the input unchanged;
+- fixed-seed determinism and an untouched global RNG;
+- consumed identities and both seats;
+- the 200-episode cap;
+- the public update refusing anything but a real selection for this policy,
+  including an episode altered after selection;
+- `train_from_collections` end to end on real unit-6 training collections, and
+  refusal of a tampered receipt.
+
+Mutations of the original guards, each of which fails a test:
+
+- accepting an evaluation collection for training;
+- skipping (instead of refusing) an unverified eligible episode;
+- dropping the held-out overlap check;
+- disabling the per-opponent regression limit;
+- removing both the fixture-range and the exact-count checks;
+- accepting a partly spent collection;
+- gating on the point estimate instead of the bootstrap lower bound;
+- ignoring the exclusion allowance;
+- accepting an evaluation episode in the trainer;
+- allowing output inside the input or into an existing directory;
+- not passing the seed to PPO shuffling;
+- removing the epoch cap;
+- removing purpose validation.
+
+Mutations of the review fixes, each of which also fails a test:
+
+- the games, paired-games and block floors;
+- opponent sorting and threshold normalisation;
+- one decision per pair and single-use evidence;
+- the plan re-hash, the outcome/reasons check and the re-derivation;
+- the lock and non-object line refusal;
+- the seat, block-seat and seat-required checks;
+- the candidate-loss exclusion scoring and the allowance cap;
+- refusing the incumbent as an opponent;
+- required `epochs` and `discount_time_unit`, and the recorded discount;
+- the required `ppo_update` seed and `held_out` argument;
+- the selection and verifier type checks, both in the update and in
+  `TrainingSelection.verify`;
+- the symbolic-link refusal;
+- the CPU-only check.
+
+Mutations of the round-2 fixes, each of which also fails a test:
+
+- creating no collection claims or no pair claim;
+- non-exclusive claim creation;
+- no rollback;
+- no lineage claim per row;
+- no record-versus-claims check;
+- no lineage binding;
+- no external declaration;
+- no candidate weight hash;
+- no re-derivation under the lock;
+- the child manifest not recording its lineage.
+
+Both the in-record pair check and the pair claim are needed: removing either
+fails a test.
+
+Mutations of the round-3 fixes, each of which also fails a test:
+
+- not adopting matching claims on retry;
+- accepting partial claims;
+- no distinct interrupted-row refusal;
+- claims not naming the exact decision;
+- the rollback not reporting leftovers;
+- accepting relative checkpoint paths;
+- no manifest size bound;
+- allowing more than one orphaned lineage claim;
+- non-exclusive claim creation.
+
+CI adds the five new files to the scoped Ruff gate and `test_neural_training.py`
+to the neural step that must not skip. The lockfile and `pyproject.toml` are
+unchanged. Body, contract, README, `experiments/run_arm.sh`, `magic.py`,
+executor, schema, inference, checkpoint and model modules are also unchanged.
+
+Not done:
+
+- No model was trained on real episodes, evaluated, selected or promoted.
+- No server, client or bridge was used.
+- A real evaluation needs a separately authorized plan: fresh held-out
+  evaluation collections for the incumbent and the candidate against each
+  opponent, with budgets of at least 20 games, fixed before play, and one
+  fixed lineage directory, which a trained candidate names in its manifest.
+- So does any real training run, on explicitly `training` collections with a
+  stated held-out set.
+
+Deferred:
+
+- The approximate simulator, BC on teacher demonstrations, league self-play and
+  the simulator gates of `league.py`. They depend on `sim.py`, `curriculum.py`
+  and `demonstrations.py`, so they belong with the teacher (unit 8) or row 7b.
+  Simulator gain is not live gain, and the gate refuses to compare different
+  domains.
+- Optimizer and RNG resume across updates.
+- GPU training.
+- Bootstrap pairing exploits seed correlation only when both evaluations share
+  fixtures. For live collections it pairs by opponent, fixture position and
+  seat, which is valid for independent games but no tighter than an unpaired
+  comparison.
+
 ## Remaining separately verified units
 
 | Order | Unit and likely files | Dependencies and acceptance |
@@ -442,8 +906,9 @@ and probes to unit 8.
 | 3 (integrated) | Arena participant preparation and sparring: `arena.py`, `duel_wait.py`, `sparring.py`, public command/receipt tests | Units 1–2; preserve ordinary-account and challenge-token checks, start templates, exact rules, bounded fixtures, account locks and failure receipts. Reconcile current peer-only server assumptions. |
 | 4 (integrated) | Combat procedures and executor: selected `magic.py`/`combat_combo.py`, neural executor/schema surface | Units 1 and 3. Carry reflection fix forward explicitly while adopting wall-clock cursor handling; test stun, potion ownership/disposal, recovery and delayed public effects. No training required. |
 | 5 (integrated) | Frozen neural inference and checkpoint validation | Unit 4; add the minimum Torch optional dependency and regenerate/review the lock deliberately. Require dimensions, schema fingerprint, finite weights and SHA-bound loading. Preserve audited selected and rollback artifacts. |
-| 6 (this unit) | Live receipts, evaluation and bounded resume: `neural/live.py` | Units 2–5; prove count/duplicate/invalid-fixture handling, immutable arm policy identities and account locking before any separately authorized live fixture. |
-| 7 | Simulator, demonstrations, BC/PPO and promotion gates | Units 5–6; isolate training from evaluation, preserve holdouts, elapsed-time assumptions, resume idempotence and per-style regression rejection. Simulator gain is not live gain. |
+| 6 (integrated) | Live receipts, evaluation and bounded resume: `neural/live.py` | Units 2–5; prove count/duplicate/invalid-fixture handling, immutable arm policy identities and account locking before any separately authorized live fixture. |
+| 7 (this unit) | Evaluation statistics, selection gate and verified PPO: `neural/evaluation.py`, `neural/splits.py`, `neural/train.py` | Units 5–6; isolate training from evaluation, require an explicit held-out set, fixed budget floors, an explicit discount clock (`discount_time_unit` has no default; the source live update used 1.0, elapsed seconds), seat-paired blocks, single-use evidence and per-opponent regression rejection. No training, evaluation or promotion is run. |
+| 7b | Simulator, demonstrations, BC and league self-play: `sim.py`, `demonstrations.py`, `league.py` | Units 7–8 (teacher); seeded simulator evaluation through the unit-7 gate, demonstrations never PPO episodes, optimizer/RNG resume idempotence. Simulator gain is not live gain. |
 | 8 | Tactical teacher and optional Jev shadow analysis | Unit 4 plus relevant collectors. Keep teacher demonstrations and off-policy actions out of PPO records; preserve evaluated frozen policy behavior. |
 | 9 | Historical experiment record reconciliation | Preserve chronology and failed candidates; attach completed evidence without interpreting registry selection as public deployment. |
 
