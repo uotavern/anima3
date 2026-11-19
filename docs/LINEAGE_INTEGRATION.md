@@ -434,6 +434,230 @@ its own budget. Evaluation statistics (win-rate confidence, per-style
 regression) and PPO consumption of the episodes belong to unit 7; the teacher
 and probes to unit 8.
 
+## Unit 7 Evaluation statistics, selection gate and verified PPO
+
+Based on unit 6 (`9765dc2`), this unit adds three modules. It changes `live.py`
+in one place.
+
+- `neural/evaluation.py`: fixed-budget evaluation statistics and a selection
+  gate that fails closed. Stdlib only.
+- `neural/splits.py`: the training/held-out split over unit-6 collections.
+  Stdlib only.
+- `neural/train.py`: explicit, bounded recurrent PPO on verified training
+  episodes. Needs torch.
+- `live.py`: `CollectionPlan` gains a `purpose` field.
+
+Importing `anima3`, `anima3.neural`, `evaluation` or `splits` does not import torch.
+A subprocess test refuses any torch import. `train.py` is never imported
+implicitly, and it has no CLI, no `__main__` and no schedule.
+
+### Source provenance
+
+| Source at `819f4f4` | Imported | Rewritten or left out |
+| --- | --- | --- |
+| `neural/train.py` (`6b8d6f0`, `3ae14e7`) | `TrainConfig`, `Trajectory`, `generalized_advantage`, `clipped_policy_loss`, `_targets`, `_chunks`, `_batch`, `ppo_update`, `_live_trajectory` and `_episode_actor`, unchanged apart from the budget bounds and the `optimizer_steps` metric below | `update_verified_episodes` is rewritten: SHA-bound load, explicit config and seed, a new output directory, no optimizer restore. `collect_simulator`, `behavioral_clone`, `evaluate` and the CLI are left out. |
+| `neural/league.py` `promotion_gate` (`94051a2`) | The paired bootstrap: blocks of both sides, 2000 resamples, `random.Random(619)`, order statistics 49/1949. Also kept: the domain checks, the duplicate/mismatched-pair checks, the loss/draw/win score check, invalid evidence failing the gate, and the per-style regression limit. | Rewritten as `selection_gate` around an explicit `EvaluationPlan`. Styles become planned opponents; excluded fixtures, a minimum number of paired games, Wilson intervals and a decision record are added. `evaluate_suite` and the league `main` need the simulator and teacher and are left out. |
+| `neural/online.py` `update_collection(s)` (`6b8d6f0`, `94051a2`) | Ineligible and off-policy episodes are rejected and recorded. A collection batch needs a minimum size. Duplicate episodes are refused. | Rewritten as `splits.select_training_episodes` and `train.train_from_collections`. They read the ledger rather than `results.json` and check the collection's purpose. `cycle_main`, which collected and trained in a loop, is not ported. |
+| `anima3/stats.py` (already on primary) | `wilson`, reused by `wilson_interval` | — |
+
+### Boundaries
+
+- **Training and evaluation splits.** `CollectionPlan.purpose` is either
+  `evaluation`, the default, or `training`. It is part of the plan JSON and its
+  SHA-256, and it is copied into `results.json` and every episode. The default is
+  held out, so a collection becomes training input only by saying so
+  explicitly. Adding the field changes the plan SHA-256 of every unit-6 plan; no
+  unit-6 collection had been run.
+  - `TrainingEpisodeVerifier` refuses an evaluation collection outright.
+  - It also needs the episode's purpose and plan SHA-256 to match the
+    collection's recorded and re-hashed plan, and needs `LiveReplayVerifier` to
+    accept the episode for the behaviour SHA-256, including a `completed` ledger
+    row.
+  - `select_training_episodes` reads only episodes listed in `completed` rows.
+    Their paths must stay inside the match directory.
+  - Ineligible and other-policy episodes are kept in `rejected` with their
+    reasons. An eligible episode that fails verification refuses the whole batch.
+  - Optional `held_out` evaluation collections must not share a match identity
+    with the training input. A collection cannot be on both sides.
+  - In the other direction, `record_from_collection` refuses a training
+    collection.
+- **Fixed plan, no growth.** `EvaluationPlan` fixes, before any result is read:
+  - the candidate and incumbent SHA-256s, which must differ;
+  - 1–16 opponents (`scripted` or `neural:<sha>`);
+  - an even number of games per opponent, from 2 to 100;
+  - `max_regression` (per opponent, default 0.10);
+  - `min_lower_bound` (default 0);
+  - `max_excluded_per_opponent` (default 0);
+  - `min_paired_games_per_opponent` (default 20, the source's minimum per style);
+  - the domain.
+
+  Its SHA-256 identifies the decision. Each policy/opponent pair is exactly one
+  held-out collection whose own plan budget equals the evaluation plan's and
+  whose ledger has spent the budget with no open fixture. Refused as an interim
+  result or a grown count: a partly spent collection, a second collection for
+  the same opponent, a missing opponent, a different budget, or rows outside the
+  fixture range or duplicated. Unit 6 already makes a collection's budget
+  unchangeable on resume.
+- **Failed and excluded fixtures stay in the record.** `failed`,
+  `invalid_fixture` and `unresolved` ledger outcomes become `excluded` rows with
+  their reason, and the decision lists them. They are never re-scored. Beyond
+  the allowance they fail the gate, as does falling below the minimum number of
+  paired games.
+- **Outcomes come from receipts.** A completed row's score (1 win, 0.5 draw,
+  0 loss) is re-read from the stored SHA-checked replay and its seat, not from
+  the episode. `valid` needs the full unit-6 episode verification. Invalid
+  evidence fails the gate, as in the source.
+- **Win-rate confidence.** `wilson_interval` (exact z = 1.95996…) reports each
+  policy's wins over completed games, with draws counted as non-wins, for every
+  opponent. Mean score, draws and exclusions are reported alongside.
+- **Average is not superiority.** The gate passes only when every one of these
+  holds:
+  - the paired-bootstrap 95% lower bound of the mean score difference is above
+    `min_lower_bound`;
+  - no opponent's mean paired difference is below `-max_regression`;
+  - the exclusion and minimum-pairing rules hold;
+  - all evidence is valid.
+
+  Tests cover two failing cases: a candidate that improves the average by 0.35
+  but drops 0.15 against one opponent, and a +0.075 average whose interval spans
+  zero.
+- **Decisions are recorded, never acted on.** Every decision carries
+  `automatic_promotion: false`, `public_deployment: false` and
+  `real_server_strength_established: false`. Its outcome is
+  `candidate_passed_gate` or `retain_incumbent`, never `promoted`.
+  `record_decision` appends passed and rejected decisions alike to an fsynced
+  JSONL record and refuses a second decision for the same plan SHA-256. It
+  also refuses a torn final line and any decision claiming automatic promotion.
+- **Explicit budgets and seeds.** `update_verified_episodes` and
+  `train_from_collections` require a `TrainConfig` and an integer seed; neither
+  has a default.
+  - `TrainConfig` now needs integer `epochs` (1–64), `sequence_length`
+    (1–4096), `burn_in` and `batch_sequences` (1–1024).
+  - A batch is 1–200 episodes, each with at most 50,000 transitions, and at most
+    1,000,000 transitions in total.
+  - `ppo_update` reports `optimizer_steps`, which never exceeds
+    epochs × ⌈chunks/batch⌉. The KL early stop can only lower it.
+  - The update runs inside `torch.random.fork_rng`, seeded explicitly, and
+    PPO shuffling uses the same seed. A fixed seed gives bit-identical weights
+    on the same platform and torch build, and leaves the caller's global RNG
+    untouched.
+- **Immutable, SHA-bound checkpoints.** The behaviour checkpoint is loaded by
+  the caller's expected SHA-256 (unit 5).
+  - Every episode is re-derived against those exact weights before any
+    parameter changes: action likelihood, value, recurrent state chain, legal
+    mask, single terminal and accepted actions.
+  - The output directory must not exist and must not be the input, inside it, or
+    contain it. It is created only after every check passes.
+  - The new manifest records the parent SHA, config, budget, seed, metrics,
+    consumed `(match, actor)` identities, `optimizer_state:
+    fresh-adam-per-update` and `automatic_promotion: false`.
+  - The new checkpoint is re-loaded by its own weight SHA-256 before
+    `training-update.json` is written. The input tree is byte-identical
+    afterwards.
+  - `live_consumed` carries over the lineage, so a descendant cannot train on
+    the same match/seat twice.
+  - The source restored the parent's Adam state. That needs the optimizer blobs
+    left out in unit 5, so each update now starts a fresh Adam.
+
+Offline acceptance:
+
+| Environment | Result | Change |
+| --- | --- | --- |
+| Without torch (`--extra dev --extra jeff`) | **406 passing, 3 skipped** | 348 prior plus 58 new evaluation/split cases. The new training module skips through `pytest.importorskip`. |
+| With `--extra neural` | **494 passing** | 389 prior, 58 evaluation and 47 training cases |
+
+Both suites passed three consecutive local runs.
+
+The evaluation cases cover:
+
+- Wilson intervals against the published Newcombe (1998) Table I values:
+  81/263, 15/148, 0/20, 1/29, plus 8/10, 5/10 and 10/10;
+- deterministic bootstrap;
+- plan bounds;
+- a pass;
+- the single-opponent regression and lower-bound failures above;
+- equal evidence;
+- excluded rows and the minimum-pairing rule;
+- invalid evidence;
+- growth, shrinkage and duplicates;
+- malformed scores (bool, NaN, 0.75);
+- domain and policy mismatch;
+- the append-only decision record.
+
+Real unit-6 `run_collection` collections, built with the mocked participant
+layer, feed:
+
+- receipt scoring with seat alternation;
+- a failed fixture kept after resume;
+- interim refusal;
+- refusal of training collections for evaluation and of evaluation collections
+  for training, including a relabelled episode;
+- held-out overlap;
+- tampered receipts, plan SHA-256s, purposes and relabelled plans;
+- a dropped `completed` row;
+- path escape;
+- the end-to-end gate.
+
+The training cases are tiny CPU loops on synthetic data:
+
+- the ported GAE, clipping, forced-hold normalisation, critic-only and KL
+  early-stop cases;
+- the ported live fail-closed cases (other policy, rejected action,
+  log-probability, hidden chain, unfinished episode, argmax), plus evaluation
+  or unlabelled episodes;
+- budget and seed refusal;
+- output refusal (existing, equal to or inside the input);
+- SHA-recorded output with the input unchanged;
+- fixed-seed determinism and an untouched global RNG;
+- consumed identities and both seats;
+- the 200-episode cap;
+- `train_from_collections` end to end on real unit-6 training collections whose
+  transitions come from the real checkpoint, with a held-out evaluation
+  collection and refusal of a tampered receipt.
+
+Each of these mutations fails a test:
+
+- accepting an evaluation collection for training;
+- skipping (instead of refusing) an unverified eligible episode;
+- dropping the held-out overlap check;
+- disabling the per-opponent regression limit;
+- removing both the fixture-range and the exact-count checks;
+- accepting a partly spent collection;
+- gating on the point estimate instead of the bootstrap lower bound;
+- ignoring the exclusion allowance;
+- accepting an evaluation episode in the trainer;
+- allowing output inside the input or into an existing directory;
+- not passing the seed to PPO shuffling;
+- removing the epoch cap;
+- removing purpose validation.
+
+CI adds the five new files to the scoped Ruff gate and `test_neural_training.py`
+to the neural step that must not skip. The lockfile and `pyproject.toml` are
+unchanged. Body, contract, README, `experiments/run_arm.sh`, `magic.py`,
+executor, schema, inference, checkpoint and model modules are also unchanged.
+
+Not done:
+
+- No model was trained on real episodes, evaluated, selected or promoted.
+- No server, client or bridge was used.
+- A real evaluation needs a separately authorized plan: held-out evaluation
+  collections for the incumbent and the candidate against each opponent, with
+  budgets of at least 20 games, fixed before play.
+- So does any real training run, on explicitly `training` collections.
+
+Deferred:
+
+- The approximate simulator, BC on teacher demonstrations, league self-play and
+  the simulator gates of `league.py`. They depend on `sim.py`, `curriculum.py`
+  and `demonstrations.py`, so they belong with the teacher (unit 8) or a later
+  simulator unit. Simulator gain is not live gain, and the gate refuses to
+  compare different domains.
+- Optimizer and RNG resume across updates.
+- Bootstrap pairing exploits seed correlation only when both evaluations share
+  fixtures. For live collections it pairs by opponent, fixture position and
+  seat, which is valid for independent games but no tighter than an unpaired
+  comparison.
+
 ## Remaining separately verified units
 
 | Order | Unit and likely files | Dependencies and acceptance |
@@ -442,8 +666,9 @@ and probes to unit 8.
 | 3 (integrated) | Arena participant preparation and sparring: `arena.py`, `duel_wait.py`, `sparring.py`, public command/receipt tests | Units 1–2; preserve ordinary-account and challenge-token checks, start templates, exact rules, bounded fixtures, account locks and failure receipts. Reconcile current peer-only server assumptions. |
 | 4 (integrated) | Combat procedures and executor: selected `magic.py`/`combat_combo.py`, neural executor/schema surface | Units 1 and 3. Carry reflection fix forward explicitly while adopting wall-clock cursor handling; test stun, potion ownership/disposal, recovery and delayed public effects. No training required. |
 | 5 (integrated) | Frozen neural inference and checkpoint validation | Unit 4; add the minimum Torch optional dependency and regenerate/review the lock deliberately. Require dimensions, schema fingerprint, finite weights and SHA-bound loading. Preserve audited selected and rollback artifacts. |
-| 6 (this unit) | Live receipts, evaluation and bounded resume: `neural/live.py` | Units 2–5; prove count/duplicate/invalid-fixture handling, immutable arm policy identities and account locking before any separately authorized live fixture. |
-| 7 | Simulator, demonstrations, BC/PPO and promotion gates | Units 5–6; isolate training from evaluation, preserve holdouts, elapsed-time assumptions, resume idempotence and per-style regression rejection. Simulator gain is not live gain. |
+| 6 (integrated) | Live receipts, evaluation and bounded resume: `neural/live.py` | Units 2–5; prove count/duplicate/invalid-fixture handling, immutable arm policy identities and account locking before any separately authorized live fixture. |
+| 7 (this unit) | Evaluation statistics, selection gate and verified PPO: `neural/evaluation.py`, `neural/splits.py`, `neural/train.py` | Units 5–6; isolate training from evaluation, preserve holdouts, fixed budgets, elapsed-time discounting and per-opponent regression rejection. No training, evaluation or promotion is run. |
+| 7b | Simulator, demonstrations, BC and league self-play: `sim.py`, `demonstrations.py`, `league.py` | Units 7–8 (teacher); seeded simulator evaluation through the unit-7 gate, demonstrations never PPO episodes, optimizer/RNG resume idempotence. Simulator gain is not live gain. |
 | 8 | Tactical teacher and optional Jev shadow analysis | Unit 4 plus relevant collectors. Keep teacher demonstrations and off-policy actions out of PPO records; preserve evaluated frozen policy behavior. |
 | 9 | Historical experiment record reconciliation | Preserve chronology and failed candidates; attach completed evidence without interpreting registry selection as public deployment. |
 
