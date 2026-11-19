@@ -63,6 +63,24 @@ fields before `war`; this port appends them to avoid changing positional APIs.
 
 All five commits remain ancestors because this unit branches from `main`.
 
+### Review round 2
+
+The re-review of `341c571` verified all nine fixes. Two issues remained.
+
+- **Medium: the per-lineage location was only a convention.** The reviewer's
+  probe re-recorded the same decision into another lineage directory. It also
+  recorded fresh collections for a decided pair into a third directory, and
+  reset a lineage by deleting `selection.jsonl`. Fixed by:
+  - collection evidence claims;
+  - a pair claim in the candidate checkpoint directory;
+  - per-row lineage claims;
+  - binding the candidate to its lineage via the training manifest, with an
+    explicit `external_candidate` declaration for unbound checkpoints.
+
+  Every case of the probe is now refused, with a bound candidate and with a
+  declared external one.
+- **Low: the re-derivation ran outside the lock.** It now runs under the lock.
+
 ### Offline acceptance
 
 The new offline GitHub Actions job pins action commits, Python 3.12.14 and
@@ -543,24 +561,53 @@ implicitly, and it has no CLI, no `__main__` and no schedule.
   `real_server_strength_established: false`. Its outcome is
   `candidate_passed_gate` or `retain_incumbent`, never `promoted`.
   - `decide_from_collections` re-derives both evaluations from their collection
-    directories.
-  - The decision names each collection by path, plan SHA-256, ledger SHA-256
-    and server match IDs.
-  - `record_decision(lineage_dir, decision)` always writes
-    `<lineage_dir>/selection.jsonl`. Keep one fixed lineage directory per
-    incumbent lineage, so that every comparison is in one file.
-  - Under an exclusive lock, it re-hashes the plan, checks that `passed`, the
-    outcome and `reasons` agree, and re-derives the decision from the named
-    collections. The result must be identical.
-  - It refuses a second decision for the same candidate/incumbent pair, under
-    any plan, and any decision whose evidence reuses a collection ledger or
-    server match an earlier decision used. Collection plan SHA-256s are
-    recorded, but identical plans share one, so the ledger and match identities
-    make evidence single-use. A new comparison against the same incumbent
-    therefore needs fresh incumbent collections.
-  - It also refuses a torn final line, a non-object line and any decision
-    claiming automatic promotion.
+    directories. The decision names each collection by path, plan SHA-256,
+    ledger SHA-256 and server match IDs. It also states `external_candidate`.
+  - `record_decision(lineage_dir, decision)` writes
+    `<lineage_dir>/selection.jsonl`. Everything below runs under an exclusive
+    lock on that lineage, including the re-derivation.
+  - It re-hashes the plan, checks that `passed`, the outcome and `reasons`
+    agree, and re-derives the decision from the named collections. The result
+    must be identical.
+  - **Lineage binding.** The candidate checkpoint is reached by SHA-256 through
+    the collections' arms: the manifest must name that weight SHA, and the
+    weight file must hash to it.
+    - `train_from_collections` requires a `lineage_dir` and records it in the
+      child manifest. Only that lineage may record a decision on the child.
+    - A checkpoint without the field, such as an externally supplied one, is
+      refused unless the decision declares `external_candidate: true`. A bound
+      checkpoint cannot be declared external.
+  - **Claims, created all or nothing before the row is appended.** Each is an
+    `O_CREAT|O_EXCL` file, fsynced along with its directory, naming the plan
+    SHA-256, the resolved record path, the row's sequence number and the
+    candidate/incumbent SHAs. If any claim already exists, the ones just created
+    are removed and the decision is refused. There are three kinds:
+    - `selection-claim.json` in every evaluation collection directory used, so
+      the same evidence can never be decided again in any lineage. A copied
+      collection carries its claim with it.
+    - `selection-claims/<incumbent>.json` in the candidate checkpoint
+      directory, so the same candidate/incumbent pair can never be decided
+      again in any lineage, even with fresh collections or after the lineage
+      was reset.
+    - `claims/<sequence>.json` in the lineage directory, one per row. Deleting,
+      truncating or reordering `selection.jsonl` no longer matches these claims
+      and is refused.
+  - Within a record, a second decision for the same pair, or one reusing a
+    collection ledger or server match, is also refused. Collection plan
+    SHA-256s are recorded, but identical plans share one, so the ledger and
+    match identities make evidence single-use. A new comparison against the
+    same incumbent therefore needs fresh incumbent collections.
+  - It also refuses a torn final line, a non-object line, an unreachable or
+    mis-hashed candidate checkpoint, and any decision claiming automatic
+    promotion.
   - Passed and rejected decisions are appended alike and never rewritten.
+  - **Residual risk.** The claims are files under the same trust boundary as the
+    collections and checkpoints. Someone with write access who deletes claim
+    files can reuse evidence: from a collection copy with its claim removed,
+    after deleting the checkpoint's pair claim, or after deleting a whole
+    lineage directory. No remote or signed registry exists. Claims are also
+    sidecar files in the candidate checkpoint directory; weights and manifest
+    are never modified.
 - **Explicit budgets, discount clock and seeds.** `TrainConfig` has no default
   for `epochs` (1–64), `sequence_length` (1–4096), `burn_in`, `batch_sequences`
   (1–1024) or `discount_time_unit`. `TrainConfig()` is a `TypeError`.
@@ -612,8 +659,9 @@ test and a mutation check.
 1. A two-game plan, or four games, passed on a degenerate bootstrap. Fixed with
    plan floors and the ten-block minimum.
 2. A decision could be made again on the same evidence. Fixed with the
-   canonical plan, one decision per pair and single-use evidence; the record
-   path is derived.
+   canonical plan, one decision per pair and single-use evidence within a
+   record; the record file name is derived from the lineage directory. Round 2
+   showed this still depended on callers reusing one directory, and closed it.
 3. A forged or inconsistent decision could be recorded. Fixed with the
    re-hash, the outcome/reasons check, re-derivation from the collections, the
    lock, refusal of non-object lines and collection plan SHA-256s in the
@@ -637,8 +685,8 @@ output path redirected the write. Such a link is now refused.
 
 | Environment | Result | Change |
 | --- | --- | --- |
-| Without torch (`--extra dev --extra jeff`) | **420 passing, 3 skipped** | 348 prior plus 72 evaluation/split cases. The training module skips through `pytest.importorskip`. |
-| With `--extra neural` | **512 passing** | 389 prior, 72 evaluation and 51 training cases |
+| Without torch (`--extra dev --extra jeff`) | **422 passing, 3 skipped** | 348 prior plus 74 evaluation/split cases. The training module skips through `pytest.importorskip`. |
+| With `--extra neural` | **515 passing** | 389 prior, 74 evaluation and 52 training cases |
 
 Both suites passed three consecutive local runs.
 
@@ -670,7 +718,13 @@ layer and 20 games per opponent, feed:
 - the record, covering forged plan SHA, inconsistent outcome, altered
   statistics, promotion claims, missing evidence, an invalid plan, pairs
   re-decided under reordered, nudged or loosened plans, reused incumbent
-  evidence, the lock, a non-object line and a torn line;
+  evidence, the lock (including re-derivation under it), a non-object line and
+  a torn line;
+- the round-2 probe: same evidence in another lineage, fresh evidence for a
+  decided pair in the same or another lineage, a deleted, emptied or
+  claim-stripped record, a missing external declaration, a bound candidate
+  declared external, mis-hashed candidate weights, claim rollback when a later
+  claim fails, and a copied collection keeping its claim;
 - refusal of training collections for evaluation and of evaluation collections
   for training, including a relabelled episode;
 - the required held-out argument and overlap;
@@ -686,6 +740,7 @@ The training cases are tiny CPU loops on synthetic data:
 - the ported live fail-closed cases, plus evaluation or unlabelled episodes;
 - required budget and discount fields with the recorded discount, and seed
   refusal;
+- the required lineage directory recorded in the child manifest;
 - output refusal (existing, inside or equal to the input, symbolic links,
   dangling links);
 - the CPU-only refusal;
@@ -731,6 +786,22 @@ Mutations of the review fixes, each of which also fails a test:
 - the symbolic-link refusal;
 - the CPU-only check.
 
+Mutations of the round-2 fixes, each of which also fails a test:
+
+- creating no collection claims or no pair claim;
+- non-exclusive claim creation;
+- no rollback;
+- no lineage claim per row;
+- no record-versus-claims check;
+- no lineage binding;
+- no external declaration;
+- no candidate weight hash;
+- no re-derivation under the lock;
+- the child manifest not recording its lineage.
+
+Both the in-record pair check and the pair claim are needed: removing either
+fails a test.
+
 CI adds the five new files to the scoped Ruff gate and `test_neural_training.py`
 to the neural step that must not skip. The lockfile and `pyproject.toml` are
 unchanged. Body, contract, README, `experiments/run_arm.sh`, `magic.py`,
@@ -742,7 +813,8 @@ Not done:
 - No server, client or bridge was used.
 - A real evaluation needs a separately authorized plan: fresh held-out
   evaluation collections for the incumbent and the candidate against each
-  opponent, with budgets of at least 20 games, fixed before play.
+  opponent, with budgets of at least 20 games, fixed before play, and one
+  fixed lineage directory, which a trained candidate names in its manifest.
 - So does any real training run, on explicitly `training` collections with a
   stated held-out set.
 

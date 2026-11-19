@@ -8,6 +8,7 @@ layer of ``test_neural_live.Harness``. No server, bridge, account or model runs.
 from __future__ import annotations
 
 import copy
+import hashlib
 import itertools
 import json
 import subprocess
@@ -16,7 +17,7 @@ import textwrap
 from pathlib import Path
 
 import pytest
-from test_neural_live import OTHER_SHA, POLICY_SHA, Harness, neural_arm, replay_fixture
+from test_neural_live import OTHER_SHA, Harness, neural_arm, replay_fixture
 
 from anima3.neural import live
 from anima3.neural.evaluation import (
@@ -41,8 +42,13 @@ from anima3.neural.splits import (
     select_training_episodes,
 )
 
-CANDIDATE = POLICY_SHA
-INCUMBENT = "12" * 32
+# Candidate checkpoints must be reachable by SHA-256, so their identities are real
+# digests of small stand-in weight files (written by ``arms_vs``).
+BLOBS = {
+    hashlib.sha256(blob).hexdigest(): blob
+    for blob in (b"candidate weights", b"incumbent weights", b"second candidate weights")
+}
+CANDIDATE, INCUMBENT, SECOND = BLOBS
 RIVAL = OTHER_SHA
 _IDS = itertools.count(1)
 
@@ -439,10 +445,32 @@ def collect(
     return tmp_path / name
 
 
+def checkpoint_dir(tmp_path, sha):
+    return tmp_path / sha[:4] / "checkpoint"
+
+
+def write_checkpoint(tmp_path, sha, lineage=None):
+    """A stand-in checkpoint whose weight file hashes to ``sha``."""
+    root = checkpoint_dir(tmp_path, sha)
+    root.mkdir(parents=True, exist_ok=True)
+    (root / "weights.pt").write_bytes(BLOBS[sha])
+    training = {} if lineage is None else {"lineage_dir": str(Path(lineage).resolve())}
+    manifest = {"weights": {"file": "weights.pt", "sha256": sha}, "training": training}
+    (root / "manifest.json").write_text(json.dumps(manifest))
+
+
 def arms_vs(tmp_path, sha, opponent):
     other = Arm("scripted") if opponent == "scripted" else neural_arm(tmp_path / "o", RIVAL)
     (tmp_path / "o").mkdir(exist_ok=True)
-    return (neural_arm(tmp_path / sha[:4], sha), other)
+    (tmp_path / sha[:4]).mkdir(exist_ok=True)
+    manifest = checkpoint_dir(tmp_path, sha) / "manifest.json"
+    kept = manifest.read_text() if manifest.exists() else None
+    arm = neural_arm(tmp_path / sha[:4], sha)  # (re)writes a placeholder manifest
+    if kept is not None and kept != "{}":
+        manifest.write_text(kept)
+    elif sha in BLOBS:
+        write_checkpoint(tmp_path, sha)
+    return (arm, other)
 
 
 @pytest.fixture
@@ -540,6 +568,8 @@ def test_live_collections_feed_the_gate_end_to_end(sha_dirs, monkeypatch, tmp_pa
 
 def test_every_decision_is_recorded_once_and_rederived(sha_dirs, monkeypatch, tmp_path):
     lineage = tmp_path / "lineage"
+    write_checkpoint(tmp_path, CANDIDATE, lineage)
+    write_checkpoint(tmp_path, SECOND, lineage)
     p = plan()
     incumbent = evaluation_set(tmp_path, monkeypatch, INCUMBENT, "i", [LOSS] * 20, [LOSS] * 20)
     candidate = evaluation_set(
@@ -572,8 +602,7 @@ def test_every_decision_is_recorded_once_and_rederived(sha_dirs, monkeypatch, tm
                 lineage, decide_from_collections(again, incumbent=incumbent, candidate=candidate)
             )
     # Another candidate may not reuse the incumbent's evaluation collections.
-    other = "34" * 32
-    (tmp_path / other[:4]).mkdir()
+    other = SECOND
     second = evaluation_set(tmp_path, monkeypatch, other, "d", [WIN] * 20, [LOSS] * 20)
     reuse = decide_from_collections(
         plan(candidate_sha256=other), incumbent=incumbent, candidate=second
@@ -594,6 +623,7 @@ def test_selection_record_is_locked_and_refuses_corruption(sha_dirs, monkeypatch
 
     lineage = tmp_path / "lineage"
     lineage.mkdir()
+    write_checkpoint(tmp_path, CANDIDATE, lineage)
     incumbent = evaluation_set(tmp_path, monkeypatch, INCUMBENT, "i", [LOSS] * 20, [LOSS] * 20)
     candidate = evaluation_set(tmp_path, monkeypatch, CANDIDATE, "c", [WIN] * 20, [WIN] * 20)
     decision = decide_from_collections(plan(), incumbent=incumbent, candidate=candidate)
@@ -601,6 +631,9 @@ def test_selection_record_is_locked_and_refuses_corruption(sha_dirs, monkeypatch
         fcntl.flock(held, fcntl.LOCK_EX | fcntl.LOCK_NB)
         with pytest.raises(EvaluationRefused, match="another writer"):
             record_decision(lineage, decision)
+        # Re-derivation happens under the lock: a forged decision waits for it too.
+        with pytest.raises(EvaluationRefused, match="another writer"):
+            record_decision(lineage, {**decision, "paired_delta": 0.0})
     record = lineage / "selection.jsonl"
     record.write_text("[1, 2]\n")
     with pytest.raises(EvaluationRefused, match="not an object"):
@@ -610,6 +643,101 @@ def test_selection_record_is_locked_and_refuses_corruption(sha_dirs, monkeypatch
         record_decision(lineage, decision)
     record.write_text("")
     assert record_decision(lineage, decision)["sequence"] == 0
+
+
+def test_evidence_pairs_and_lineages_hold_across_record_locations(sha_dirs, monkeypatch, tmp_path):
+    """The reviewer's round-2 probe: every re-decision outside the record is refused."""
+    l1, l2, l3 = (tmp_path / n for n in ("L1", "L2", "L3"))
+    write_checkpoint(tmp_path, CANDIDATE, l1)
+    p = plan()
+    inc = evaluation_set(tmp_path, monkeypatch, INCUMBENT, "i", [LOSS] * 20, [LOSS] * 20)
+    cand = evaluation_set(tmp_path, monkeypatch, CANDIDATE, "c", [WIN] * 20, [WIN] * 20)
+    d = decide_from_collections(p, incumbent=inc, candidate=cand)
+    assert record_decision(l1, d)["sequence"] == 0
+    for root in inc + cand:
+        claim = json.loads((root / "selection-claim.json").read_text())
+        assert claim["record"] == str((l1 / "selection.jsonl").resolve())
+        assert claim["sequence"] == 0 and claim["plan_sha256"] == p.sha256
+        assert (claim["candidate_sha256"], claim["incumbent_sha256"]) == (CANDIDATE, INCUMBENT)
+    # Same evidence, another lineage directory.
+    with pytest.raises(EvaluationRefused, match="bound to another lineage"):
+        record_decision(l2, d)
+    # Fresh evidence for the decided pair, a third directory.
+    inc2 = evaluation_set(tmp_path, monkeypatch, INCUMBENT, "i2", [LOSS] * 20, [LOSS] * 20)
+    cand2 = evaluation_set(tmp_path, monkeypatch, CANDIDATE, "c2", [WIN] * 20, [WIN] * 20)
+    d2 = decide_from_collections(p, incumbent=inc2, candidate=cand2)
+    with pytest.raises(EvaluationRefused, match="pair was already decided"):
+        record_decision(l1, d2)
+    with pytest.raises(EvaluationRefused, match="bound to another lineage"):
+        record_decision(l3, d2)
+    # Deleting or truncating the record no longer resets the lineage.
+    (l1 / "selection.jsonl").unlink()
+    with pytest.raises(EvaluationRefused, match="deleted, truncated"):
+        record_decision(l1, d2)
+    (l1 / "selection.jsonl").write_text("")
+    with pytest.raises(EvaluationRefused, match="deleted, truncated"):
+        record_decision(l1, d2)
+    # Even with record and lineage claims gone, the pair claim in the checkpoint holds.
+    (l1 / "selection.jsonl").unlink()
+    (l1 / "claims" / "000000.json").unlink()
+    with pytest.raises(EvaluationRefused, match="pair was already decided"):
+        record_decision(l1, d2)
+    assert not (inc2[0] / "selection-claim.json").exists()
+
+
+def test_external_candidates_must_say_so_and_claims_are_all_or_nothing(
+    sha_dirs, monkeypatch, tmp_path
+):
+    l1, l2 = tmp_path / "L1", tmp_path / "L2"
+    p = plan()
+    inc = evaluation_set(tmp_path, monkeypatch, INCUMBENT, "i", [LOSS] * 20, [LOSS] * 20)
+    cand = evaluation_set(tmp_path, monkeypatch, CANDIDATE, "c", [WIN] * 20, [WIN] * 20)
+    implicit = decide_from_collections(p, incumbent=inc, candidate=cand)
+    with pytest.raises(EvaluationRefused, match="declare external_candidate"):
+        record_decision(l1, implicit)
+    with pytest.raises(EvaluationRefused, match="True or False"):
+        decide_from_collections(p, incumbent=inc, candidate=cand, external_candidate=1)
+    external = decide_from_collections(p, incumbent=inc, candidate=cand, external_candidate=True)
+    with pytest.raises(EvaluationRefused, match="differs"):
+        record_decision(l1, {**external, "paired_delta": 0.0})
+    assert record_decision(l1, external)["external_candidate"] is True
+    # The same external pair cannot be decided again anywhere, even with fresh evidence.
+    inc2 = evaluation_set(tmp_path, monkeypatch, INCUMBENT, "i2", [LOSS] * 20, [LOSS] * 20)
+    cand2 = evaluation_set(tmp_path, monkeypatch, CANDIDATE, "c2", [WIN] * 20, [WIN] * 20)
+    again = decide_from_collections(p, incumbent=inc2, candidate=cand2, external_candidate=True)
+    with pytest.raises(EvaluationRefused, match="pair was already decided"):
+        record_decision(l2, again)
+    # A second candidate reusing the claimed incumbent evidence in a new lineage:
+    # refused, and the pair claim it created first is rolled back.
+    reuse = decide_from_collections(
+        plan(candidate_sha256=SECOND),
+        incumbent=inc,
+        candidate=evaluation_set(tmp_path, monkeypatch, SECOND, "d", [WIN] * 20, [WIN] * 20),
+        external_candidate=True,
+    )
+    with pytest.raises(EvaluationRefused, match="already claimed"):
+        record_decision(l2, reuse)
+    pair = checkpoint_dir(tmp_path, SECOND) / "selection-claims" / f"{INCUMBENT}.json"
+    assert not pair.exists()
+    assert not (l2 / "selection.jsonl").exists() and not list((l2 / "claims").glob("*"))
+    # A copied collection carries its claim with it.
+    import shutil
+
+    copied = tmp_path / "copy-i-s"
+    shutil.copytree(inc[0], copied)
+    assert (copied / "selection-claim.json").exists()
+    # A bound candidate cannot be declared external, and unverifiable weights are refused.
+    write_checkpoint(tmp_path, SECOND, l2)
+    fresh = evaluation_set(tmp_path, monkeypatch, INCUMBENT, "j", [LOSS] * 20, [LOSS] * 20)
+    second = [tmp_path / "d-s", tmp_path / "d-r"]
+    bound = decide_from_collections(
+        plan(candidate_sha256=SECOND), incumbent=fresh, candidate=second, external_candidate=True
+    )
+    with pytest.raises(EvaluationRefused, match="bound to another lineage"):
+        record_decision(l2, bound)
+    (checkpoint_dir(tmp_path, SECOND) / "weights.pt").write_bytes(b"tampered")
+    with pytest.raises(EvaluationRefused, match="hash to its SHA-256"):
+        record_decision(l2, {**bound, "external_candidate": False})
 
 
 # --- the training split ----------------------------------------------------------------------

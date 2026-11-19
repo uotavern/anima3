@@ -46,6 +46,7 @@ from anima3.neural.train import (
     update_verified_episodes,
 )
 
+LINEAGE = Path("/nonexistent/anima3-test-lineage")
 BUDGET = {
     "epochs": 2,
     "sequence_length": 4,
@@ -334,6 +335,7 @@ def test_live_updates_fail_closed_before_any_output(tmp_path, corruption, error)
             out=tmp_path / "output",
             config=SMALL,
             seed=1,
+            lineage_dir=LINEAGE,
         )
     assert not (tmp_path / "output").exists()
     assert tree_digest(tmp_path / "input") == before
@@ -342,7 +344,11 @@ def test_live_updates_fail_closed_before_any_output(tmp_path, corruption, error)
 def test_update_requires_explicit_budget_seed_and_trusted_verifier(tmp_path):
     loaded = saved(tmp_path)
     episode = live_episode(loaded)
-    kwargs = {"out": tmp_path / "output", "verify_episode": lambda _: True}
+    kwargs = {
+        "out": tmp_path / "output",
+        "verify_episode": lambda _: True,
+        "lineage_dir": LINEAGE,
+    }
     with pytest.raises(TypeError):
         _unsafe_update_from_episodes(loaded, [episode], **kwargs)  # no config/seed
     with pytest.raises(TypeError, match="TrainConfig"):
@@ -358,6 +364,7 @@ def test_update_requires_explicit_budget_seed_and_trusted_verifier(tmp_path):
             out=tmp_path / "output",
             config=SMALL,
             seed=1,
+            lineage_dir=LINEAGE,
         )
     assert not (tmp_path / "output").exists()
 
@@ -369,7 +376,13 @@ def test_output_is_a_new_sha_recorded_checkpoint_that_never_overwrites_its_input
     for out in (tmp_path / "input", tmp_path / "input" / "child"):
         with pytest.raises(ValueError, match="outside the input"):
             _unsafe_update_from_episodes(
-                loaded, [episode], verify_episode=lambda _: True, out=out, config=SMALL, seed=1
+                loaded,
+                [episode],
+                verify_episode=lambda _: True,
+                out=out,
+                config=SMALL,
+                seed=1,
+                lineage_dir=LINEAGE,
             )
     (tmp_path / "taken").mkdir()
     with pytest.raises(ValueError, match="already exists"):
@@ -380,6 +393,7 @@ def test_output_is_a_new_sha_recorded_checkpoint_that_never_overwrites_its_input
             out=tmp_path / "taken",
             config=SMALL,
             seed=1,
+            lineage_dir=LINEAGE,
         )
     assert list((tmp_path / "taken").iterdir()) == []
     result = _unsafe_update_from_episodes(
@@ -389,6 +403,7 @@ def test_output_is_a_new_sha_recorded_checkpoint_that_never_overwrites_its_input
         out=tmp_path / "output",
         config=SMALL,
         seed=1,
+        lineage_dir=LINEAGE,
     )
     assert tree_digest(tmp_path / "input") == before
     assert result["policy_sha"] != loaded.policy_sha
@@ -414,6 +429,7 @@ def test_output_is_a_new_sha_recorded_checkpoint_that_never_overwrites_its_input
             out=tmp_path / "output",
             config=SMALL,
             seed=1,
+            lineage_dir=LINEAGE,
         )
 
 
@@ -432,6 +448,7 @@ def test_fixed_seed_gives_identical_weights_and_leaves_global_rng_alone(tmp_path
             out=tmp_path / name,
             config=SMALL,
             seed=seed,
+            lineage_dir=LINEAGE,
         )
         shas.append(result["policy_sha"])
     assert torch.equal(torch.rand(3), expected_next)
@@ -450,6 +467,7 @@ def test_both_sides_of_a_match_are_distinct_and_consumed_identities_are_refused(
         out=tmp_path / "child",
         config=SMALL,
         seed=1,
+        lineage_dir=LINEAGE,
     )
     child = load_checkpoint(tmp_path / "child", expected_sha256=result["policy_sha"])
     assert child.manifest["training"]["live_consumed"] == [[f"{1:032x}", 57], [f"{1:032x}", 58]]
@@ -461,6 +479,7 @@ def test_both_sides_of_a_match_are_distinct_and_consumed_identities_are_refused(
             out=tmp_path / "dup",
             config=SMALL,
             seed=1,
+            lineage_dir=LINEAGE,
         )
     lineage = saved(tmp_path, "lineage", training={"live_consumed": [[f"{1:032x}", 57]]})
     with pytest.raises(ValueError, match="duplicate"):
@@ -471,6 +490,7 @@ def test_both_sides_of_a_match_are_distinct_and_consumed_identities_are_refused(
             out=tmp_path / "again",
             config=SMALL,
             seed=1,
+            lineage_dir=LINEAGE,
         )
 
 
@@ -497,6 +517,7 @@ def test_batch_size_is_capped(tmp_path):
             out=tmp_path / "oversized",
             config=config,
             seed=0,
+            lineage_dir=LINEAGE,
         )
     assert not (tmp_path / "oversized").exists()
     result = _unsafe_update_from_episodes(
@@ -506,6 +527,7 @@ def test_batch_size_is_capped(tmp_path):
         out=tmp_path / "output",
         config=config,
         seed=0,
+        lineage_dir=LINEAGE,
     )
     assert result["episodes"] == 200 and result["metrics"]["rollout_steps"] == 200
 
@@ -557,7 +579,12 @@ def test_train_from_verified_training_collections_end_to_end(tmp_path, monkeypat
     train = collect_policy(tmp_path, monkeypatch, "train", loaded, [1, 2, 1], "training")
     held = collect_policy(tmp_path, monkeypatch, "held", loaded, [2, 1], "evaluation")
     before = {p: tree_digest(p) for p in (tmp_path / "input", train, held)}
-    kwargs = {"expected_sha256": loaded.policy_sha, "config": SMALL, "seed": 3}
+    kwargs = {
+        "expected_sha256": loaded.policy_sha,
+        "config": SMALL,
+        "seed": 3,
+        "lineage_dir": LINEAGE,
+    }
     with pytest.raises(TypeError, match="held_out"):
         train_from_collections(
             tmp_path / "input", collections=[train], out=tmp_path / "x", **kwargs
@@ -586,6 +613,8 @@ def test_train_from_verified_training_collections_end_to_end(tmp_path, monkeypat
     assert summary["accepted_episodes"] == 3 and summary["rejected"] == []
     assert summary["held_out"] == [str(held.resolve())]
     updated = load_checkpoint(tmp_path / "out", expected_sha256=summary["policy_sha"])
+    assert updated.manifest["training"]["lineage_dir"] == str(LINEAGE.resolve())
+    assert summary["lineage_dir"] == str(LINEAGE.resolve())
     consumed = updated.manifest["training"]["live_consumed"]
     assert [c[0] for c in consumed] == [
         r["match_id"] for r in read_collection(train).ledger.completed
@@ -616,6 +645,7 @@ def test_tampered_training_receipt_refuses_the_whole_update(tmp_path, monkeypatc
             config=SMALL,
             seed=3,
             held_out=NO_HELD_OUT,
+            lineage_dir=LINEAGE,
         )
     assert not (tmp_path / "out").exists()
 
@@ -640,6 +670,7 @@ def test_training_config_has_no_default_budget_or_discount_clock(tmp_path):
             out=tmp_path / name,
             config=config,
             seed=1,
+            lineage_dir=LINEAGE,
         )
         manifest = load_checkpoint(tmp_path / name, expected_sha256=result["policy_sha"]).manifest
         discount = manifest["training"]["discount"]
@@ -664,6 +695,7 @@ def test_output_symlinks_are_refused_even_when_dangling(tmp_path):
                 out=tmp_path / out,
                 config=SMALL,
                 seed=1,
+                lineage_dir=LINEAGE,
             )
     assert not (tmp_path / "elsewhere").exists()
 
@@ -682,6 +714,7 @@ def test_training_on_another_device_is_refused(tmp_path):
             out=tmp_path / "out",
             config=SMALL,
             seed=1,
+            lineage_dir=LINEAGE,
         )
 
 
@@ -689,7 +722,7 @@ def test_public_update_only_trusts_a_real_training_selection(tmp_path, monkeypat
     loaded = saved(tmp_path)
     train = collect_policy(tmp_path, monkeypatch, "train", loaded, [1, 2], "training")
     selection = select_training_episodes([train], loaded.policy_sha, held_out=NO_HELD_OUT)
-    kwargs = {"config": SMALL, "seed": 1}
+    kwargs = {"config": SMALL, "seed": 1, "lineage_dir": LINEAGE}
     with pytest.raises(TypeError, match="TrainingSelection"):
         update_verified_episodes(loaded, selection.episodes, out=tmp_path / "a", **kwargs)
     forged = TrainingSelection(
@@ -715,3 +748,20 @@ def test_public_update_only_trusts_a_real_training_selection(tmp_path, monkeypat
     assert not any((tmp_path / n).exists() for n in "abcd")
     result = update_verified_episodes(loaded, selection, out=tmp_path / "ok", **kwargs)
     assert result["episodes"] == 2
+
+
+def test_a_trained_candidate_is_bound_to_a_named_lineage(tmp_path):
+    loaded = saved(tmp_path)
+    episode = live_episode(loaded)
+    common = {"verify_episode": lambda _: True, "config": SMALL, "seed": 1}
+    with pytest.raises(TypeError, match="lineage_dir"):
+        _unsafe_update_from_episodes(loaded, [episode], out=tmp_path / "a", **common)
+    with pytest.raises(ValueError, match="lineage"):
+        _unsafe_update_from_episodes(
+            loaded, [episode], out=tmp_path / "a", lineage_dir="", **common
+        )
+    result = _unsafe_update_from_episodes(
+        loaded, [episode], out=tmp_path / "b", lineage_dir=tmp_path / "L1", **common
+    )
+    manifest = load_checkpoint(tmp_path / "b", expected_sha256=result["policy_sha"]).manifest
+    assert manifest["training"]["lineage_dir"] == str((tmp_path / "L1").resolve())

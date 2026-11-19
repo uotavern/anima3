@@ -531,6 +531,7 @@ def update_verified_episodes(
     out: str | Path,
     config: TrainConfig,
     seed: int,
+    lineage_dir,
 ) -> dict:
     """One bounded PPO update from a :class:`TrainingSelection` for this exact checkpoint.
 
@@ -553,6 +554,7 @@ def update_verified_episodes(
         out=out,
         config=config,
         seed=seed,
+        lineage_dir=lineage_dir,
     )
 
 
@@ -564,6 +566,7 @@ def _unsafe_update_from_episodes(
     out: str | Path,
     config: TrainConfig,
     seed: int,
+    lineage_dir,
 ) -> dict:
     """Private and unsafe: trusts ``verify_episode``. Use :func:`update_verified_episodes`.
 
@@ -580,6 +583,9 @@ def _unsafe_update_from_episodes(
         raise ValueError("an explicit non-negative integer seed is required")
     if not callable(verify_episode) or not (1 <= len(episodes) <= MAX_EPISODES):
         raise ValueError(f"trusted verifier and 1..{MAX_EPISODES} live episodes required")
+    if not isinstance(lineage_dir, (str, Path)) or not str(lineage_dir):
+        raise ValueError("name the selection lineage directory this candidate belongs to")
+    lineage = str(Path(lineage_dir).resolve())
     if loaded.model.device.type != "cpu":
         raise ValueError("bounded training runs on CPU only")
     out = _fresh_output(out, loaded.directory)
@@ -608,6 +614,8 @@ def _unsafe_update_from_episodes(
     training = {
         "source": "verified-servuo-on-policy",
         "parent_policy_sha": loaded.policy_sha,
+        # Only this lineage's selection record may decide on the new checkpoint.
+        "lineage_dir": lineage,
         "config": asdict(config),
         "budget": {
             "epochs": config.epochs,
@@ -643,6 +651,7 @@ def _unsafe_update_from_episodes(
         "policy_sha": policy_sha,
         "parent_policy_sha": loaded.policy_sha,
         "checkpoint": str(out),
+        "lineage_dir": lineage,
         "episodes": len(episodes),
         "seed": seed,
         "budget": training["budget"],
@@ -663,12 +672,15 @@ def train_from_collections(
     config: TrainConfig,
     seed: int,
     held_out,
+    lineage_dir,
     min_episodes: int = 1,
 ) -> dict:
     """Load the behaviour checkpoint by SHA, select verified training input, update once.
 
     ``held_out`` is required: name the evaluation collections whose matches must
     not be trained on, or pass ``splits.NO_HELD_OUT`` to state there are none.
+    ``lineage_dir`` is required and recorded in the child manifest: only that
+    lineage's ``record_decision`` may later decide on the child.
     """
     from .splits import select_training_episodes
 
@@ -679,7 +691,9 @@ def train_from_collections(
     selection = select_training_episodes(collections, loaded.policy_sha, held_out=held_out)
     if len(selection.episodes) < min_episodes:
         raise NoEligibleEpisodes(selection.rejected, len(selection.episodes), min_episodes)
-    result = update_verified_episodes(loaded, selection, out=out, config=config, seed=seed)
+    result = update_verified_episodes(
+        loaded, selection, out=out, config=config, seed=seed, lineage_dir=lineage_dir
+    )
     summary = {
         **result,
         "collections": selection.collections,

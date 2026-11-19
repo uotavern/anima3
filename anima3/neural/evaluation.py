@@ -21,8 +21,11 @@ Stdlib only; importing this module never imports torch, trains or promotes.
   average improvement is not superiority against every opponent. Games are only
   paired from the same seat.
 - Every decision, passed or rejected, is appended to the lineage's selection
-  record after being re-derived from its collections. A candidate/incumbent pair
-  is decided once and a collection serves one decision. A passed gate is
+  record after being re-derived from its collections under the lineage lock.
+  Exclusive claim files in the collections, the candidate checkpoint directory
+  and the lineage make evidence and the candidate/incumbent pair single-use
+  across all lineages, and a trained candidate is bound to the lineage named in
+  its manifest. A passed gate is
   evidence for a separate, explicit decision; it never promotes or deploys a
   checkpoint.
 """
@@ -478,14 +481,23 @@ def selection_gate(plan: EvaluationPlan, incumbent: dict, candidate: dict) -> di
             "incumbent": incumbent.get("collections"),
             "candidate": candidate.get("collections"),
         },
+        "external_candidate": False,
         "automatic_promotion": False,
         "public_deployment": False,
         "real_server_strength_established": False,
     }
 
 
-def decide_from_collections(plan: EvaluationPlan, *, incumbent, candidate) -> dict:
-    """Re-derive both evaluations from their held-out collection directories and gate them."""
+def decide_from_collections(
+    plan: EvaluationPlan, *, incumbent, candidate, external_candidate: bool = False
+) -> dict:
+    """Re-derive both evaluations from their held-out collection directories and gate them.
+
+    ``external_candidate`` declares that the candidate checkpoint was not produced
+    by ``train_from_collections`` and so carries no lineage binding.
+    """
+    if type(external_candidate) is not bool:
+        raise EvaluationRefused("external_candidate must be True or False")
     evaluations = {}
     for sha, directories in (
         (plan.incumbent_sha256, incumbent),
@@ -497,9 +509,11 @@ def decide_from_collections(plan: EvaluationPlan, *, incumbent, candidate) -> di
     ledgers = [c["ledger_sha256"] for e in evaluations.values() for c in e["collections"].values()]
     if len(set(ledgers)) != len(ledgers):
         raise EvaluationRefused("one collection cannot serve two evaluations")
-    return selection_gate(
+    decision = selection_gate(
         plan, evaluations[plan.incumbent_sha256], evaluations[plan.candidate_sha256]
     )
+    decision["external_candidate"] = external_candidate
+    return decision
 
 
 # --- the selection record --------------------------------------------------------------------
@@ -560,6 +574,8 @@ def _validate_decision(decision) -> EvaluationPlan:
         or decision.get("incumbent_sha256") != plan.incumbent_sha256
     ):
         raise EvaluationRefused("decision does not match its re-hashed plan")
+    if type(decision.get("external_candidate")) is not bool:
+        raise EvaluationRefused("decision must state whether the candidate is external")
     reasons = decision.get("reasons")
     expected = "candidate_passed_gate" if decision["passed"] else "retain_incumbent"
     if (
@@ -571,31 +587,96 @@ def _validate_decision(decision) -> EvaluationPlan:
     return plan
 
 
+def _candidate_checkpoints(
+    plan: EvaluationPlan, directories: list[str]
+) -> tuple[list[Path], str | None]:
+    """Reach the candidate checkpoint by SHA-256 through each collection's arm."""
+    found = []
+    for directory in directories:
+        arms = read_collection(directory).plan.get("arms") or []
+        paths = [
+            a.get("checkpoint")
+            for a in arms
+            if isinstance(a, dict) and a.get("policy_sha256") == plan.candidate_sha256
+        ]
+        if len(paths) != 1 or not isinstance(paths[0], str):
+            raise EvaluationRefused("collection does not name the candidate checkpoint")
+        root = Path(paths[0]).resolve()
+        root = root if root.is_dir() else root.parent
+        try:
+            manifest = json.loads((root / "manifest.json").read_bytes()[: 1024 * 1024 + 1])
+            weights = manifest["weights"]
+            name = weights["file"]
+            if Path(name).name != name or weights["sha256"] != plan.candidate_sha256:
+                raise ValueError("weights are not the candidate")
+            digest = hashlib.sha256()
+            with (root / name).open("rb") as stream:
+                for chunk in iter(lambda: stream.read(1 << 20), b""):
+                    digest.update(chunk)
+        except (OSError, ValueError, KeyError, TypeError) as exc:
+            raise EvaluationRefused(f"cannot reach the candidate checkpoint by SHA: {exc}") from exc
+        if digest.hexdigest() != plan.candidate_sha256:
+            raise EvaluationRefused("candidate checkpoint weights do not hash to its SHA-256")
+        found.append((root, manifest))
+    roots = {root for root, _ in found}
+    lineages = {json.dumps((m.get("training") or {}).get("lineage_dir")) for _, m in found}
+    if len(lineages) != 1:
+        raise EvaluationRefused("candidate checkpoint copies disagree on their lineage")
+    return sorted(roots), json.loads(lineages.pop())
+
+
+def _claim(path: Path, content: dict, created: list[Path]) -> None:
+    """Create ``path`` exclusively and durably, remembering it for rollback."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o644)
+    except FileExistsError:
+        raise EvaluationRefused(f"evidence already claimed by a decision: {path}") from None
+    created.append(path)
+    with os.fdopen(fd, "w") as out:
+        out.write(json.dumps(content, sort_keys=True) + "\n")
+        out.flush()
+        os.fsync(out.fileno())
+    _fsync_dir(path.parent)
+
+
+def _release(created: list[Path]) -> None:
+    for path in reversed(created):
+        try:
+            path.unlink()
+            _fsync_dir(path.parent)
+        except OSError:
+            pass
+
+
 def record_decision(lineage_dir, decision: dict) -> dict:
     """Append a gate decision, passed or rejected, to the lineage's selection record.
 
-    The record is always ``<lineage_dir>/selection.jsonl``: keep one lineage
-    directory per incumbent lineage, so every comparison it ever made is in one
-    file. Before appending, under an exclusive lock, the decision's plan is
-    re-hashed, its outcome checked against its reasons, and the whole decision
-    re-derived from the named held-out collections; it must be identical. A
-    second decision for the same candidate/incumbent pair is refused, as is one
-    whose evidence reuses any collection ledger or server match an earlier
-    decision used. (Collection plan SHA-256s are recorded too, but two
-    collections with identical plans share one, so the ledger and match
-    identities are what make evidence single-use.) Rows are never rewritten.
+    The record is ``<lineage_dir>/selection.jsonl``. Under an exclusive lock on
+    the lineage, the decision's plan is re-hashed, its outcome checked against its
+    reasons, and the whole decision re-derived from the named held-out
+    collections; it must be identical. Then, all or nothing, exclusive claim
+    files are created:
+
+    - ``selection-claim.json`` in every evaluation collection directory used,
+      so the same evidence can never be decided again in any lineage;
+    - ``selection-claims/<incumbent>.json`` in the candidate checkpoint
+      directory, so the same candidate/incumbent pair can never be decided
+      again in any lineage, even with fresh collections;
+    - ``claims/<sequence>.json`` in the lineage directory, one per record row,
+      so a deleted or truncated ``selection.jsonl`` no longer matches its claims.
+
+    The candidate checkpoint is reached by SHA-256 through the collections' arms.
+    If its manifest names a ``lineage_dir`` (``train_from_collections`` records
+    one), only that lineage may record it; a candidate without one must be
+    declared ``external_candidate`` in the decision. A second decision for the
+    same pair, or one reusing a collection ledger or server match, is also
+    refused within the record itself. Rows are never rewritten.
     """
     import fcntl
 
     plan = _validate_decision(decision)
-    recomputed = decide_from_collections(
-        plan,
-        incumbent=_evidence_paths(decision, plan, "incumbent"),
-        candidate=_evidence_paths(decision, plan, "candidate"),
-    )
-    if recomputed != decision:
-        raise EvaluationRefused("decision differs from the one its collections give")
-    root = Path(lineage_dir)
+    root = Path(lineage_dir).resolve()
     root.mkdir(parents=True, exist_ok=True)
     path = root / SELECTION_RECORD
     with (root / f"{SELECTION_RECORD}.lock").open("a") as lock:
@@ -603,6 +684,24 @@ def record_decision(lineage_dir, decision: dict) -> dict:
             fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
         except BlockingIOError:
             raise EvaluationRefused("another writer holds the selection record") from None
+        incumbent_dirs = _evidence_paths(decision, plan, "incumbent")
+        candidate_dirs = _evidence_paths(decision, plan, "candidate")
+        recomputed = decide_from_collections(
+            plan,
+            incumbent=incumbent_dirs,
+            candidate=candidate_dirs,
+            external_candidate=decision["external_candidate"],
+        )
+        if recomputed != decision:
+            raise EvaluationRefused("decision differs from the one its collections give")
+        checkpoints, bound = _candidate_checkpoints(plan, candidate_dirs)
+        if bound is None:
+            if decision["external_candidate"] is not True:
+                raise EvaluationRefused(
+                    "candidate checkpoint names no lineage; declare external_candidate"
+                )
+        elif decision["external_candidate"] or Path(bound).resolve() != root:
+            raise EvaluationRefused("candidate checkpoint is bound to another lineage")
         existing = []
         if path.exists():
             text = path.read_text()
@@ -616,6 +715,12 @@ def record_decision(lineage_dir, decision: dict) -> dict:
                 if not isinstance(row, dict):
                     raise EvaluationRefused("selection record line is not an object")
                 existing.append(row)
+        claims_dir = root / "claims"
+        claimed = sorted(p.name for p in claims_dir.glob("*.json")) if claims_dir.is_dir() else []
+        if claimed != [f"{i:06d}.json" for i in range(len(existing))] or [
+            r.get("sequence") for r in existing
+        ] != list(range(len(existing))):
+            raise EvaluationRefused("selection record was deleted, truncated or reordered")
         used = set()
         for row in existing:
             if (row.get("candidate_sha256"), row.get("incumbent_sha256")) == (
@@ -626,13 +731,36 @@ def record_decision(lineage_dir, decision: dict) -> dict:
             used |= _evidence_used(row)
         if used & _evidence_used(decision):
             raise EvaluationRefused("an evaluation collection was already used by a decision")
-        row = {"sequence": len(existing), "utc": time.time(), **decision}
-        created = not path.exists()
-        line = json.dumps(row, sort_keys=True, allow_nan=False) + "\n"
-        with path.open("a") as out:
-            out.write(line)
-            out.flush()
-            os.fsync(out.fileno())
-        if created:
-            _fsync_dir(root)
+        sequence = len(existing)
+        claim = {
+            "plan_sha256": plan.sha256,
+            "record": str(path),
+            "sequence": sequence,
+            "candidate_sha256": plan.candidate_sha256,
+            "incumbent_sha256": plan.incumbent_sha256,
+        }
+        created: list[Path] = []
+        try:
+            for checkpoint in checkpoints:
+                pair = checkpoint / "selection-claims" / f"{plan.incumbent_sha256}.json"
+                if pair.exists():
+                    raise EvaluationRefused("this candidate/incumbent pair was already decided")
+                _claim(pair, claim, created)
+            for directory in sorted(
+                {str(Path(d).resolve()) for d in incumbent_dirs + candidate_dirs}
+            ):
+                _claim(Path(directory) / "selection-claim.json", claim, created)
+            _claim(claims_dir / f"{sequence:06d}.json", claim, created)
+            row = {"sequence": sequence, "utc": time.time(), **decision}
+            new_file = not path.exists()
+            line = json.dumps(row, sort_keys=True, allow_nan=False) + "\n"
+            with path.open("a") as out:
+                out.write(line)
+                out.flush()
+                os.fsync(out.fileno())
+            if new_file:
+                _fsync_dir(root)
+        except BaseException:
+            _release(created)
+            raise
     return row
