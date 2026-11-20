@@ -1,0 +1,182 @@
+{
+  "automatic_promotion": false,
+  "config": {
+    "action_dim": 23,
+    "encoder_size": 128,
+    "feature_dim": 65,
+    "hidden_size": 128
+  },
+  "created_at": "2026-09-30T06:49:10.796429+00:00",
+  "format": "anima3-recurrent-policy-v1",
+  "optimizer": {
+    "bytes": 1030629,
+    "file": "optimizer-50f8730ba91e88b5dc1338a600a6092783b284d7c71ff19024f9e0443ed29828.pt",
+    "sha256": "50f8730ba91e88b5dc1338a600a6092783b284d7c71ff19024f9e0443ed29828"
+  },
+  "rng": {
+    "bytes": 6633,
+    "file": "rng-bf9e7301a38e6bf268faef99e7323d1da6390991504bde730553c7433ff42b1b.pt",
+    "sha256": "bf9e7301a38e6bf268faef99e7323d1da6390991504bde730553c7433ff42b1b"
+  },
+  "schema": {
+    "actions": [
+      "hold",
+      "approach",
+      "retreat",
+      "strafe_left",
+      "strafe_right",
+      "weaken",
+      "clumsy",
+      "magic_arrow",
+      "harm",
+      "explosion",
+      "energy_bolt",
+      "flamestrike",
+      "greater_heal",
+      "heal",
+      "cure",
+      "poison",
+      "paralyze",
+      "meditate",
+      "heal_potion",
+      "cure_potion",
+      "explosion_potion",
+      "burst_bolt",
+      "burst_flame"
+    ],
+    "features": [
+      "self_hp",
+      "self_mana",
+      "self_stamina",
+      "opponent_hp",
+      "opponent_hp_known",
+      "relative_x",
+      "relative_y",
+      "distance",
+      "self_poisoned",
+      "opponent_poisoned",
+      "self_paralyzed",
+      "opponent_paralyzed",
+      "cast_remaining",
+      "busy_remaining",
+      "recovery_remaining",
+      "heal_potion_cooldown",
+      "cure_potion_cooldown",
+      "explosion_potion_cooldown",
+      "burst_cooldown",
+      "heal_potions",
+      "cure_potions",
+      "explosion_potions",
+      "reagent_black_pearl",
+      "reagent_bloodmoss",
+      "reagent_garlic",
+      "reagent_ginseng",
+      "reagent_mandrake",
+      "reagent_nightshade",
+      "reagent_spiders_silk",
+      "reagent_sulfurous_ash",
+      "elapsed",
+      "showdown",
+      "time_to_showdown",
+      "recent_damage_dealt",
+      "recent_damage_received",
+      "recent_self_damage",
+      "opponent_spell_age",
+      "opponent_visible",
+      "line_of_sight",
+      "fresh",
+      "ready",
+      "move_approach",
+      "move_retreat",
+      "move_strafe_left",
+      "move_strafe_right",
+      "potion_fuse",
+      "incoming_explosion",
+      "incoming_explosion_delay",
+      "opponent_cast_weaken",
+      "opponent_cast_clumsy",
+      "opponent_cast_magic_arrow",
+      "opponent_cast_harm",
+      "opponent_cast_explosion",
+      "opponent_cast_energy_bolt",
+      "opponent_cast_flamestrike",
+      "opponent_cast_greater_heal",
+      "opponent_cast_heal",
+      "opponent_cast_cure",
+      "opponent_cast_poison",
+      "opponent_cast_paralyze",
+      "last_action_attack",
+      "last_action_heal",
+      "last_action_control",
+      "last_action_move",
+      "last_action_potion"
+    ],
+    "version": 1
+  },
+  "schema_fingerprint": "e39b7b4261af718164c4a62e6a8142ca219b00a76c309beb51cab04bcb499205",
+  "training": {
+    "actor_normalization": "free-choice",
+    "config": {
+      "batch_sequences": 8,
+      "burn_in": 8,
+      "clip_range": 0.2,
+      "discount_time_unit": 1.0,
+      "entropy_coef": 0.01,
+      "epochs": 4,
+      "gae_lambda": 0.95,
+      "gamma": 0.995,
+      "learning_rate": 0.0003,
+      "max_grad_norm": 0.5,
+      "sequence_length": 64,
+      "target_kl": 0.04,
+      "value_coef": 0.5
+    },
+    "discount": "gamma**dt_seconds",
+    "episodes": [
+      {
+        "match_id": "27e442010d144d16959852721e6d71d6",
+        "player_serial": 57,
+        "replay_sha256": "81fa59bacac5eb7c655ece0f57f76c42c3565833f78c1ae5c4bee84cdb65d01d"
+      }
+    ],
+    "live_consumed": [
+      [
+        "af9e520e0cbd4bffa6f7b00d8d7d0914",
+        57
+      ],
+      [
+        "d1cdce16976848d0b7b3ca3dac9b3b59",
+        57
+      ],
+      [
+        "0bd5a94b6934449986938bfd2cbc9bf0",
+        57
+      ],
+      [
+        "27e442010d144d16959852721e6d71d6",
+        57
+      ]
+    ],
+    "metrics": {
+      "approximate_kl": 0.00273608262068592,
+      "clip_fraction": 0.03333333507180214,
+      "entropy": 1.5592947006225586,
+      "grad_norm": 1.3482921421527863,
+      "kl_early_stop": false,
+      "optimized_steps": 932,
+      "policy_loss": -0.01947502849313132,
+      "policy_optimized_steps": 120,
+      "rollout_steps": 233,
+      "value_loss": 0.05749911442399025
+    },
+    "parent_policy_sha": "0698f95bbd313469d459968fbc70e7878ead4c5d17572568ebbfbff6dd711c79",
+    "seed": 3,
+    "source": "verified-servuo-on-policy",
+    "strength_improvement_established": false
+  },
+  "weights": {
+    "bytes": 513977,
+    "file": "weights-fe5796b401fe276cb6c916d5c613e8dc286dcaa0432b136d5aee3465f2803a38.pt",
+    "sha256": "fe5796b401fe276cb6c916d5c613e8dc286dcaa0432b136d5aee3465f2803a38"
+  }
+}

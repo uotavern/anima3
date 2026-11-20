@@ -1,0 +1,50 @@
+[
+  {
+    "fixture": 1,
+    "eligible": true,
+    "outcome": -1.0,
+    "unseen": 0,
+    "unseen_approach": 0,
+    "teacher_eligible": true,
+    "teacher_invalid": [],
+    "observe_median": 34.45356403244659,
+    "observe_p95": 101.62031999789178,
+    "rejected": []
+  },
+  {
+    "fixture": 2,
+    "eligible": true,
+    "outcome": -1.0,
+    "unseen": 0,
+    "unseen_approach": 0,
+    "teacher_eligible": true,
+    "teacher_invalid": [],
+    "observe_median": 31.425002962350845,
+    "observe_p95": 88.88858300633729,
+    "rejected": []
+  },
+  {
+    "fixture": 3,
+    "eligible": true,
+    "outcome": 1.0,
+    "unseen": 0,
+    "unseen_approach": 0,
+    "teacher_eligible": true,
+    "teacher_invalid": [],
+    "observe_median": 35.3364014881663,
+    "observe_p95": 102.07313799764961,
+    "rejected": []
+  },
+  {
+    "fixture": 4,
+    "eligible": true,
+    "outcome": 1.0,
+    "unseen": 0,
+    "unseen_approach": 0,
+    "teacher_eligible": true,
+    "teacher_invalid": [],
+    "observe_median": 35.60214402386919,
+    "observe_p95": 101.57128097489476,
+    "rejected": []
+  }
+]

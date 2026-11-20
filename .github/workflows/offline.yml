@@ -43,6 +43,7 @@ jobs:
           tests/test_neural_evaluation.py tests/test_neural_training.py
           anima3/neural/teacher.py anima3/neural/melee.py anima3/neural/demonstrations.py
           anima3/neural/imitation.py tests/test_neural_teacher.py tests/test_neural_imitation.py
+          tests/test_history_records.py
 
   # Frozen-inference checks with the optional CPU-only PyTorch extra. The lock resolves
   # Linux torch from the PyTorch CPU index (about 0.2 GB instead of ~2.9 GB of CUDA wheels).

@@ -1,0 +1,40 @@
+{
+  "seed": 3652000000,
+  "games_per_model": 100,
+  "max_steps": 1200,
+  "gate": {
+    "passed": false,
+    "enough_evidence": true,
+    "valid_templates": true,
+    "valid_episodes": true,
+    "paired_delta": 0.0,
+    "delta_ci95": [
+      -0.1,
+      0.105
+    ],
+    "style_deltas": {
+      "balanced": -0.175,
+      "pressure": 0.125,
+      "burst": -0.075,
+      "defensive": 0.1,
+      "potions": 0.025
+    },
+    "reason": "retain incumbent: insufficient or regressed evidence",
+    "domain": "approximate-pre-aos-simulator",
+    "public_deployment": false
+  },
+  "parent": {
+    "policy_sha": "0c6ca921e8bfd19fbaab3fa353d11819b2ba523cd1a810c2c4782447b7a5f56d",
+    "score": 0.735,
+    "wins": 65,
+    "draws": 17,
+    "losses": 18
+  },
+  "candidate": {
+    "policy_sha": "5e56ab6879b253dc7b6f4b6482e06b43fb4dc3a8b5788e756a8e2424f1d7f8d0",
+    "score": 0.735,
+    "wins": 71,
+    "draws": 5,
+    "losses": 24
+  }
+}

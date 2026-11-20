@@ -1,0 +1,41 @@
+{
+  "source": "docs/training/2026-10-07-supply-fixed-imitation-fit.json",
+  "policy_sha": "5e56ab6879b253dc7b6f4b6482e06b43fb4dc3a8b5788e756a8e2424f1d7f8d0",
+  "episodes": 4,
+  "teacher_steps": 2580,
+  "free_choice_labels": 1467,
+  "action_counts": {
+    "agility_potion": 6,
+    "approach": 264,
+    "burst_bolt": 2,
+    "clumsy": 4,
+    "energy_bolt": 11,
+    "explosion": 7,
+    "explosion_potion": 6,
+    "greater_heal": 6,
+    "harm": 48,
+    "heal": 41,
+    "heal_potion": 19,
+    "hold": 641,
+    "magic_arrow": 84,
+    "meditate": 44,
+    "punch": 1,
+    "refresh_potion": 18,
+    "retreat": 252,
+    "stun": 9,
+    "weaken": 4
+  },
+  "missing_actions": [
+    "strafe_left",
+    "strafe_right",
+    "flamestrike",
+    "cure",
+    "poison",
+    "paralyze",
+    "cure_potion",
+    "burst_flame"
+  ],
+  "hold_fraction": 0.43694614860259035,
+  "approach_retreat_fraction": 0.35173824130879344,
+  "next_experiment_requirement": "Collect new disjoint training matches with all five teacher styles and both seats before further real imitation fit; retain this40screen as evaluation only. Rare combo labels require more completed demonstrations, not merely extra epochs on two labels. Coverage is diagnostic, not proof every action should be used."
+}

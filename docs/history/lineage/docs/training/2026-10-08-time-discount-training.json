@@ -1,0 +1,167 @@
+{
+  "eval_seed": 3655000000,
+  "models": {
+    "original-parent": {
+      "score": 0.63,
+      "wins": 50,
+      "draws": 26,
+      "losses": 24
+    },
+    "per-step-ppo": {
+      "score": 0.66,
+      "wins": 40,
+      "draws": 52,
+      "losses": 8
+    },
+    "warmstart": {
+      "score": 0.645,
+      "wins": 52,
+      "draws": 25,
+      "losses": 23
+    },
+    "candidate": {
+      "score": 0.7,
+      "wins": 66,
+      "draws": 8,
+      "losses": 26
+    }
+  },
+  "comparisons": {
+    "original-parent": {
+      "passed": false,
+      "enough_evidence": true,
+      "valid_templates": true,
+      "valid_episodes": true,
+      "paired_delta": 0.07,
+      "delta_ci95": [
+        -0.035,
+        0.18
+      ],
+      "style_deltas": {
+        "balanced": 0.1,
+        "pressure": -0.25,
+        "burst": 0.175,
+        "defensive": 0.025,
+        "potions": 0.3
+      },
+      "reason": "retain incumbent: insufficient or regressed evidence",
+      "domain": "approximate-pre-aos-simulator",
+      "public_deployment": false
+    },
+    "per-step-ppo": {
+      "passed": false,
+      "enough_evidence": true,
+      "valid_templates": true,
+      "valid_episodes": true,
+      "paired_delta": 0.04,
+      "delta_ci95": [
+        -0.07,
+        0.145
+      ],
+      "style_deltas": {
+        "balanced": 0.075,
+        "pressure": -0.325,
+        "burst": 0.075,
+        "defensive": 0.125,
+        "potions": 0.25
+      },
+      "reason": "retain incumbent: insufficient or regressed evidence",
+      "domain": "approximate-pre-aos-simulator",
+      "public_deployment": false
+    },
+    "warmstart": {
+      "passed": false,
+      "enough_evidence": true,
+      "valid_templates": true,
+      "valid_episodes": true,
+      "paired_delta": 0.055,
+      "delta_ci95": [
+        -0.045,
+        0.16
+      ],
+      "style_deltas": {
+        "balanced": 0.275,
+        "pressure": -0.2,
+        "burst": 0.05,
+        "defensive": 0.075,
+        "potions": 0.075
+      },
+      "reason": "retain incumbent: insufficient or regressed evidence",
+      "domain": "approximate-pre-aos-simulator",
+      "public_deployment": false
+    }
+  },
+  "registry": {
+    "bc_gate": {
+      "delta_ci95": [
+        0.53,
+        0.7
+      ],
+      "domain": "approximate-pre-aos-simulator",
+      "enough_evidence": true,
+      "paired_delta": 0.615,
+      "passed": true,
+      "public_deployment": false,
+      "reason": "improved",
+      "style_deltas": {
+        "balanced": 0.4,
+        "burst": 0.625,
+        "defensive": 0.625,
+        "potions": 0.775,
+        "pressure": 0.65
+      },
+      "valid_episodes": true,
+      "valid_templates": true
+    },
+    "demonstration_steps": 32768,
+    "ppo_gate": {
+      "delta_ci95": [
+        -0.045,
+        0.16
+      ],
+      "domain": "approximate-pre-aos-simulator",
+      "enough_evidence": true,
+      "paired_delta": 0.055,
+      "passed": false,
+      "public_deployment": false,
+      "reason": "retain incumbent: insufficient or regressed evidence",
+      "style_deltas": {
+        "balanced": 0.275,
+        "burst": 0.05,
+        "defensive": 0.075,
+        "potions": 0.075,
+        "pressure": -0.2
+      },
+      "valid_episodes": true,
+      "valid_templates": true
+    },
+    "public_deployment": false,
+    "real_server_strength_established": false,
+    "selected_checkpoint": "/Users/dkkang/dev/uo/arena-worktrees/anima3-training-league/.logs/curriculum-time-discount-20261008/warmstart",
+    "selected_sha": "772c0fc6f5cacae8e0bd8cde8faf0c51e1fd1094fc76580e08ff982ee29d6232",
+    "selection_gate": {
+      "delta_ci95": [
+        -0.045,
+        0.16
+      ],
+      "domain": "approximate-pre-aos-simulator",
+      "enough_evidence": true,
+      "paired_delta": 0.055,
+      "passed": false,
+      "public_deployment": false,
+      "reason": "retain incumbent: insufficient or regressed evidence",
+      "style_deltas": {
+        "balanced": 0.275,
+        "burst": 0.05,
+        "defensive": 0.075,
+        "potions": 0.075,
+        "pressure": -0.2
+      },
+      "valid_episodes": true,
+      "valid_templates": true
+    },
+    "selection_scope": "experimental-training-only",
+    "status": "complete",
+    "training_steps": 65536
+  }
+}

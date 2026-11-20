@@ -1,0 +1,314 @@
+{
+  "method": "same observed full causal prefixes, free choices only",
+  "causal_strength_claim": false,
+  "rows": [
+    {
+      "fixture": 9,
+      "behavior_policy": "0c6ca921e8bfd19fbaab3fa353d11819b2ba523cd1a810c2c4782447b7a5f56d",
+      "outcome": 1.0,
+      "free_choices": 39,
+      "probability_changes": [
+        {
+          "action": "energy_bolt",
+          "parent": 0.0777,
+          "ppo": 0.0911,
+          "delta": 0.0133
+        },
+        {
+          "action": "magic_arrow",
+          "parent": 0.0717,
+          "ppo": 0.0625,
+          "delta": -0.0092
+        },
+        {
+          "action": "explosion_potion",
+          "parent": 0.1427,
+          "ppo": 0.1356,
+          "delta": -0.0072
+        },
+        {
+          "action": "explosion",
+          "parent": 0.0955,
+          "ppo": 0.0998,
+          "delta": 0.0043
+        },
+        {
+          "action": "hold",
+          "parent": 0.1208,
+          "ppo": 0.1232,
+          "delta": 0.0024
+        },
+        {
+          "action": "refresh_potion",
+          "parent": 0.0939,
+          "ppo": 0.0918,
+          "delta": -0.002
+        }
+      ]
+    },
+    {
+      "fixture": 11,
+      "behavior_policy": "3d0f7b454607590cb0ff1eca5278ee5a7cac1521ee72e1b5e1c10e040df85b03",
+      "outcome": -1.0,
+      "free_choices": 19,
+      "probability_changes": [
+        {
+          "action": "greater_heal",
+          "parent": 0.1944,
+          "ppo": 0.2032,
+          "delta": 0.0088
+        },
+        {
+          "action": "approach",
+          "parent": 0.1559,
+          "ppo": 0.1476,
+          "delta": -0.0083
+        },
+        {
+          "action": "refresh_potion",
+          "parent": 0.0564,
+          "ppo": 0.0487,
+          "delta": -0.0077
+        },
+        {
+          "action": "weaken",
+          "parent": 0.066,
+          "ppo": 0.0737,
+          "delta": 0.0077
+        },
+        {
+          "action": "explosion_potion",
+          "parent": 0.0843,
+          "ppo": 0.0808,
+          "delta": -0.0035
+        },
+        {
+          "action": "energy_bolt",
+          "parent": 0.0377,
+          "ppo": 0.0409,
+          "delta": 0.0032
+        }
+      ]
+    },
+    {
+      "fixture": 12,
+      "behavior_policy": "0c6ca921e8bfd19fbaab3fa353d11819b2ba523cd1a810c2c4782447b7a5f56d",
+      "outcome": 1.0,
+      "free_choices": 41,
+      "probability_changes": [
+        {
+          "action": "hold",
+          "parent": 0.162,
+          "ppo": 0.1668,
+          "delta": 0.0049
+        },
+        {
+          "action": "approach",
+          "parent": 0.0942,
+          "ppo": 0.0897,
+          "delta": -0.0045
+        },
+        {
+          "action": "weaken",
+          "parent": 0.0404,
+          "ppo": 0.0448,
+          "delta": 0.0043
+        },
+        {
+          "action": "explosion_potion",
+          "parent": 0.0258,
+          "ppo": 0.0228,
+          "delta": -0.003
+        },
+        {
+          "action": "magic_arrow",
+          "parent": 0.0337,
+          "ppo": 0.0309,
+          "delta": -0.0028
+        },
+        {
+          "action": "greater_heal",
+          "parent": 0.1875,
+          "ppo": 0.1896,
+          "delta": 0.0021
+        }
+      ]
+    },
+    {
+      "fixture": 13,
+      "behavior_policy": "0c6ca921e8bfd19fbaab3fa353d11819b2ba523cd1a810c2c4782447b7a5f56d",
+      "outcome": 1.0,
+      "free_choices": 347,
+      "probability_changes": [
+        {
+          "action": "hold",
+          "parent": 0.6846,
+          "ppo": 0.689,
+          "delta": 0.0043
+        },
+        {
+          "action": "heal_potion",
+          "parent": 0.0149,
+          "ppo": 0.0122,
+          "delta": -0.0027
+        },
+        {
+          "action": "retreat",
+          "parent": 0.0168,
+          "ppo": 0.015,
+          "delta": -0.0018
+        },
+        {
+          "action": "approach",
+          "parent": 0.0111,
+          "ppo": 0.0096,
+          "delta": -0.0015
+        },
+        {
+          "action": "harm",
+          "parent": 0.1072,
+          "ppo": 0.1084,
+          "delta": 0.0012
+        },
+        {
+          "action": "greater_heal",
+          "parent": 0.0109,
+          "ppo": 0.0098,
+          "delta": -0.0012
+        }
+      ]
+    },
+    {
+      "fixture": 14,
+      "behavior_policy": "3d0f7b454607590cb0ff1eca5278ee5a7cac1521ee72e1b5e1c10e040df85b03",
+      "outcome": -1.0,
+      "free_choices": 268,
+      "probability_changes": [
+        {
+          "action": "hold",
+          "parent": 0.6316,
+          "ppo": 0.6386,
+          "delta": 0.007
+        },
+        {
+          "action": "greater_heal",
+          "parent": 0.0301,
+          "ppo": 0.0268,
+          "delta": -0.0033
+        },
+        {
+          "action": "harm",
+          "parent": 0.1657,
+          "ppo": 0.1688,
+          "delta": 0.003
+        },
+        {
+          "action": "heal",
+          "parent": 0.0132,
+          "ppo": 0.0109,
+          "delta": -0.0023
+        },
+        {
+          "action": "heal_potion",
+          "parent": 0.0117,
+          "ppo": 0.0097,
+          "delta": -0.0019
+        },
+        {
+          "action": "magic_arrow",
+          "parent": 0.0583,
+          "ppo": 0.0569,
+          "delta": -0.0013
+        }
+      ]
+    },
+    {
+      "fixture": 15,
+      "behavior_policy": "3d0f7b454607590cb0ff1eca5278ee5a7cac1521ee72e1b5e1c10e040df85b03",
+      "outcome": -1.0,
+      "free_choices": 327,
+      "probability_changes": [
+        {
+          "action": "hold",
+          "parent": 0.6993,
+          "ppo": 0.7029,
+          "delta": 0.0036
+        },
+        {
+          "action": "magic_arrow",
+          "parent": 0.0437,
+          "ppo": 0.0413,
+          "delta": -0.0024
+        },
+        {
+          "action": "greater_heal",
+          "parent": 0.0263,
+          "ppo": 0.0251,
+          "delta": -0.0012
+        },
+        {
+          "action": "meditate",
+          "parent": 0.024,
+          "ppo": 0.0231,
+          "delta": -0.0009
+        },
+        {
+          "action": "harm",
+          "parent": 0.1159,
+          "ppo": 0.1168,
+          "delta": 0.0009
+        },
+        {
+          "action": "refresh_potion",
+          "parent": 0.0156,
+          "ppo": 0.0164,
+          "delta": 0.0007
+        }
+      ]
+    },
+    {
+      "fixture": 16,
+      "behavior_policy": "0c6ca921e8bfd19fbaab3fa353d11819b2ba523cd1a810c2c4782447b7a5f56d",
+      "outcome": 1.0,
+      "free_choices": 247,
+      "probability_changes": [
+        {
+          "action": "hold",
+          "parent": 0.5782,
+          "ppo": 0.5806,
+          "delta": 0.0025
+        },
+        {
+          "action": "harm",
+          "parent": 0.118,
+          "ppo": 0.1161,
+          "delta": -0.0019
+        },
+        {
+          "action": "approach",
+          "parent": 0.0175,
+          "ppo": 0.0159,
+          "delta": -0.0016
+        },
+        {
+          "action": "greater_heal",
+          "parent": 0.0505,
+          "ppo": 0.0491,
+          "delta": -0.0014
+        },
+        {
+          "action": "heal_potion",
+          "parent": 0.0229,
+          "ppo": 0.0216,
+          "delta": -0.0013
+        },
+        {
+          "action": "weaken",
+          "parent": 0.0062,
+          "ppo": 0.0071,
+          "delta": 0.0009
+        }
+      ]
+    }
+  ]
+}

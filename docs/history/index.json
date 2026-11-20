@@ -1,0 +1,3431 @@
+{
+  "schema": "anima3-history-index-v1",
+  "description": "Historical experiment records of the Anima3 training lineage, imported as byte-exact copies. Selection in an experimental registry is never a public deployment.",
+  "lineage": {
+    "repository": "uotavern/anima3",
+    "common_ancestor": "621627c7999ee7ce6552793316c8c37cc9b7a14e",
+    "training_tip": {
+      "ref": "feat/training-league",
+      "commit": "819f4f426bfaf72e1a132abff9354480250f1444"
+    },
+    "extra_commits": [
+      {
+        "ref": "feat/arena-100-duels",
+        "public_ref": "archive/arena-100-duels-baaaaef",
+        "commit": "baaaaefba63e004eb61290d55cef04e1c236faf5",
+        "parent": "01607832a1e696eab0b2e00046407f673b4f01f9",
+        "files": [
+          "docs/history/lineage/docs/experiments/2026-10-02-hundred-live-duels.md"
+        ]
+      }
+    ],
+    "import_root": "docs/history/lineage"
+  },
+  "vocabulary": {
+    "result": {
+      "passed_gate": "A prespecified live gate passed.",
+      "failed_gate": "Recorded gates failed or the candidate was not selected.",
+      "simulator_only": "A gain, if any, was measured only in the approximate simulator.",
+      "negative": "No gate; the recorded result showed no improvement or a regression.",
+      "diagnostic": "Mechanics, audit, fit or infrastructure evidence; no strength claim.",
+      "invalidated": "Halted or confounded; its results are not usable."
+    },
+    "selection": {
+      "registry_selected": "Named by selected_sha of an experimental registry (run-local for simulator runs). Not a deployment.",
+      "registry_retained": "Incumbent kept by an experimental registry after a candidate failed.",
+      "rollback": "Rollback checkpoint recorded beside a registry selection.",
+      "offline_selected": "Chosen in an offline or simulator comparison; no registry.",
+      "rejected": "Failed its gate or was not chosen in the recorded comparison.",
+      "not_gated": "No selection decision recorded.",
+      "invalidated": "Withdrawn because its training or evaluation data was confounded."
+    },
+    "deployment": {
+      "not_deployed": "No record shows this policy serving public players.",
+      "public_deployment": "Requires deployment_evidence naming an indexed record whose kind is deployment_evidence. No such record exists."
+    },
+    "domain": {
+      "approximate_simulator": "Local approximate pre-AOS simulator.",
+      "live_server_unranked": "Unranked training matches on the arena host with training accounts; not a public deployment.",
+      "offline_fit": "Supervised fitting and offline metrics.",
+      "offline_analysis": "Analysis of recorded data."
+    }
+  },
+  "files": [
+    {
+      "path": "docs/history/lineage/docs/NEURAL_DUEL.ko.md",
+      "source_path": "docs/NEURAL_DUEL.ko.md",
+      "source_ref": "feat/training-league",
+      "source_commit": "819f4f426bfaf72e1a132abff9354480250f1444",
+      "introduced_in": "6b8d6f0f8a0fcc37fdcefa58399fed83a1b95caa",
+      "introduced_at": "2026-09-30T07:50:46+02:00",
+      "introduced_at_utc": "2026-09-30T05:50:46Z",
+      "last_changed_in": "3ae14e7799abea46e85344c26719fa05f28e1628",
+      "revisions": 2,
+      "bytes": 22303,
+      "sha256": "64187d7f7046ae7c359433649f7b03ece9a2bda6f44e403511ca3e84c4266f17",
+      "git_blob": "3c95047e93635056d999a951012f66d54ddcbcc9",
+      "kind": "record_md"
+    },
+    {
+      "path": "docs/history/lineage/docs/SELF_PLAY_ROADMAP.ko.md",
+      "source_path": "docs/SELF_PLAY_ROADMAP.ko.md",
+      "source_ref": "feat/training-league",
+      "source_commit": "819f4f426bfaf72e1a132abff9354480250f1444",
+      "introduced_in": "b551b8550441347b9ae7cca91fc2495974f06275",
+      "introduced_at": "2026-09-29T23:43:25+02:00",
+      "introduced_at_utc": "2026-09-29T21:43:25Z",
+      "last_changed_in": "b4d52c90e5ca031a850d1c5ff02a352bc16be186",
+      "revisions": 2,
+      "bytes": 6413,
+      "sha256": "76324efdfc218e41feb4d3011c0788df37ce4ab1af85e3c318cdda17d8b5f00c",
+      "git_blob": "2cb8d01872ba49cc0c4b99ab2a8c8e8a9dabcc7c",
+      "kind": "record_md"
+    },
+    {
+      "path": "docs/history/lineage/docs/TEN_DUEL_EXPERIMENT.ko.md",
+      "source_path": "docs/TEN_DUEL_EXPERIMENT.ko.md",
+      "source_ref": "feat/training-league",
+      "source_commit": "819f4f426bfaf72e1a132abff9354480250f1444",
+      "introduced_in": "d3efd54de3fb438c007997ba39f2d7355b99bc11",
+      "introduced_at": "2026-09-29T23:18:57+02:00",
+      "introduced_at_utc": "2026-09-29T21:18:57Z",
+      "last_changed_in": "ed47f5bbe26ad4b0651c168c9b947b3436bbf50e",
+      "revisions": 4,
+      "bytes": 5462,
+      "sha256": "26fe31ee3b5a213cf7de5b7a3f39c969b640161ca7155b0a157ae81b0a93397e",
+      "git_blob": "14585d1af04d7a14db954cba0a46df382a55e6ad",
+      "kind": "record_md"
+    },
+    {
+      "path": "docs/history/lineage/docs/experiments/2026-09-29-ten-duels.json",
+      "source_path": "docs/experiments/2026-09-29-ten-duels.json",
+      "source_ref": "feat/training-league",
+      "source_commit": "819f4f426bfaf72e1a132abff9354480250f1444",
+      "introduced_in": "5d8e09fd4567567cbfbc5267a4a765bc4cce2dda",
+      "introduced_at": "2026-09-29T23:52:02+02:00",
+      "introduced_at_utc": "2026-09-29T21:52:02Z",
+      "last_changed_in": "5d8e09fd4567567cbfbc5267a4a765bc4cce2dda",
+      "revisions": 1,
+      "bytes": 24327,
+      "sha256": "6adcd10cb5fe5e16c958de950a9b945d907974bff9ffaba8d3d231798429a5bc",
+      "git_blob": "cf97094c83932a9265b2bc0180d1cdaa90455b5a",
+      "kind": "record_json"
+    },
+    {
+      "path": "docs/history/lineage/docs/experiments/2026-09-29-ten-duels.md",
+      "source_path": "docs/experiments/2026-09-29-ten-duels.md",
+      "source_ref": "feat/training-league",
+      "source_commit": "819f4f426bfaf72e1a132abff9354480250f1444",
+      "introduced_in": "5d8e09fd4567567cbfbc5267a4a765bc4cce2dda",
+      "introduced_at": "2026-09-29T23:52:02+02:00",
+      "introduced_at_utc": "2026-09-29T21:52:02Z",
+      "last_changed_in": "5d8e09fd4567567cbfbc5267a4a765bc4cce2dda",
+      "revisions": 1,
+      "bytes": 7045,
+      "sha256": "a5942985da2c7c24cf56038686c1660983ed1c02463d5ddb50d819b725143b47",
+      "git_blob": "89b263fe962b55878f29951eb26886ea9045571f",
+      "kind": "record_md"
+    },
+    {
+      "path": "docs/history/lineage/docs/experiments/2026-09-30-neural-continuation.json",
+      "source_path": "docs/experiments/2026-09-30-neural-continuation.json",
+      "source_ref": "feat/training-league",
+      "source_commit": "819f4f426bfaf72e1a132abff9354480250f1444",
+      "introduced_in": "3ae14e7799abea46e85344c26719fa05f28e1628",
+      "introduced_at": "2026-09-30T08:53:57+02:00",
+      "introduced_at_utc": "2026-09-30T06:53:57Z",
+      "last_changed_in": "3ae14e7799abea46e85344c26719fa05f28e1628",
+      "revisions": 1,
+      "bytes": 63521,
+      "sha256": "c8c8ea4bbe2aafe4f7d94c73d2d0f024a6e77e1114ee4b11e9f59d0afb3ad048",
+      "git_blob": "4a8ee5082553b8520daa7a431ed5d2eaade930f6",
+      "kind": "record_json"
+    },
+    {
+      "path": "docs/history/lineage/docs/experiments/2026-09-30-neural-duel.json",
+      "source_path": "docs/experiments/2026-09-30-neural-duel.json",
+      "source_ref": "feat/training-league",
+      "source_commit": "819f4f426bfaf72e1a132abff9354480250f1444",
+      "introduced_in": "6b8d6f0f8a0fcc37fdcefa58399fed83a1b95caa",
+      "introduced_at": "2026-09-30T07:50:46+02:00",
+      "introduced_at_utc": "2026-09-30T05:50:46Z",
+      "last_changed_in": "6b8d6f0f8a0fcc37fdcefa58399fed83a1b95caa",
+      "revisions": 1,
+      "bytes": 39665,
+      "sha256": "3695603f8e018daf97030204a9d2fcc3f2b3070b34d8792396018e1380538f9b",
+      "git_blob": "faf597f1c93f33320b445c850f0b01ff52836073",
+      "kind": "record_json"
+    },
+    {
+      "path": "docs/history/lineage/docs/experiments/2026-10-02-hundred-live-duels.md",
+      "source_path": "docs/experiments/2026-10-02-hundred-live-duels.md",
+      "source_ref": "feat/arena-100-duels",
+      "source_commit": "baaaaefba63e004eb61290d55cef04e1c236faf5",
+      "introduced_in": "dfb63496d57f35293c60cda8f890bea5185a3baa",
+      "introduced_at": "2026-10-02T04:00:55+09:00",
+      "introduced_at_utc": "2026-10-01T19:00:55Z",
+      "last_changed_in": "baaaaefba63e004eb61290d55cef04e1c236faf5",
+      "revisions": 6,
+      "bytes": 9962,
+      "sha256": "5cc216e23d1f8017f54a296f16494c0207e7dfb1ecff02153436344709746a2c",
+      "git_blob": "c10408f4bd1be2953ac0299d40e1a6bae3ce62d8",
+      "kind": "record_md",
+      "training_tip_version": {
+        "commit": "819f4f426bfaf72e1a132abff9354480250f1444",
+        "relation": "byte prefix of this file; baaaaef only appends the remaining-17 section",
+        "bytes": 8601,
+        "sha256": "a6d95a93da0c5bc7609e9e4755d60f8acc12f83fcc120511f450efbf5f47ca1e",
+        "git_blob": "bf7601af3304614d3f7f9cbe232360b67e1f157b"
+      }
+    },
+    {
+      "path": "docs/history/lineage/docs/experiments/2026-10-05-cast-dump-results.json",
+      "source_path": "docs/experiments/2026-10-05-cast-dump-results.json",
+      "source_ref": "feat/training-league",
+      "source_commit": "819f4f426bfaf72e1a132abff9354480250f1444",
+      "introduced_in": "5042874ba63c8ac59b2ad5099c1efbbec233c3bc",
+      "introduced_at": "2026-10-05T21:45:35+09:00",
+      "introduced_at_utc": "2026-10-05T12:45:35Z",
+      "last_changed_in": "5042874ba63c8ac59b2ad5099c1efbbec233c3bc",
+      "revisions": 1,
+      "bytes": 6088,
+      "sha256": "f7fc0e16ade4c1177a11bb4de007bda86c1152e58857d15040a2a4f1d8a06012",
+      "git_blob": "c703c4ee599085949bcd90dcf21a53f06ff82a4f",
+      "kind": "record_json"
+    },
+    {
+      "path": "docs/history/lineage/docs/experiments/2026-10-05-cast-dump.md",
+      "source_path": "docs/experiments/2026-10-05-cast-dump.md",
+      "source_ref": "feat/training-league",
+      "source_commit": "819f4f426bfaf72e1a132abff9354480250f1444",
+      "introduced_in": "9afde09f462aa5908bec47fb66acb4869d33f54c",
+      "introduced_at": "2026-10-05T19:03:33+09:00",
+      "introduced_at_utc": "2026-10-05T10:03:33Z",
+      "last_changed_in": "5042874ba63c8ac59b2ad5099c1efbbec233c3bc",
+      "revisions": 2,
+      "bytes": 4568,
+      "sha256": "3c966d2d5e4e4383e0e161916ec3e30d5dd9f94e85d8769da971537cf6b98f0d",
+      "git_blob": "5f21b1b2dd4002bbcfc4eeec3acd979b69f997b7",
+      "kind": "record_md"
+    },
+    {
+      "path": "docs/history/lineage/docs/experiments/2026-10-05-cast-primed-results.json",
+      "source_path": "docs/experiments/2026-10-05-cast-primed-results.json",
+      "source_ref": "feat/training-league",
+      "source_commit": "819f4f426bfaf72e1a132abff9354480250f1444",
+      "introduced_in": "5042874ba63c8ac59b2ad5099c1efbbec233c3bc",
+      "introduced_at": "2026-10-05T21:45:35+09:00",
+      "introduced_at_utc": "2026-10-05T12:45:35Z",
+      "last_changed_in": "5042874ba63c8ac59b2ad5099c1efbbec233c3bc",
+      "revisions": 1,
+      "bytes": 7202,
+      "sha256": "40cef7e7076927cdbf0b97286b197df40a7a35faf27292d01880587978833b77",
+      "git_blob": "1e9b361b7710488148fc439ff11be835b21ed780",
+      "kind": "record_json"
+    },
+    {
+      "path": "docs/history/lineage/docs/experiments/2026-10-05-melee-harm-results.json",
+      "source_path": "docs/experiments/2026-10-05-melee-harm-results.json",
+      "source_ref": "feat/training-league",
+      "source_commit": "819f4f426bfaf72e1a132abff9354480250f1444",
+      "introduced_in": "7bbb8c9880b99a551fd24b5713955071ff8af78c",
+      "introduced_at": "2026-10-05T18:09:47+09:00",
+      "introduced_at_utc": "2026-10-05T09:09:47Z",
+      "last_changed_in": "7bbb8c9880b99a551fd24b5713955071ff8af78c",
+      "revisions": 1,
+      "bytes": 5401,
+      "sha256": "bb013f52278229d416796b844ad26ef554d7e30e66c10b6298f1a90c1113ef61",
+      "git_blob": "6c78690da6d7dd2e7b331b3ad1d5c28c4fc6d23f",
+      "kind": "record_json"
+    },
+    {
+      "path": "docs/history/lineage/docs/experiments/2026-10-05-melee-harm.md",
+      "source_path": "docs/experiments/2026-10-05-melee-harm.md",
+      "source_ref": "feat/training-league",
+      "source_commit": "819f4f426bfaf72e1a132abff9354480250f1444",
+      "introduced_in": "d166335e7f4fd3463548449e65f9243400bf8413",
+      "introduced_at": "2026-10-05T17:53:32+09:00",
+      "introduced_at_utc": "2026-10-05T08:53:32Z",
+      "last_changed_in": "07776bc4f635effc590968024709adab8543ef28",
+      "revisions": 4,
+      "bytes": 4766,
+      "sha256": "4714a3effa35a6804695c6686a54c414a07507e8020b54ab6f5417292709b1e4",
+      "git_blob": "937a7bfe7ab1656f1c461f243f471f1862fa7f5d",
+      "kind": "record_md"
+    },
+    {
+      "path": "docs/history/lineage/docs/experiments/2026-10-05-melee-resources-results.json",
+      "source_path": "docs/experiments/2026-10-05-melee-resources-results.json",
+      "source_ref": "feat/training-league",
+      "source_commit": "819f4f426bfaf72e1a132abff9354480250f1444",
+      "introduced_in": "07776bc4f635effc590968024709adab8543ef28",
+      "introduced_at": "2026-10-05T18:13:14+09:00",
+      "introduced_at_utc": "2026-10-05T09:13:14Z",
+      "last_changed_in": "07776bc4f635effc590968024709adab8543ef28",
+      "revisions": 1,
+      "bytes": 2879,
+      "sha256": "028afb82d13d96976c487bf64811f5f7ed5a7dd2315604bcb078e3b4be9367f8",
+      "git_blob": "de17413c0b2246760a6814ed99bcec7ca6624368",
+      "kind": "record_json"
+    },
+    {
+      "path": "docs/history/lineage/docs/training/2026-10-06-curriculum-results.json",
+      "source_path": "docs/training/2026-10-06-curriculum-results.json",
+      "source_ref": "feat/training-league",
+      "source_commit": "819f4f426bfaf72e1a132abff9354480250f1444",
+      "introduced_in": "25a169f4991d6b4cc48b1a2c7539f66b708e4e71",
+      "introduced_at": "2026-10-06T01:16:07+09:00",
+      "introduced_at_utc": "2026-10-05T16:16:07Z",
+      "last_changed_in": "25a169f4991d6b4cc48b1a2c7539f66b708e4e71",
+      "revisions": 1,
+      "bytes": 2198,
+      "sha256": "59f630a2b3ba27ca0356beaeab4bfc23cc4539a98d83337c9c62d91781d204ea",
+      "git_blob": "c31bc064e1c75448d43088d4eb5d701ab875de4b",
+      "kind": "record_json"
+    },
+    {
+      "path": "docs/history/lineage/docs/training/2026-10-06-historical-evaluation.json",
+      "source_path": "docs/training/2026-10-06-historical-evaluation.json",
+      "source_ref": "feat/training-league",
+      "source_commit": "819f4f426bfaf72e1a132abff9354480250f1444",
+      "introduced_in": "6e5d77863e13b532a8cf78debafadc8be003abef",
+      "introduced_at": "2026-10-06T14:22:13+09:00",
+      "introduced_at_utc": "2026-10-06T05:22:13Z",
+      "last_changed_in": "6e5d77863e13b532a8cf78debafadc8be003abef",
+      "revisions": 1,
+      "bytes": 818,
+      "sha256": "97a016f72d80e57ddd2719b9b097e94a91c1f2e0b35c8bf3d7f74ecbf810a828",
+      "git_blob": "dfe040258774ef5e2f4d2930cdc375a926ce2ffa",
+      "kind": "record_json"
+    },
+    {
+      "path": "docs/history/lineage/docs/training/2026-10-06-live-pilot-results.json",
+      "source_path": "docs/training/2026-10-06-live-pilot-results.json",
+      "source_ref": "feat/training-league",
+      "source_commit": "819f4f426bfaf72e1a132abff9354480250f1444",
+      "introduced_in": "746e4da08028fc69ad6df25dc3e1059041edfe67",
+      "introduced_at": "2026-10-06T16:34:33+09:00",
+      "introduced_at_utc": "2026-10-06T07:34:33Z",
+      "last_changed_in": "746e4da08028fc69ad6df25dc3e1059041edfe67",
+      "revisions": 1,
+      "bytes": 25725,
+      "sha256": "7ea0b9c51ddc83ec98fb4d289338f009177e88d07d9c90ce80ae209b8b31f317",
+      "git_blob": "71a54861a1ef7c1d5b7ed40cc150f4942784c432",
+      "kind": "record_json"
+    },
+    {
+      "path": "docs/history/lineage/docs/training/2026-10-07-effective-training.md",
+      "source_path": "docs/training/2026-10-07-effective-training.md",
+      "source_ref": "feat/training-league",
+      "source_commit": "819f4f426bfaf72e1a132abff9354480250f1444",
+      "introduced_in": "be4a55fb783600f2010712577a292371048baa35",
+      "introduced_at": "2026-10-07T22:51:01+09:00",
+      "introduced_at_utc": "2026-10-07T13:51:01Z",
+      "last_changed_in": "ecfe9f3455e0b32f1b56eb53627d41142b9db9e5",
+      "revisions": 65,
+      "bytes": 79551,
+      "sha256": "9eb1a4048d4fd8f6511767577216f6ca10175ae4671d28639d2539e4e4140d2d",
+      "git_blob": "6a0832d85d32453f94171181b75cc90f1b7591c3",
+      "kind": "record_md"
+    },
+    {
+      "path": "docs/history/lineage/docs/training/2026-10-07-first-replenishment-proof.json",
+      "source_path": "docs/training/2026-10-07-first-replenishment-proof.json",
+      "source_ref": "feat/training-league",
+      "source_commit": "819f4f426bfaf72e1a132abff9354480250f1444",
+      "introduced_in": "31ab1c0c4951c1d112ec71cdb04c95a17044ffbe",
+      "introduced_at": "2026-10-07T23:36:00+09:00",
+      "introduced_at_utc": "2026-10-07T14:36:00Z",
+      "last_changed_in": "31ab1c0c4951c1d112ec71cdb04c95a17044ffbe",
+      "revisions": 1,
+      "bytes": 2581,
+      "sha256": "3aa7154969df33435fa7bd97c5246faf62c9d204e70fb86695f945cc1dcd01cf",
+      "git_blob": "0750a29476bb0cb61df20165de922c157fb770ee",
+      "kind": "record_json"
+    },
+    {
+      "path": "docs/history/lineage/docs/training/2026-10-07-imitation-simulator-retention.json",
+      "source_path": "docs/training/2026-10-07-imitation-simulator-retention.json",
+      "source_ref": "feat/training-league",
+      "source_commit": "819f4f426bfaf72e1a132abff9354480250f1444",
+      "introduced_in": "fc94922ec3999371d994f9373f969e47486f1059",
+      "introduced_at": "2026-10-07T23:10:39+09:00",
+      "introduced_at_utc": "2026-10-07T14:10:39Z",
+      "last_changed_in": "fc94922ec3999371d994f9373f969e47486f1059",
+      "revisions": 1,
+      "bytes": 532,
+      "sha256": "2077d4fdfdf9cfba433c11d5f3c76be81d0baaa92169a9bcae0de820f7067e62",
+      "git_blob": "f174fd37f53f4f2cd32bb25bb4b41a3a200342fd",
+      "kind": "record_json"
+    },
+    {
+      "path": "docs/history/lineage/docs/training/2026-10-07-initial-live-imitation-metrics.json",
+      "source_path": "docs/training/2026-10-07-initial-live-imitation-metrics.json",
+      "source_ref": "feat/training-league",
+      "source_commit": "819f4f426bfaf72e1a132abff9354480250f1444",
+      "introduced_in": "f0796897c924b8495cae3a95fae607af69c583cb",
+      "introduced_at": "2026-10-07T22:56:46+09:00",
+      "introduced_at_utc": "2026-10-07T13:56:46Z",
+      "last_changed_in": "f0796897c924b8495cae3a95fae607af69c583cb",
+      "revisions": 1,
+      "bytes": 1288,
+      "sha256": "3b6c62e5dd0d733091a6f105be52f66131005163f46df24d284bba84ce1bcf9a",
+      "git_blob": "09b2d4a8e744edaf2e59f2d619daf54787a2c037",
+      "kind": "record_json"
+    },
+    {
+      "path": "docs/history/lineage/docs/training/2026-10-07-live-imitation-fit.json",
+      "source_path": "docs/training/2026-10-07-live-imitation-fit.json",
+      "source_ref": "feat/training-league",
+      "source_commit": "819f4f426bfaf72e1a132abff9354480250f1444",
+      "introduced_in": "804ace3ad0b250e70f6ae69c2287e1ea3280999f",
+      "introduced_at": "2026-10-07T23:03:28+09:00",
+      "introduced_at_utc": "2026-10-07T14:03:28Z",
+      "last_changed_in": "804ace3ad0b250e70f6ae69c2287e1ea3280999f",
+      "revisions": 1,
+      "bytes": 13854,
+      "sha256": "122992134181cc3a5f7899a5cd41853510c2ac48923010cee5480eb9eaf27151",
+      "git_blob": "f3b7d5943d98213bfd5202f4e06a64bbbdc1b869",
+      "kind": "record_json"
+    },
+    {
+      "path": "docs/history/lineage/docs/training/2026-10-07-live-imitation-validation-006.json",
+      "source_path": "docs/training/2026-10-07-live-imitation-validation-006.json",
+      "source_ref": "feat/training-league",
+      "source_commit": "819f4f426bfaf72e1a132abff9354480250f1444",
+      "introduced_in": "0431a3b170b418961ff984d72d8b3b9563efeac0",
+      "introduced_at": "2026-10-07T23:04:25+09:00",
+      "introduced_at_utc": "2026-10-07T14:04:25Z",
+      "last_changed_in": "0431a3b170b418961ff984d72d8b3b9563efeac0",
+      "revisions": 1,
+      "bytes": 2426,
+      "sha256": "6a6f9281af33496cf3973c6ee5c917f6161c9fa3949a6bd54943f3f9dc2a6650",
+      "git_blob": "e0b70ae4c0e9e91c53e2f63125cfbd684b586852",
+      "kind": "record_json"
+    },
+    {
+      "path": "docs/history/lineage/docs/training/2026-10-07-live-imitation-validation-007.json",
+      "source_path": "docs/training/2026-10-07-live-imitation-validation-007.json",
+      "source_ref": "feat/training-league",
+      "source_commit": "819f4f426bfaf72e1a132abff9354480250f1444",
+      "introduced_in": "fc94922ec3999371d994f9373f969e47486f1059",
+      "introduced_at": "2026-10-07T23:10:39+09:00",
+      "introduced_at_utc": "2026-10-07T14:10:39Z",
+      "last_changed_in": "fc94922ec3999371d994f9373f969e47486f1059",
+      "revisions": 1,
+      "bytes": 3029,
+      "sha256": "cddd6179e09587a55b7a3f4c2937ec048832cd40eb6c78e05dd735b1f3f82549",
+      "git_blob": "1ac149b67f2185492209f74c7ea65f6002cfb42c",
+      "kind": "record_json"
+    },
+    {
+      "path": "docs/history/lineage/docs/training/2026-10-07-skill-clock-simulator.json",
+      "source_path": "docs/training/2026-10-07-skill-clock-simulator.json",
+      "source_ref": "feat/training-league",
+      "source_commit": "819f4f426bfaf72e1a132abff9354480250f1444",
+      "introduced_in": "be4a55fb783600f2010712577a292371048baa35",
+      "introduced_at": "2026-10-07T22:51:01+09:00",
+      "introduced_at_utc": "2026-10-07T13:51:01Z",
+      "last_changed_in": "be4a55fb783600f2010712577a292371048baa35",
+      "revisions": 1,
+      "bytes": 2399,
+      "sha256": "1e050283a8954e1251b4232da62d4b3660f099ad0d2d1482172f9797461c385f",
+      "git_blob": "3a378f27f055b81fc8e92115755c9a5c1a58c66f",
+      "kind": "record_json"
+    },
+    {
+      "path": "docs/history/lineage/docs/training/2026-10-07-supply-acceptance.json",
+      "source_path": "docs/training/2026-10-07-supply-acceptance.json",
+      "source_ref": "feat/training-league",
+      "source_commit": "819f4f426bfaf72e1a132abff9354480250f1444",
+      "introduced_in": "5e0b8f0bb8247cd5030ad8628d1c8972400b8ded",
+      "introduced_at": "2026-10-07T23:30:58+09:00",
+      "introduced_at_utc": "2026-10-07T14:30:58Z",
+      "last_changed_in": "5e0b8f0bb8247cd5030ad8628d1c8972400b8ded",
+      "revisions": 1,
+      "bytes": 2747,
+      "sha256": "bc63ae7b571be4f9633aeccd796dc4f62d21589518e7baa0db6a6d64fa9c8de2",
+      "git_blob": "9c17a429c070c7a8e28ed7ede77c32bfdd1b6632",
+      "kind": "record_json"
+    },
+    {
+      "path": "docs/history/lineage/docs/training/2026-10-07-supply-fixed-imitation-fit.json",
+      "source_path": "docs/training/2026-10-07-supply-fixed-imitation-fit.json",
+      "source_ref": "feat/training-league",
+      "source_commit": "819f4f426bfaf72e1a132abff9354480250f1444",
+      "introduced_in": "c723d5977ec59e0cb2301ee36cd90df212bb685d",
+      "introduced_at": "2026-10-07T23:54:28+09:00",
+      "introduced_at_utc": "2026-10-07T14:54:28Z",
+      "last_changed_in": "c723d5977ec59e0cb2301ee36cd90df212bb685d",
+      "revisions": 1,
+      "bytes": 4668,
+      "sha256": "6f247f41d86a6e01f6cf66b1c434a10bef8830b0cf8a497eb48715f64f0efade",
+      "git_blob": "4c8ccce2b084f6b4dc0370c8a6257bb07c3143fa",
+      "kind": "record_json"
+    },
+    {
+      "path": "docs/history/lineage/docs/training/2026-10-07-supply-fixed-retention.json",
+      "source_path": "docs/training/2026-10-07-supply-fixed-retention.json",
+      "source_ref": "feat/training-league",
+      "source_commit": "819f4f426bfaf72e1a132abff9354480250f1444",
+      "introduced_in": "59fb090b64609cdc2efccbfeb75de6405c731d33",
+      "introduced_at": "2026-10-07T23:56:48+09:00",
+      "introduced_at_utc": "2026-10-07T14:56:48Z",
+      "last_changed_in": "59fb090b64609cdc2efccbfeb75de6405c731d33",
+      "revisions": 1,
+      "bytes": 922,
+      "sha256": "93feef28a0c66b153eced6c44a727635df353821fc5a1744848d1fe5ecb80ab0",
+      "git_blob": "379c688465c8d5a1bfe9f355e8a3ab185a2fa62c",
+      "kind": "record_json"
+    },
+    {
+      "path": "docs/history/lineage/docs/training/2026-10-07-supply-fixed-validation.json",
+      "source_path": "docs/training/2026-10-07-supply-fixed-validation.json",
+      "source_ref": "feat/training-league",
+      "source_commit": "819f4f426bfaf72e1a132abff9354480250f1444",
+      "introduced_in": "5f5ef588fa03c512fb6854226c07ca85787fef0e",
+      "introduced_at": "2026-10-08T00:00:11+09:00",
+      "introduced_at_utc": "2026-10-07T15:00:11Z",
+      "last_changed_in": "5f5ef588fa03c512fb6854226c07ca85787fef0e",
+      "revisions": 1,
+      "bytes": 1138,
+      "sha256": "cbea825d0a456f542ee9cb3c8ee2ab99764722b99624fdc86ebe197cb9efb27d",
+      "git_blob": "bc8bca4e920a0911b1c50a8b30657d7dc59a80a1",
+      "kind": "record_json"
+    },
+    {
+      "path": "docs/history/lineage/docs/training/2026-10-07-visibility-diagnosis.json",
+      "source_path": "docs/training/2026-10-07-visibility-diagnosis.json",
+      "source_ref": "feat/training-league",
+      "source_commit": "819f4f426bfaf72e1a132abff9354480250f1444",
+      "introduced_in": "fe66dede92712c324f0db18e6122ea314b73b5c6",
+      "introduced_at": "2026-10-07T23:41:59+09:00",
+      "introduced_at_utc": "2026-10-07T14:41:59Z",
+      "last_changed_in": "fe66dede92712c324f0db18e6122ea314b73b5c6",
+      "revisions": 1,
+      "bytes": 145,
+      "sha256": "1bda6ab89623d7e3f5cf7a8b32bdcf7d98e489e205bb38902802fdf793ad0008",
+      "git_blob": "7cabac52d0ce756ccbec198dd99e8f8f700a5c61",
+      "kind": "record_json"
+    },
+    {
+      "path": "docs/history/lineage/docs/training/2026-10-08-incumbent-continuation.json",
+      "source_path": "docs/training/2026-10-08-incumbent-continuation.json",
+      "source_ref": "feat/training-league",
+      "source_commit": "819f4f426bfaf72e1a132abff9354480250f1444",
+      "introduced_in": "c9b10390c57658c56d45381517b418aa98c3896b",
+      "introduced_at": "2026-10-08T10:47:16+09:00",
+      "introduced_at_utc": "2026-10-08T01:47:16Z",
+      "last_changed_in": "c9b10390c57658c56d45381517b418aa98c3896b",
+      "revisions": 1,
+      "bytes": 2415,
+      "sha256": "77ecdbcc916a6717a49df869097483a3df812c336ae19d048f8bd8a17e28d850",
+      "git_blob": "ebc268cce93dcccb860774c9d3b21f6ab30bb5e6",
+      "kind": "record_json"
+    },
+    {
+      "path": "docs/history/lineage/docs/training/2026-10-08-live-burst-interruption.json",
+      "source_path": "docs/training/2026-10-08-live-burst-interruption.json",
+      "source_ref": "feat/training-league",
+      "source_commit": "819f4f426bfaf72e1a132abff9354480250f1444",
+      "introduced_in": "cea61ed67dbc363bde7ed50481d707d61c3fcb20",
+      "introduced_at": "2026-10-08T10:45:10+09:00",
+      "introduced_at_utc": "2026-10-08T01:45:10Z",
+      "last_changed_in": "cea61ed67dbc363bde7ed50481d707d61c3fcb20",
+      "revisions": 1,
+      "bytes": 2305,
+      "sha256": "9eceb772b9beda08ed6eb711278c21cf0d602bafcc4653cd8a545b390282fc41",
+      "git_blob": "fdb318c2d651b7b2b8ff258ac9a0b394cd2f0b4b",
+      "kind": "record_json"
+    },
+    {
+      "path": "docs/history/lineage/docs/training/2026-10-08-live-low-health-audit.json",
+      "source_path": "docs/training/2026-10-08-live-low-health-audit.json",
+      "source_ref": "feat/training-league",
+      "source_commit": "819f4f426bfaf72e1a132abff9354480250f1444",
+      "introduced_in": "498fbb68822758e02e0bd2650260effe162fd91e",
+      "introduced_at": "2026-10-08T10:40:35+09:00",
+      "introduced_at_utc": "2026-10-08T01:40:35Z",
+      "last_changed_in": "498fbb68822758e02e0bd2650260effe162fd91e",
+      "revisions": 1,
+      "bytes": 3867,
+      "sha256": "7f8c1f0bf9584d0efb0c9d9691b6f4251f76bf860d2ae647face88e3fdd95d4a",
+      "git_blob": "d5d50ecba1edcf06b2799bfc9fc7e75c4c110220",
+      "kind": "record_json"
+    },
+    {
+      "path": "docs/history/lineage/docs/training/2026-10-08-live-twelve-interim.json",
+      "source_path": "docs/training/2026-10-08-live-twelve-interim.json",
+      "source_ref": "feat/training-league",
+      "source_commit": "819f4f426bfaf72e1a132abff9354480250f1444",
+      "introduced_in": "2f81de01a8fde44cad6c603ffc636bb32efad827",
+      "introduced_at": "2026-10-08T10:54:16+09:00",
+      "introduced_at_utc": "2026-10-08T01:54:16Z",
+      "last_changed_in": "2f81de01a8fde44cad6c603ffc636bb32efad827",
+      "revisions": 1,
+      "bytes": 7186,
+      "sha256": "b760d53396ea78149bcb44e74e35dd8f8e52c23402b762c001d0d29ac9087ead",
+      "git_blob": "9d6074ce601dd4218007cad485e113ba784c09bb",
+      "kind": "record_json"
+    },
+    {
+      "path": "docs/history/lineage/docs/training/2026-10-08-live-twenty-interim.json",
+      "source_path": "docs/training/2026-10-08-live-twenty-interim.json",
+      "source_ref": "feat/training-league",
+      "source_commit": "819f4f426bfaf72e1a132abff9354480250f1444",
+      "introduced_in": "525086f2dbaa0c4e6627fb7211aec83034044689",
+      "introduced_at": "2026-10-08T11:14:14+09:00",
+      "introduced_at_utc": "2026-10-08T02:14:14Z",
+      "last_changed_in": "525086f2dbaa0c4e6627fb7211aec83034044689",
+      "revisions": 1,
+      "bytes": 13946,
+      "sha256": "23ff339ad91c084391c12de2a6d096d9cf6c419e9586b17c2e1e492a46331c59",
+      "git_blob": "b8a80351421f84a0f0b55bf6d5e14fc94b8643af",
+      "kind": "record_json"
+    },
+    {
+      "path": "docs/history/lineage/docs/training/2026-10-08-ppo-policy-drift.json",
+      "source_path": "docs/training/2026-10-08-ppo-policy-drift.json",
+      "source_ref": "feat/training-league",
+      "source_commit": "819f4f426bfaf72e1a132abff9354480250f1444",
+      "introduced_in": "6dd8807425b71a806100dc7819e6372eb502e928",
+      "introduced_at": "2026-10-08T09:52:00+09:00",
+      "introduced_at_utc": "2026-10-08T00:52:00Z",
+      "last_changed_in": "6dd8807425b71a806100dc7819e6372eb502e928",
+      "revisions": 1,
+      "bytes": 7220,
+      "sha256": "bdb7a48eb1dbf998066795412568db3c633153b19490ae1bd50110c6c04abc84",
+      "git_blob": "9a32858814565918729379cfde067bdce3df6c02",
+      "kind": "record_json"
+    },
+    {
+      "path": "docs/history/lineage/docs/training/2026-10-08-real-imitation-coverage.json",
+      "source_path": "docs/training/2026-10-08-real-imitation-coverage.json",
+      "source_ref": "feat/training-league",
+      "source_commit": "819f4f426bfaf72e1a132abff9354480250f1444",
+      "introduced_in": "e010adcce19ae43121ee0b6f5de8c820a1e968e7",
+      "introduced_at": "2026-10-08T10:59:09+09:00",
+      "introduced_at_utc": "2026-10-08T01:59:09Z",
+      "last_changed_in": "e010adcce19ae43121ee0b6f5de8c820a1e968e7",
+      "revisions": 1,
+      "bytes": 1251,
+      "sha256": "6a752fcafb0fe87631719a2cac7866cebbb6f68484f4a84e27954c4a0dc8e4a8",
+      "git_blob": "d95f7fafae3fd7f61e20e3499d219342988c775b",
+      "kind": "record_json"
+    },
+    {
+      "path": "docs/history/lineage/docs/training/2026-10-08-recovered-bc-final.json",
+      "source_path": "docs/training/2026-10-08-recovered-bc-final.json",
+      "source_ref": "feat/training-league",
+      "source_commit": "819f4f426bfaf72e1a132abff9354480250f1444",
+      "introduced_in": "ec9ddeacef99fe85a4884798bb3ff4408c3c9981",
+      "introduced_at": "2026-10-08T23:41:07+09:00",
+      "introduced_at_utc": "2026-10-08T14:41:07Z",
+      "last_changed_in": "ec9ddeacef99fe85a4884798bb3ff4408c3c9981",
+      "revisions": 1,
+      "bytes": 2350,
+      "sha256": "439f1db4c8b4866e3c62e72b5f1458f20e066e0b1082ecd62f52231b025b90ff",
+      "git_blob": "e2a34b6e44b5a5cb63b96e275086b95ec6822d8f",
+      "kind": "record_json"
+    },
+    {
+      "path": "docs/history/lineage/docs/training/2026-10-08-recovered-bc-fit.json",
+      "source_path": "docs/training/2026-10-08-recovered-bc-fit.json",
+      "source_ref": "feat/training-league",
+      "source_commit": "819f4f426bfaf72e1a132abff9354480250f1444",
+      "introduced_in": "135772afbe250d84bff90362b0ec204e2a8c0a1a",
+      "introduced_at": "2026-10-08T13:52:39+09:00",
+      "introduced_at_utc": "2026-10-08T04:52:39Z",
+      "last_changed_in": "135772afbe250d84bff90362b0ec204e2a8c0a1a",
+      "revisions": 1,
+      "bytes": 13607,
+      "sha256": "f3fe614e1cd6deb1b2fb977ee6f4d3dcd95b4f84f0bacfa46cbfc6b8d0d97a2a",
+      "git_blob": "11e88a559462cf45e3624857033efccb93865729",
+      "kind": "record_json"
+    },
+    {
+      "path": "docs/history/lineage/docs/training/2026-10-08-recovered-bc-replication-plan.json",
+      "source_path": "docs/training/2026-10-08-recovered-bc-replication-plan.json",
+      "source_ref": "feat/training-league",
+      "source_commit": "819f4f426bfaf72e1a132abff9354480250f1444",
+      "introduced_in": "5b7afa1487181d10ab1b6ea0c94fc1c9740ef697",
+      "introduced_at": "2026-10-08T23:41:55+09:00",
+      "introduced_at_utc": "2026-10-08T14:41:55Z",
+      "last_changed_in": "5b7afa1487181d10ab1b6ea0c94fc1c9740ef697",
+      "revisions": 1,
+      "bytes": 888,
+      "sha256": "d062715da07e78229697949f6ee8f7c8ff46566887561b2b83a4e8491ff51069",
+      "git_blob": "f74c34def2881fa5b533d68cf524ad3f65c40f30",
+      "kind": "record_json"
+    },
+    {
+      "path": "docs/history/lineage/docs/training/2026-10-08-rehearsal-training.json",
+      "source_path": "docs/training/2026-10-08-rehearsal-training.json",
+      "source_ref": "feat/training-league",
+      "source_commit": "819f4f426bfaf72e1a132abff9354480250f1444",
+      "introduced_in": "95e5d0f2b00b250f56735fbcbfca5ff507b22e8e",
+      "introduced_at": "2026-10-08T10:30:39+09:00",
+      "introduced_at_utc": "2026-10-08T01:30:39Z",
+      "last_changed_in": "95e5d0f2b00b250f56735fbcbfca5ff507b22e8e",
+      "revisions": 1,
+      "bytes": 4037,
+      "sha256": "700a79ada01835c031e1936b634d8e372b3e11694ce935300a3f676aadd52011",
+      "git_blob": "f90cd9a98c9aadda8d9982ee1bf1e879d03d6f8f",
+      "kind": "record_json"
+    },
+    {
+      "path": "docs/history/lineage/docs/training/2026-10-08-supply-fixed-final-audit.json",
+      "source_path": "docs/training/2026-10-08-supply-fixed-final-audit.json",
+      "source_ref": "feat/training-league",
+      "source_commit": "819f4f426bfaf72e1a132abff9354480250f1444",
+      "introduced_in": "14acf17a7a55c289b0961e1afeacfd1e97512739",
+      "introduced_at": "2026-10-08T10:12:26+09:00",
+      "introduced_at_utc": "2026-10-08T01:12:26Z",
+      "last_changed_in": "14acf17a7a55c289b0961e1afeacfd1e97512739",
+      "revisions": 1,
+      "bytes": 620,
+      "sha256": "a234952e15f59677ff808fb845c64fb2712263cff82f832a6d2c17dfb107afd1",
+      "git_blob": "cef96275962dc8c8ecca1224388351a10a9b3064",
+      "kind": "record_json"
+    },
+    {
+      "path": "docs/history/lineage/docs/training/2026-10-08-supply-fixed-ppo-retention.json",
+      "source_path": "docs/training/2026-10-08-supply-fixed-ppo-retention.json",
+      "source_ref": "feat/training-league",
+      "source_commit": "819f4f426bfaf72e1a132abff9354480250f1444",
+      "introduced_in": "c22d79db44a2b1169062b612dd3066d52c17a024",
+      "introduced_at": "2026-10-08T00:01:34+09:00",
+      "introduced_at_utc": "2026-10-07T15:01:34Z",
+      "last_changed_in": "c22d79db44a2b1169062b612dd3066d52c17a024",
+      "revisions": 1,
+      "bytes": 691,
+      "sha256": "81adba10b5d0c11fca45e6a2db7c202a20b4de3d4ab980539bcbce89dc3d8704",
+      "git_blob": "023e894a461c92ccd38b416c21653379d16445de",
+      "kind": "record_json"
+    },
+    {
+      "path": "docs/history/lineage/docs/training/2026-10-08-supply-fixed-ppo-update.json",
+      "source_path": "docs/training/2026-10-08-supply-fixed-ppo-update.json",
+      "source_ref": "feat/training-league",
+      "source_commit": "819f4f426bfaf72e1a132abff9354480250f1444",
+      "introduced_in": "c22d79db44a2b1169062b612dd3066d52c17a024",
+      "introduced_at": "2026-10-08T00:01:34+09:00",
+      "introduced_at_utc": "2026-10-07T15:01:34Z",
+      "last_changed_in": "c22d79db44a2b1169062b612dd3066d52c17a024",
+      "revisions": 1,
+      "bytes": 1457,
+      "sha256": "2f6ef92939000fdccd17e10f633c4bbc8f89f5de2b34f8efccbfc7f306263867",
+      "git_blob": "058c60187cfd132ebc8957ae3db1982b2428ea27",
+      "kind": "record_json"
+    },
+    {
+      "path": "docs/history/lineage/docs/training/2026-10-08-threat-memory-training.json",
+      "source_path": "docs/training/2026-10-08-threat-memory-training.json",
+      "source_ref": "feat/training-league",
+      "source_commit": "819f4f426bfaf72e1a132abff9354480250f1444",
+      "introduced_in": "366ec6275a30047be67cad0cddd64dde7c9228f4",
+      "introduced_at": "2026-10-08T10:25:53+09:00",
+      "introduced_at_utc": "2026-10-08T01:25:53Z",
+      "last_changed_in": "366ec6275a30047be67cad0cddd64dde7c9228f4",
+      "revisions": 1,
+      "bytes": 2732,
+      "sha256": "d07813bb6a3f707e4646f4ad1e5d54f32947b5048fb71e59946fde1dac317b8d",
+      "git_blob": "b6b1dac5f4b73520a17768c5c8ee8d53a2b5ceeb",
+      "kind": "record_json"
+    },
+    {
+      "path": "docs/history/lineage/docs/training/2026-10-08-time-discount-pressure.json",
+      "source_path": "docs/training/2026-10-08-time-discount-pressure.json",
+      "source_ref": "feat/training-league",
+      "source_commit": "819f4f426bfaf72e1a132abff9354480250f1444",
+      "introduced_in": "3d6c00a6358d8bebfae8d7197602bb7fa9f71859",
+      "introduced_at": "2026-10-08T10:38:53+09:00",
+      "introduced_at_utc": "2026-10-08T01:38:53Z",
+      "last_changed_in": "3d6c00a6358d8bebfae8d7197602bb7fa9f71859",
+      "revisions": 1,
+      "bytes": 2908,
+      "sha256": "726580ced94e1d318b1f1895a8b7ce10877976f83a526390eeffb1038c551348",
+      "git_blob": "728c3ed1accbb0e5a1ae52d2dbcf49ce32b65ef1",
+      "kind": "record_json"
+    },
+    {
+      "path": "docs/history/lineage/docs/training/2026-10-08-time-discount-training.json",
+      "source_path": "docs/training/2026-10-08-time-discount-training.json",
+      "source_ref": "feat/training-league",
+      "source_commit": "819f4f426bfaf72e1a132abff9354480250f1444",
+      "introduced_in": "3d6c00a6358d8bebfae8d7197602bb7fa9f71859",
+      "introduced_at": "2026-10-08T10:38:53+09:00",
+      "introduced_at_utc": "2026-10-08T01:38:53Z",
+      "last_changed_in": "3d6c00a6358d8bebfae8d7197602bb7fa9f71859",
+      "revisions": 1,
+      "bytes": 4195,
+      "sha256": "b43d78650c2803f05498b0aca41c468842c1d15d24d2807387fa7d5c96b4f86a",
+      "git_blob": "afaacc68397894fde7d7e06371a50246df47e4be",
+      "kind": "record_json"
+    },
+    {
+      "path": "docs/history/lineage/docs/training/2026-10-08-time-rehearsal-training.json",
+      "source_path": "docs/training/2026-10-08-time-rehearsal-training.json",
+      "source_ref": "feat/training-league",
+      "source_commit": "819f4f426bfaf72e1a132abff9354480250f1444",
+      "introduced_in": "e05ee1e08359ce49e48d5a2529f565c381ba7f43",
+      "introduced_at": "2026-10-08T10:42:04+09:00",
+      "introduced_at_utc": "2026-10-08T01:42:04Z",
+      "last_changed_in": "e05ee1e08359ce49e48d5a2529f565c381ba7f43",
+      "revisions": 1,
+      "bytes": 5519,
+      "sha256": "737c0c031f6fc1ae241f77d90155120e589825b2bb5b9bef003816fbc2493ea3",
+      "git_blob": "52b052756066ec59649f3cb20506837ca8f0b244",
+      "kind": "record_json"
+    },
+    {
+      "path": "docs/history/lineage/docs/training/2026-10-08-v8-bc-final.json",
+      "source_path": "docs/training/2026-10-08-v8-bc-final.json",
+      "source_ref": "feat/training-league",
+      "source_commit": "819f4f426bfaf72e1a132abff9354480250f1444",
+      "introduced_in": "7f1a620ced59f04148a1ad231b825a09738126b8",
+      "introduced_at": "2026-10-08T12:22:09+09:00",
+      "introduced_at_utc": "2026-10-08T03:22:09Z",
+      "last_changed_in": "7f1a620ced59f04148a1ad231b825a09738126b8",
+      "revisions": 1,
+      "bytes": 25623,
+      "sha256": "cd80f8947463cb2d46b500b73bc192604a5976f2b2de5569b2cac48ba30d105a",
+      "git_blob": "9fac451e6a332cdcc95f657dca58ca403e78fc6d",
+      "kind": "record_json"
+    },
+    {
+      "path": "docs/history/lineage/docs/training/2026-10-08-v8-first-four-runtime.json",
+      "source_path": "docs/training/2026-10-08-v8-first-four-runtime.json",
+      "source_ref": "feat/training-league",
+      "source_commit": "819f4f426bfaf72e1a132abff9354480250f1444",
+      "introduced_in": "1054d3219a74be46c3b5de4806f6fb3f9ea8bd23",
+      "introduced_at": "2026-10-08T10:27:49+09:00",
+      "introduced_at_utc": "2026-10-08T01:27:49Z",
+      "last_changed_in": "1054d3219a74be46c3b5de4806f6fb3f9ea8bd23",
+      "revisions": 1,
+      "bytes": 1075,
+      "sha256": "3e6a8d017229d6c98ac95ca207316e6913c83370377cbf9df907aca75f3c37f4",
+      "git_blob": "585f023b73075be65e508a1abeb271b216a64dd4",
+      "kind": "record_json"
+    },
+    {
+      "path": "docs/history/lineage/docs/training/2026-10-08-v8-first-heldout.json",
+      "source_path": "docs/training/2026-10-08-v8-first-heldout.json",
+      "source_ref": "feat/training-league",
+      "source_commit": "819f4f426bfaf72e1a132abff9354480250f1444",
+      "introduced_in": "43423ef96cc3dcaaa7ab4998f1d4dfc744bd9c7a",
+      "introduced_at": "2026-10-08T10:17:45+09:00",
+      "introduced_at_utc": "2026-10-08T01:17:45Z",
+      "last_changed_in": "43423ef96cc3dcaaa7ab4998f1d4dfc744bd9c7a",
+      "revisions": 1,
+      "bytes": 3046,
+      "sha256": "06896d7021f09dac7ca2bcaf03b34f6245e7b8e7027794a4fff4d71df85a177d",
+      "git_blob": "e054c69473623dbebbb2ff9c8da5c87f15d9e4b8",
+      "kind": "record_json"
+    },
+    {
+      "path": "docs/history/lineage/docs/training/2026-10-08-v8-ten-runtime.json",
+      "source_path": "docs/training/2026-10-08-v8-ten-runtime.json",
+      "source_ref": "feat/training-league",
+      "source_commit": "819f4f426bfaf72e1a132abff9354480250f1444",
+      "introduced_in": "b7e0eb6aa499f92aab5e5cc474ce357bb16d4cf2",
+      "introduced_at": "2026-10-08T10:48:54+09:00",
+      "introduced_at_utc": "2026-10-08T01:48:54Z",
+      "last_changed_in": "b7e0eb6aa499f92aab5e5cc474ce357bb16d4cf2",
+      "revisions": 1,
+      "bytes": 2994,
+      "sha256": "a432d0506930e21803c5bfd03c91f6c69cb1742bd736fcc526166767ab91707a",
+      "git_blob": "d691d4114b1b567b69188cfb8367e6efd00350dd",
+      "kind": "record_json"
+    },
+    {
+      "path": "docs/history/lineage/docs/training/2026-10-09-candidate-teacher-collection-plan.json",
+      "source_path": "docs/training/2026-10-09-candidate-teacher-collection-plan.json",
+      "source_ref": "feat/training-league",
+      "source_commit": "819f4f426bfaf72e1a132abff9354480250f1444",
+      "introduced_in": "96089a691c735a69f02cb54f7f2db397be2ce064",
+      "introduced_at": "2026-10-09T20:00:00+09:00",
+      "introduced_at_utc": "2026-10-09T11:00:00Z",
+      "last_changed_in": "96089a691c735a69f02cb54f7f2db397be2ce064",
+      "revisions": 1,
+      "bytes": 1082,
+      "sha256": "8f5fe458fae54c5ac89c875a08f0075ecb3e4f0707bb38b6f8932f3f48e8fdc4",
+      "git_blob": "d15a52dd4dbeaa68d4ab362d70cf41bdbf5d3111",
+      "kind": "record_json"
+    },
+    {
+      "path": "docs/history/lineage/docs/training/2026-10-09-demonstration-distribution-audit.json",
+      "source_path": "docs/training/2026-10-09-demonstration-distribution-audit.json",
+      "source_ref": "feat/training-league",
+      "source_commit": "819f4f426bfaf72e1a132abff9354480250f1444",
+      "introduced_in": "c658a56df33c0003c3d7494fb701c60b24a86dab",
+      "introduced_at": "2026-10-09T20:03:06+09:00",
+      "introduced_at_utc": "2026-10-09T11:03:06Z",
+      "last_changed_in": "c658a56df33c0003c3d7494fb701c60b24a86dab",
+      "revisions": 1,
+      "bytes": 34266,
+      "sha256": "fb43e33791a0586f218e61d2a327bbb50a350948925d6de7cc25a3dce888c3c9",
+      "git_blob": "5a25a4af393b064920b1383a9320f81365ff0555",
+      "kind": "record_json"
+    },
+    {
+      "path": "docs/history/lineage/docs/training/2026-10-09-recovered-bc-replication-final.json",
+      "source_path": "docs/training/2026-10-09-recovered-bc-replication-final.json",
+      "source_ref": "feat/training-league",
+      "source_commit": "819f4f426bfaf72e1a132abff9354480250f1444",
+      "introduced_in": "81a318f45dd5eccfb84272f7862bcace0e8a221d",
+      "introduced_at": "2026-10-09T19:58:18+09:00",
+      "introduced_at_utc": "2026-10-09T10:58:18Z",
+      "last_changed_in": "81a318f45dd5eccfb84272f7862bcace0e8a221d",
+      "revisions": 1,
+      "bytes": 2499,
+      "sha256": "0c6683a682ba39449829232e9bece5faf1a5142adc68e3f6b8793dfb30710e66",
+      "git_blob": "ba365ba5dbfe4c5928429035a0194c0a13ac431a",
+      "kind": "record_json"
+    },
+    {
+      "path": "docs/history/lineage/docs/training/2026-10-09-reference-bc-fit-final.json",
+      "source_path": "docs/training/2026-10-09-reference-bc-fit-final.json",
+      "source_ref": "feat/training-league",
+      "source_commit": "819f4f426bfaf72e1a132abff9354480250f1444",
+      "introduced_in": "987a7de9d3a205059793d80c7e4d22134b57f30f",
+      "introduced_at": "2026-10-09T22:59:38+09:00",
+      "introduced_at_utc": "2026-10-09T13:59:38Z",
+      "last_changed_in": "987a7de9d3a205059793d80c7e4d22134b57f30f",
+      "revisions": 1,
+      "bytes": 5900,
+      "sha256": "3e5346b583a4bbd2c8d1812a5cfcae1a56894e00e9c53032feecf788daac50ac",
+      "git_blob": "5ada8793894132741a054e19771f97caf58f3bf0",
+      "kind": "record_json"
+    },
+    {
+      "path": "docs/history/lineage/docs/training/2026-10-09-reference-bc-plan.json",
+      "source_path": "docs/training/2026-10-09-reference-bc-plan.json",
+      "source_ref": "feat/training-league",
+      "source_commit": "819f4f426bfaf72e1a132abff9354480250f1444",
+      "introduced_in": "d4da520ea77934ef882f83fe0a747a362c5b16c5",
+      "introduced_at": "2026-10-09T20:05:39+09:00",
+      "introduced_at_utc": "2026-10-09T11:05:39Z",
+      "last_changed_in": "d4da520ea77934ef882f83fe0a747a362c5b16c5",
+      "revisions": 1,
+      "bytes": 1352,
+      "sha256": "b040c8d4d9121751d36dd473647b6d351c57474bddbebf16a7e1027db06f1390",
+      "git_blob": "caf7a165cca41e8387205ceba405658d24ad1962",
+      "kind": "record_json"
+    },
+    {
+      "path": "docs/history/lineage/docs/training/2026-10-09-reference-live-evaluation-plan.json",
+      "source_path": "docs/training/2026-10-09-reference-live-evaluation-plan.json",
+      "source_ref": "feat/training-league",
+      "source_commit": "819f4f426bfaf72e1a132abff9354480250f1444",
+      "introduced_in": "a2a7a87069facfabf5bbfd9ecda397bf7bdf2fba",
+      "introduced_at": "2026-10-09T23:07:28+09:00",
+      "introduced_at_utc": "2026-10-09T14:07:28Z",
+      "last_changed_in": "ecfe9f3455e0b32f1b56eb53627d41142b9db9e5",
+      "revisions": 2,
+      "bytes": 1119,
+      "sha256": "6b6d8f3a197b5b3e7c6b3fe0b14c70f0bf33a90e60f3ef0ab79e20597b72c27d",
+      "git_blob": "a9a5e712cae0b4b430e961bf17606a61243b7cb3",
+      "kind": "record_json"
+    },
+    {
+      "path": "docs/history/lineage/docs/training/2026-10-09-reference-simulator-300s-final.json",
+      "source_path": "docs/training/2026-10-09-reference-simulator-300s-final.json",
+      "source_ref": "feat/training-league",
+      "source_commit": "819f4f426bfaf72e1a132abff9354480250f1444",
+      "introduced_in": "a2a7a87069facfabf5bbfd9ecda397bf7bdf2fba",
+      "introduced_at": "2026-10-09T23:07:28+09:00",
+      "introduced_at_utc": "2026-10-09T14:07:28Z",
+      "last_changed_in": "a2a7a87069facfabf5bbfd9ecda397bf7bdf2fba",
+      "revisions": 1,
+      "bytes": 3246,
+      "sha256": "6af7ed85c2c8f950404f7adfc5352f9711173abeab251b7a1622ad886deeb213",
+      "git_blob": "0f060715ac575cdb2af10ee63000d2fe23453de6",
+      "kind": "record_json"
+    },
+    {
+      "path": "docs/history/lineage/docs/training/2026-10-09-reference-simulator-final.json",
+      "source_path": "docs/training/2026-10-09-reference-simulator-final.json",
+      "source_ref": "feat/training-league",
+      "source_commit": "819f4f426bfaf72e1a132abff9354480250f1444",
+      "introduced_in": "9880056ed0f1726936d18130d3da84dc6c1e65a3",
+      "introduced_at": "2026-10-09T23:02:55+09:00",
+      "introduced_at_utc": "2026-10-09T14:02:55Z",
+      "last_changed_in": "9880056ed0f1726936d18130d3da84dc6c1e65a3",
+      "revisions": 1,
+      "bytes": 3123,
+      "sha256": "8c157ae17838820b531128bc52b8c73fc2b47a3da995d26ee90dea5b9fd8b39f",
+      "git_blob": "adb9c1c4bda6c400145979781e2a66f90d36d712",
+      "kind": "record_json"
+    },
+    {
+      "path": "docs/history/lineage/docs/training/2026-10-09-reference-style-audit.json",
+      "source_path": "docs/training/2026-10-09-reference-style-audit.json",
+      "source_ref": "feat/training-league",
+      "source_commit": "819f4f426bfaf72e1a132abff9354480250f1444",
+      "introduced_in": "9880056ed0f1726936d18130d3da84dc6c1e65a3",
+      "introduced_at": "2026-10-09T23:02:55+09:00",
+      "introduced_at_utc": "2026-10-09T14:02:55Z",
+      "last_changed_in": "9880056ed0f1726936d18130d3da84dc6c1e65a3",
+      "revisions": 1,
+      "bytes": 118775,
+      "sha256": "48430e14ceb5c31bc08964cdb8c8549b18a4f62d8ba3b96155203c5e0f2dbb35",
+      "git_blob": "6d521407ec90d86404daebd661f02d3865b62b18",
+      "kind": "record_json"
+    },
+    {
+      "path": "docs/history/lineage/docs/training/2026-10-10-reference-live-final.json",
+      "source_path": "docs/training/2026-10-10-reference-live-final.json",
+      "source_ref": "feat/training-league",
+      "source_commit": "819f4f426bfaf72e1a132abff9354480250f1444",
+      "introduced_in": "fdd76a58ad928d23a2b7682a9b4986caac92cfc7",
+      "introduced_at": "2026-10-10T14:19:58+09:00",
+      "introduced_at_utc": "2026-10-10T05:19:58Z",
+      "last_changed_in": "fdd76a58ad928d23a2b7682a9b4986caac92cfc7",
+      "revisions": 1,
+      "bytes": 3461,
+      "sha256": "6ce8a76c554acee6af95a531b61a4c2c75f9f8799d9870acb5ab7a2ffc9fcab8",
+      "git_blob": "535870077a4468b64673ae42df1c13bedc30771d",
+      "kind": "record_json"
+    },
+    {
+      "path": "docs/history/lineage/docs/training/2026-10-10-training-completion-audit.json",
+      "source_path": "docs/training/2026-10-10-training-completion-audit.json",
+      "source_ref": "feat/training-league",
+      "source_commit": "819f4f426bfaf72e1a132abff9354480250f1444",
+      "introduced_in": "cedac313a3b849c50c432ef39cc6b33667c17e41",
+      "introduced_at": "2026-10-10T14:20:58+09:00",
+      "introduced_at_utc": "2026-10-10T05:20:58Z",
+      "last_changed_in": "cedac313a3b849c50c432ef39cc6b33667c17e41",
+      "revisions": 1,
+      "bytes": 2802,
+      "sha256": "fa2d08b04aebe954d2fd83ce3a36f47530b39d744df3ade5af4d16e35e7dd4de",
+      "git_blob": "7f74aefcaab8fce67e589daeda2a22bab0f1fad4",
+      "kind": "record_json"
+    },
+    {
+      "path": "docs/history/lineage/docs/training/2026-10-11-defense-v11-live.json",
+      "source_path": "docs/training/2026-10-11-defense-v11-live.json",
+      "source_ref": "feat/training-league",
+      "source_commit": "819f4f426bfaf72e1a132abff9354480250f1444",
+      "introduced_in": "819f4f426bfaf72e1a132abff9354480250f1444",
+      "introduced_at": "2026-10-11T20:46:52+09:00",
+      "introduced_at_utc": "2026-10-11T11:46:52Z",
+      "last_changed_in": "819f4f426bfaf72e1a132abff9354480250f1444",
+      "revisions": 1,
+      "bytes": 3995,
+      "sha256": "88e269a6fa7966c5180deeb7c8e232edca3078fac5b979253fb8d4d8b97a1825",
+      "git_blob": "cf7f0f56d6ad64140cfa1d617c23ab0d4750fd61",
+      "kind": "record_json"
+    },
+    {
+      "path": "docs/history/lineage/docs/training/2026-10-11-defense-v12-live.json",
+      "source_path": "docs/training/2026-10-11-defense-v12-live.json",
+      "source_ref": "feat/training-league",
+      "source_commit": "819f4f426bfaf72e1a132abff9354480250f1444",
+      "introduced_in": "819f4f426bfaf72e1a132abff9354480250f1444",
+      "introduced_at": "2026-10-11T20:46:52+09:00",
+      "introduced_at_utc": "2026-10-11T11:46:52Z",
+      "last_changed_in": "819f4f426bfaf72e1a132abff9354480250f1444",
+      "revisions": 1,
+      "bytes": 3670,
+      "sha256": "f1ad31e8706ec48ba851b7a61f521549dd5bfc979b4189224f09c29959ac7382",
+      "git_blob": "25455f3ea8ef07906031fcad5a0b07f9e29f7851",
+      "kind": "record_json"
+    },
+    {
+      "path": "docs/history/lineage/docs/training/2026-10-11-jev-shadow-final.json",
+      "source_path": "docs/training/2026-10-11-jev-shadow-final.json",
+      "source_ref": "feat/training-league",
+      "source_commit": "819f4f426bfaf72e1a132abff9354480250f1444",
+      "introduced_in": "4769d4b3e0307be85917a4c669bbf1d4d03cac86",
+      "introduced_at": "2026-10-11T01:48:30+09:00",
+      "introduced_at_utc": "2026-10-10T16:48:30Z",
+      "last_changed_in": "4769d4b3e0307be85917a4c669bbf1d4d03cac86",
+      "revisions": 1,
+      "bytes": 4656,
+      "sha256": "a9a750bdb86426f024a03388ee2bfceb06bce5bc841e172911ad5c1c48bc338f",
+      "git_blob": "88e00369a83f98c134aefe2ebe541c6ec7f5c737",
+      "kind": "record_json"
+    },
+    {
+      "path": "docs/history/lineage/docs/training/2026-10-11-tactical-options.md",
+      "source_path": "docs/training/2026-10-11-tactical-options.md",
+      "source_ref": "feat/training-league",
+      "source_commit": "819f4f426bfaf72e1a132abff9354480250f1444",
+      "introduced_in": "fd2298e48c88433a5e78b1140aab3ff9bb297197",
+      "introduced_at": "2026-10-11T02:02:34+09:00",
+      "introduced_at_utc": "2026-10-10T17:02:34Z",
+      "last_changed_in": "819f4f426bfaf72e1a132abff9354480250f1444",
+      "revisions": 3,
+      "bytes": 6493,
+      "sha256": "9deeb71f7053701c7e43b62e7da947df2fdceaae5399a13bf1a8347c6034bd93",
+      "git_blob": "7a10293646fc60faa5f610886d1869e3c147d694",
+      "kind": "record_md"
+    },
+    {
+      "path": "docs/history/lineage/docs/training/2026-10-11-tactical-pilot-final.json",
+      "source_path": "docs/training/2026-10-11-tactical-pilot-final.json",
+      "source_ref": "feat/training-league",
+      "source_commit": "819f4f426bfaf72e1a132abff9354480250f1444",
+      "introduced_in": "ced36a5a72a266477cef1fef1b29f45e6725e469",
+      "introduced_at": "2026-10-11T15:29:29+09:00",
+      "introduced_at_utc": "2026-10-11T06:29:29Z",
+      "last_changed_in": "ced36a5a72a266477cef1fef1b29f45e6725e469",
+      "revisions": 1,
+      "bytes": 7082,
+      "sha256": "df5408b2ca1299fa64385010552d75c8d9956bf28bf0616c269d71b27a0368d2",
+      "git_blob": "4a6a276e2f0f0beb3292fe8998699db2c9c39a70",
+      "kind": "record_json"
+    },
+    {
+      "path": "docs/history/lineage/docs/training/league-v2.md",
+      "source_path": "docs/training/league-v2.md",
+      "source_ref": "feat/training-league",
+      "source_commit": "819f4f426bfaf72e1a132abff9354480250f1444",
+      "introduced_in": "94051a292a3e9164622e07fa600377c3c68ec79b",
+      "introduced_at": "2026-10-06T01:10:27+09:00",
+      "introduced_at_utc": "2026-10-05T16:10:27Z",
+      "last_changed_in": "746e4da08028fc69ad6df25dc3e1059041edfe67",
+      "revisions": 6,
+      "bytes": 10610,
+      "sha256": "6d272fc5f30863c82d49d2517e4ad5381aacb8b9053a805e032f90fc1c71a000",
+      "git_blob": "4de98f3b1f24b55763b8da3e8bd35beab1975b63",
+      "kind": "record_md"
+    },
+    {
+      "path": "docs/history/lineage/models/duel-continuation/README.md",
+      "source_path": "models/duel-continuation/README.md",
+      "source_ref": "feat/training-league",
+      "source_commit": "819f4f426bfaf72e1a132abff9354480250f1444",
+      "introduced_in": "3ae14e7799abea46e85344c26719fa05f28e1628",
+      "introduced_at": "2026-09-30T08:53:57+02:00",
+      "introduced_at_utc": "2026-09-30T06:53:57Z",
+      "last_changed_in": "3ae14e7799abea46e85344c26719fa05f28e1628",
+      "revisions": 1,
+      "bytes": 1633,
+      "sha256": "3c0d49cdd34b6f93b8caa6038d870f3ba1dfacb9e2ff736d0274433fc3b24928",
+      "git_blob": "daa601b51c0c6886dfba87d5825d441f3799387a",
+      "kind": "checkpoint_readme"
+    },
+    {
+      "path": "docs/history/lineage/models/duel-continuation/manifest.json",
+      "source_path": "models/duel-continuation/manifest.json",
+      "source_ref": "feat/training-league",
+      "source_commit": "819f4f426bfaf72e1a132abff9354480250f1444",
+      "introduced_in": "3ae14e7799abea46e85344c26719fa05f28e1628",
+      "introduced_at": "2026-09-30T08:53:57+02:00",
+      "introduced_at_utc": "2026-09-30T06:53:57Z",
+      "last_changed_in": "3ae14e7799abea46e85344c26719fa05f28e1628",
+      "revisions": 1,
+      "bytes": 4635,
+      "sha256": "e001fddb4429d3377cdb87c834c0856b9c254d1a3ea167a865563af123e810b0",
+      "git_blob": "9d5e213db78a714079e3bd1b05206fdc38f2c332",
+      "kind": "checkpoint_manifest"
+    },
+    {
+      "path": "docs/history/lineage/models/duel-continuation-live/README.md",
+      "source_path": "models/duel-continuation-live/README.md",
+      "source_ref": "feat/training-league",
+      "source_commit": "819f4f426bfaf72e1a132abff9354480250f1444",
+      "introduced_in": "3ae14e7799abea46e85344c26719fa05f28e1628",
+      "introduced_at": "2026-09-30T08:53:57+02:00",
+      "introduced_at_utc": "2026-09-30T06:53:57Z",
+      "last_changed_in": "3ae14e7799abea46e85344c26719fa05f28e1628",
+      "revisions": 1,
+      "bytes": 1627,
+      "sha256": "9d72a542d2c893f158971166f7890be94a8fde163b13a8749a0b87554d4f5b8b",
+      "git_blob": "a7afec832edccc5cabd5dbe4153a41c9d42c47a3",
+      "kind": "checkpoint_readme"
+    },
+    {
+      "path": "docs/history/lineage/models/duel-continuation-live/manifest.json",
+      "source_path": "models/duel-continuation-live/manifest.json",
+      "source_ref": "feat/training-league",
+      "source_commit": "819f4f426bfaf72e1a132abff9354480250f1444",
+      "introduced_in": "3ae14e7799abea46e85344c26719fa05f28e1628",
+      "introduced_at": "2026-09-30T08:53:57+02:00",
+      "introduced_at_utc": "2026-09-30T06:53:57Z",
+      "last_changed_in": "3ae14e7799abea46e85344c26719fa05f28e1628",
+      "revisions": 1,
+      "bytes": 4778,
+      "sha256": "b59c014f77dd3b4d78f9b4b3ce5da923a85428f7bf180cb1e0ad73e63ec14a36",
+      "git_blob": "01fe21d411ef960ac98f61fce2b6db17b285fe7d",
+      "kind": "checkpoint_manifest"
+    },
+    {
+      "path": "docs/history/lineage/models/duel-live-candidate/README.md",
+      "source_path": "models/duel-live-candidate/README.md",
+      "source_ref": "feat/training-league",
+      "source_commit": "819f4f426bfaf72e1a132abff9354480250f1444",
+      "introduced_in": "6b8d6f0f8a0fcc37fdcefa58399fed83a1b95caa",
+      "introduced_at": "2026-09-30T07:50:46+02:00",
+      "introduced_at_utc": "2026-09-30T05:50:46Z",
+      "last_changed_in": "6b8d6f0f8a0fcc37fdcefa58399fed83a1b95caa",
+      "revisions": 1,
+      "bytes": 1501,
+      "sha256": "dfc7f0d595187c383ecedc52005770b87077304eae48bfa52aca049bd30b42c9",
+      "git_blob": "ab818c3998c18e2beb9d6e5a02a8e7cd7a3dbc0b",
+      "kind": "checkpoint_readme"
+    },
+    {
+      "path": "docs/history/lineage/models/duel-live-candidate/manifest.json",
+      "source_path": "models/duel-live-candidate/manifest.json",
+      "source_ref": "feat/training-league",
+      "source_commit": "819f4f426bfaf72e1a132abff9354480250f1444",
+      "introduced_in": "6b8d6f0f8a0fcc37fdcefa58399fed83a1b95caa",
+      "introduced_at": "2026-09-30T07:50:46+02:00",
+      "introduced_at_utc": "2026-09-30T05:50:46Z",
+      "last_changed_in": "6b8d6f0f8a0fcc37fdcefa58399fed83a1b95caa",
+      "revisions": 1,
+      "bytes": 4470,
+      "sha256": "444cbb4748865f86f226af98e399da77fd72e34bf7fa92533c8b26a10b82bec8",
+      "git_blob": "5438ef97b95e0c6738e4b7b02fc3993ff4af1e6f",
+      "kind": "checkpoint_manifest"
+    },
+    {
+      "path": "docs/history/lineage/models/duel-starter/README.md",
+      "source_path": "models/duel-starter/README.md",
+      "source_ref": "feat/training-league",
+      "source_commit": "819f4f426bfaf72e1a132abff9354480250f1444",
+      "introduced_in": "6b8d6f0f8a0fcc37fdcefa58399fed83a1b95caa",
+      "introduced_at": "2026-09-30T07:50:46+02:00",
+      "introduced_at_utc": "2026-09-30T05:50:46Z",
+      "last_changed_in": "6b8d6f0f8a0fcc37fdcefa58399fed83a1b95caa",
+      "revisions": 1,
+      "bytes": 1470,
+      "sha256": "d7d87b3577048fa6472ae384f322f413444a2896a014ddeccc421f8ad1406e32",
+      "git_blob": "72999d925c09c1dea5ad4eec41f1d0904afcece2",
+      "kind": "checkpoint_readme"
+    },
+    {
+      "path": "docs/history/lineage/models/duel-starter/manifest.json",
+      "source_path": "models/duel-starter/manifest.json",
+      "source_ref": "feat/training-league",
+      "source_commit": "819f4f426bfaf72e1a132abff9354480250f1444",
+      "introduced_in": "6b8d6f0f8a0fcc37fdcefa58399fed83a1b95caa",
+      "introduced_at": "2026-09-30T07:50:46+02:00",
+      "introduced_at_utc": "2026-09-30T05:50:46Z",
+      "last_changed_in": "6b8d6f0f8a0fcc37fdcefa58399fed83a1b95caa",
+      "revisions": 1,
+      "bytes": 4545,
+      "sha256": "a256df2c7b54c90b28575bd9ad6a7be4d96e942bc9d91a9c7d090326bb0fd514",
+      "git_blob": "a12c95b7261760899982569817ecaadec058d50d",
+      "kind": "checkpoint_manifest"
+    }
+  ],
+  "experiments": [
+    {
+      "id": "E01-ten-duels",
+      "title": "Ten-match Jev strategy adaptation",
+      "dates": "2026-09-29",
+      "source_ref": "feat/ten-duel-experiment",
+      "domain": [
+        "live_server_unranked"
+      ],
+      "hypothesis": "A Jev plus local Qwen tactic selector that reads verified memory of earlier matches adapts its plan across ten live matches against a fixed scripted opponent.",
+      "configuration": "Ten unranked one-round live matches, learner Tavern Mage 57 versus the fixed scripted standard policy; no weight training; replays verified by SHA-256.",
+      "outcome": "0 wins / 10 losses. Earlier experience was used in 9 matches and the first plan changed in 8; average offensive damage difference fell from -49.8 (first five) to -82.6 (last five). No improvement; the record calls it a development pilot, not an evaluation.",
+      "result": "negative",
+      "files": [
+        "docs/history/lineage/docs/experiments/2026-09-29-ten-duels.json",
+        "docs/history/lineage/docs/experiments/2026-09-29-ten-duels.md",
+        "docs/history/lineage/docs/TEN_DUEL_EXPERIMENT.ko.md",
+        "docs/history/lineage/docs/SELF_PLAY_ROADMAP.ko.md"
+      ],
+      "context_files": [],
+      "candidates": [],
+      "server_changes": [],
+      "parent_evidence": [],
+      "deployment": "not_deployed",
+      "deployment_evidence": null,
+      "recorded_at_utc": "2026-09-29T21:18:57Z"
+    },
+    {
+      "id": "E02-neural-starter",
+      "title": "Recurrent duel policy starter and first live update",
+      "dates": "2026-09-30",
+      "source_ref": "feat/neural-duel",
+      "domain": [
+        "approximate_simulator",
+        "live_server_unranked"
+      ],
+      "hypothesis": "A GRU policy trained by behaviour cloning on a scripted teacher, then recurrent PPO in the approximate simulator, can play and be updated from verified live matches.",
+      "configuration": "127,384 parameters; 16,384 teacher transitions x 10 epochs; 1,000,000 PPO steps; fresh 200-game simulator evaluation (seed base 2500000000); live updates on the arena host inside /opt/uoarena/anima3-neural-lab-20260930.",
+      "outcome": "Simulator 87W/111L/2D on fresh seeds (not live strength). The 150,000-step model failed its fresh 200 games (0W/163L/37D); the older 20-potion result (139W/56L/5D) is not comparable. One verified live loss (83 decisions) gave the live candidate. Interrupted self-play and state-loss trials were excluded from training.",
+      "result": "diagnostic",
+      "files": [
+        "docs/history/lineage/docs/experiments/2026-09-30-neural-duel.json",
+        "docs/history/lineage/docs/NEURAL_DUEL.ko.md",
+        "docs/history/lineage/models/duel-starter/README.md",
+        "docs/history/lineage/models/duel-starter/manifest.json",
+        "docs/history/lineage/models/duel-live-candidate/README.md",
+        "docs/history/lineage/models/duel-live-candidate/manifest.json"
+      ],
+      "candidates": [
+        {
+          "label": "duel-starter",
+          "sha256": "7c0cbe1a04729b0be553022a84ce6c032424b6ba51a9194bf3f5e7e7c5a51789",
+          "selection": "not_gated",
+          "deployment": "not_deployed",
+          "deployment_evidence": null,
+          "note": "README: not a promoted public-arena champion"
+        },
+        {
+          "label": "150,000-step starter run",
+          "sha256": null,
+          "selection": "rejected",
+          "deployment": "not_deployed",
+          "deployment_evidence": null,
+          "note": "failed fresh evaluation; weight SHA not recorded in the imported records"
+        },
+        {
+          "label": "duel-live-candidate",
+          "sha256": "2953462ad05642e68bfc1c66e751cfa6fc6a7ddc5a6d4a2731c502e9d0ddfa89",
+          "selection": "not_gated",
+          "deployment": "not_deployed",
+          "deployment_evidence": null,
+          "note": "README: has not replaced the public arena agent"
+        }
+      ],
+      "context_files": [],
+      "server_changes": [],
+      "parent_evidence": [],
+      "deployment": "not_deployed",
+      "deployment_evidence": null,
+      "recorded_at_utc": "2026-09-30T05:50:46Z"
+    },
+    {
+      "id": "E03-neural-continuation",
+      "title": "Simulator v5 continuation and four live updates",
+      "dates": "2026-09-30",
+      "source_ref": "feat/neural-duel",
+      "domain": [
+        "approximate_simulator",
+        "live_server_unranked"
+      ],
+      "hypothesis": "Calibrated damage stamina loss (simulator v5), an elapsed-seconds discount and free-choice actor normalisation improve on the starter.",
+      "configuration": "Three 1,000,000-step continuations from duel-starter; selection on v5 diagnostic seeds; fresh categorical and greedy 200-game comparisons; then four live PPO updates from the frozen selection.",
+      "outcome": "calibrated-stamina selected offline. Categorical 49W/151L (starter) versus 99W/100L/1D, paired score +25.25 points, bootstrap 95% [+15.75, +34.5]; the greedy interval included zero. Live: ten server matches in total; one collection failed on lost authoritative state; the last four (3W/1L, 620 transitions) produced duel-continuation-live. Simulator only; four live matches establish no win rate.",
+      "result": "simulator_only",
+      "files": [
+        "docs/history/lineage/docs/experiments/2026-09-30-neural-continuation.json",
+        "docs/history/lineage/models/duel-continuation/README.md",
+        "docs/history/lineage/models/duel-continuation/manifest.json",
+        "docs/history/lineage/models/duel-continuation-live/README.md",
+        "docs/history/lineage/models/duel-continuation-live/manifest.json"
+      ],
+      "context_files": [
+        "docs/history/lineage/docs/NEURAL_DUEL.ko.md"
+      ],
+      "candidates": [
+        {
+          "label": "calibrated-stamina (duel-continuation)",
+          "sha256": "22bc333e08741e402c0245fb97ca8cc0b588199cfc6531364e7e908ee8f70526",
+          "selection": "offline_selected",
+          "deployment": "not_deployed",
+          "deployment_evidence": null
+        },
+        {
+          "label": "same-config",
+          "sha256": "46fb23175cfca015839fc0a508d6e271d9a0c9ae5e08b0ca1a254331e07ce4cd",
+          "selection": "rejected",
+          "deployment": "not_deployed",
+          "deployment_evidence": null,
+          "note": "retained comparison, not selected"
+        },
+        {
+          "label": "time-discount-free-choice",
+          "sha256": "558a7dde1c38f7ade4d12ecb943fb5c567bb5fac5b236c381a2048599d224d92",
+          "selection": "rejected",
+          "deployment": "not_deployed",
+          "deployment_evidence": null,
+          "note": "retained comparison, not selected"
+        },
+        {
+          "label": "duel-continuation-live",
+          "sha256": "fe5796b401fe276cb6c916d5c613e8dc286dcaa0432b136d5aee3465f2803a38",
+          "selection": "not_gated",
+          "deployment": "not_deployed",
+          "deployment_evidence": null,
+          "note": "README: no public agent was replaced"
+        }
+      ],
+      "server_changes": [],
+      "parent_evidence": [],
+      "deployment": "not_deployed",
+      "deployment_evidence": null,
+      "recorded_at_utc": "2026-09-30T06:53:57Z"
+    },
+    {
+      "id": "E04-hundred-live-duels",
+      "title": "One hundred live matches with per-match PPO",
+      "dates": "2026-10-02/2026-10-06",
+      "source_ref": "feat/arena-100-duels",
+      "domain": [
+        "live_server_unranked",
+        "approximate_simulator"
+      ],
+      "hypothesis": "Per-match recurrent PPO on 100 verified real matches improves the policy.",
+      "configuration": "Learner arena_train_a against fixed scripted arena_train_b, alternating challenger; restarted from 4fd33a57 on 2026-10-03; resumed four times (99, 70, 46 and 17 remaining) after state loss, an excluded deadline episode and a stat-verification failure; before/after 200-game simulator evaluation with the same seed.",
+      "outcome": "The committed protocol ends with the remaining 17 launched (baaaaef); it holds no final table. The later historical evaluation records 100 real matches and 94 updates, and a simulator win rate of 0.385 before versus 0.06 after (ee89aab5): a regression. No strength claim and no automatic replacement of the public opponent.",
+      "result": "negative",
+      "files": [
+        "docs/history/lineage/docs/experiments/2026-10-02-hundred-live-duels.md",
+        "docs/history/lineage/docs/training/2026-10-06-historical-evaluation.json"
+      ],
+      "candidates": [
+        {
+          "label": "100-match start",
+          "sha256": "4fd33a5764243f8ce417e5da03a2aca36c8a05f9bb4ac22e691f7769ae49c61c",
+          "selection": "not_gated",
+          "deployment": "not_deployed",
+          "deployment_evidence": null
+        },
+        {
+          "label": "100-match final",
+          "sha256": "ee89aab57826b02a9d7e2d1b992995a6a68dd63a776ff8fc16d31c9122225b32",
+          "selection": "not_gated",
+          "deployment": "not_deployed",
+          "deployment_evidence": null,
+          "note": "simulator win rate fell from 0.385 to 0.06"
+        }
+      ],
+      "context_files": [],
+      "server_changes": [],
+      "parent_evidence": [],
+      "deployment": "not_deployed",
+      "deployment_evidence": null,
+      "recorded_at_utc": "2026-10-01T19:00:55Z"
+    },
+    {
+      "id": "E05-melee-harm-probe",
+      "title": "Melee, stun and close Harm mechanics probe",
+      "dates": "2026-10-05",
+      "source_ref": "feat/melee-harm-experiment",
+      "domain": [
+        "live_server_unranked"
+      ],
+      "hypothesis": "Scripted punch, stun and one-tile Harm can be executed live and observed in server receipts (mechanics, not strength).",
+      "configuration": "Six base fixtures (magic, punch, stun; two each) plus two resource-assisted stun fixtures; scripted only; outside the 100-match budget; zero neural updates.",
+      "outcome": "8/8 fixtures complete and receipt-verified. Every arm won against the fixed opponent, so no arm comparison. Resource-assisted fixtures: 6 confirmed stuns, 2 failures; 67 one-tile Harm targets across all fixtures. Punch hit rate unmeasured.",
+      "result": "diagnostic",
+      "files": [
+        "docs/history/lineage/docs/experiments/2026-10-05-melee-harm.md",
+        "docs/history/lineage/docs/experiments/2026-10-05-melee-harm-results.json",
+        "docs/history/lineage/docs/experiments/2026-10-05-melee-resources-results.json"
+      ],
+      "context_files": [],
+      "candidates": [],
+      "server_changes": [],
+      "parent_evidence": [],
+      "deployment": "not_deployed",
+      "deployment_evidence": null,
+      "recorded_at_utc": "2026-10-05T08:53:32Z"
+    },
+    {
+      "id": "E06-cast-dump-timing",
+      "title": "Cursor-clock cast dump timing probe",
+      "dates": "2026-10-05",
+      "source_ref": "feat/cast-dump-timing",
+      "domain": [
+        "live_server_unranked"
+      ],
+      "hypothesis": "Holding the target cursor through pre-AOS cast recovery shortens follow-up casts.",
+      "configuration": "Three comparison fixtures (baseline, fast, held) and two Weaken/Clumsy confirmation fixtures; scripted; one match per mode; zero neural updates.",
+      "outcome": "Energy Bolt target to Flame Strike: baseline 1345 ms (2 samples), fast 807 ms, held 756 ms (1 sample each); observe RPC median 243.82 to about 65 ms. One match per mode is not a reliable comparison; the record forbids a whole-cycle reduction claim.",
+      "result": "diagnostic",
+      "files": [
+        "docs/history/lineage/docs/experiments/2026-10-05-cast-dump.md",
+        "docs/history/lineage/docs/experiments/2026-10-05-cast-dump-results.json",
+        "docs/history/lineage/docs/experiments/2026-10-05-cast-primed-results.json"
+      ],
+      "context_files": [],
+      "candidates": [],
+      "server_changes": [],
+      "parent_evidence": [],
+      "deployment": "not_deployed",
+      "deployment_evidence": null,
+      "recorded_at_utc": "2026-10-05T10:03:33Z"
+    },
+    {
+      "id": "E07-curriculum-league-v2",
+      "title": "Simulator curriculum league v2",
+      "dates": "2026-10-06",
+      "source_ref": "feat/training-league",
+      "domain": [
+        "approximate_simulator"
+      ],
+      "hypothesis": "Schema-v2 curriculum BC followed by PPO against five scripted styles beats the initial policy, and PPO beats BC.",
+      "configuration": "Four randomized drills, 16,384 demonstration steps, 32 BC epochs, 65,536 PPO steps, 100 held-out simulator games per model; paired seed-block bootstrap gate.",
+      "outcome": "Second run: BC .400 versus initial .065 passed; PPO versus BC +.055 [-.015, .130] failed, BC 39abd306 retained. Final pre-live revision: BC .365 passed; PPO .405 versus BC +.040 [-.035, .110] failed; the run registry selected BC e5915b8d (selection_scope experimental-training-only).",
+      "result": "simulator_only",
+      "files": [
+        "docs/history/lineage/docs/training/league-v2.md",
+        "docs/history/lineage/docs/training/2026-10-06-curriculum-results.json"
+      ],
+      "candidates": [
+        {
+          "label": "second-run BC warmstart",
+          "sha256": "39abd306f8b6dc69a10c9e26c58cd4617a4c2e67d4f8b1715291b378a8c40796",
+          "selection": "registry_selected",
+          "deployment": "not_deployed",
+          "deployment_evidence": null,
+          "note": "run-local simulator registry; superseded by the revision"
+        },
+        {
+          "label": "revision BC warmstart",
+          "sha256": "e5915b8ddc9ecf1b5373fef4c9b60d11022584b3363faceac7aed918be67e903",
+          "selection": "registry_selected",
+          "deployment": "not_deployed",
+          "deployment_evidence": null,
+          "note": "run-local simulator registry"
+        },
+        {
+          "label": "revision PPO candidate",
+          "sha256": null,
+          "selection": "rejected",
+          "deployment": "not_deployed",
+          "deployment_evidence": null,
+          "note": "SHA not recorded in this record"
+        }
+      ],
+      "context_files": [],
+      "server_changes": [],
+      "parent_evidence": [],
+      "deployment": "not_deployed",
+      "deployment_evidence": null,
+      "recorded_at_utc": "2026-10-05T16:10:27Z"
+    },
+    {
+      "id": "E08-live-pilot-28",
+      "title": "28-match live PPO pilot",
+      "dates": "2026-10-06",
+      "source_ref": "feat/training-league",
+      "domain": [
+        "live_server_unranked"
+      ],
+      "hypothesis": "One PPO batch from eight live training games improves on the BC warmstart.",
+      "configuration": "8 training plus 20 frozen evaluation matches (2 per style per model); resume with pinned plan; executor v6.",
+      "outcome": "28 unique matches. Incumbent 0W/9L (+1 transport failure); PPO candidate 0W/9L/1D. Gate failed (enough_evidence false, one invalid episode); the candidate was not selected and the warmstart stayed incumbent. Establishes the pipeline, not strength.",
+      "result": "failed_gate",
+      "files": [
+        "docs/history/lineage/docs/training/2026-10-06-live-pilot-results.json"
+      ],
+      "context_files": [
+        "docs/history/lineage/docs/training/league-v2.md"
+      ],
+      "candidates": [
+        {
+          "label": "PPO candidate",
+          "sha256": "ec9b2a7ce9f62256bb0701aca8bb031572255b8146104d4f8738925314a6b2e9",
+          "selection": "rejected",
+          "deployment": "not_deployed",
+          "deployment_evidence": null
+        },
+        {
+          "label": "BC incumbent",
+          "sha256": "e5915b8ddc9ecf1b5373fef4c9b60d11022584b3363faceac7aed918be67e903",
+          "selection": "registry_retained",
+          "deployment": "not_deployed",
+          "deployment_evidence": null
+        }
+      ],
+      "server_changes": [
+        "ServUO d843b12c8 (training PrepareFighter reset), applied as a SHA-pinned patch to the arena shard (league-v2.md); a shard change, not a model."
+      ],
+      "parent_evidence": [],
+      "deployment": "not_deployed",
+      "deployment_evidence": null,
+      "recorded_at_utc": "2026-10-06T07:34:33Z"
+    },
+    {
+      "id": "E09-skill-clock-simulator",
+      "title": "Schema v3 skill-clock simulator retraining",
+      "dates": "2026-10-07",
+      "source_ref": "feat/training-league",
+      "domain": [
+        "approximate_simulator"
+      ],
+      "hypothesis": "Modelling the 10-second meditation clock (schema v3, 76 features) and more demonstrations yields a better simulator policy.",
+      "configuration": "32,768 demonstration steps, 64 BC epochs, 65,536 PPO steps, 300-second episodes, 100 games per model, held-out seed 3640000000.",
+      "outcome": "Initial 1W/94L/5D, BC 56W/23L/21D (.665), PPO 32W/27L/41D (.525); PPO versus BC -.14 [-.25, -.025]. The run registry selected BC 0c6ca921, which became the incumbent of every later live comparison. Not a controlled attribution to the skill-clock change.",
+      "result": "simulator_only",
+      "files": [
+        "docs/history/lineage/docs/training/2026-10-07-skill-clock-simulator.json",
+        "docs/history/lineage/docs/training/2026-10-07-effective-training.md"
+      ],
+      "candidates": [
+        {
+          "label": "v3 BC",
+          "sha256": "0c6ca921e8bfd19fbaab3fa353d11819b2ba523cd1a810c2c4782447b7a5f56d",
+          "selection": "registry_selected",
+          "deployment": "not_deployed",
+          "deployment_evidence": null,
+          "note": "run-local simulator registry"
+        },
+        {
+          "label": "v3 PPO candidate",
+          "sha256": null,
+          "selection": "rejected",
+          "deployment": "not_deployed",
+          "deployment_evidence": null,
+          "note": "SHA not recorded in this record"
+        }
+      ],
+      "context_files": [],
+      "server_changes": [],
+      "parent_evidence": [],
+      "deployment": "not_deployed",
+      "deployment_evidence": null,
+      "recorded_at_utc": "2026-10-07T13:51:01Z"
+    },
+    {
+      "id": "E10-skill-clock-live-imitation",
+      "title": "Skill-clock live pilot and first live imitation",
+      "dates": "2026-10-07",
+      "source_ref": "feat/training-league",
+      "domain": [
+        "live_server_unranked",
+        "offline_fit",
+        "approximate_simulator"
+      ],
+      "hypothesis": "Real-server teacher demonstrations improve the v3 BC policy by imitation.",
+      "configuration": "Live pilot e597299 (8 training + 20 evaluation planned); BC fits on teacher fixtures 001/002/003/005 (32 epochs, unweighted and action-balanced); validation 006/007; 100-game simulator retention.",
+      "outcome": "Halted after 11 matches: a supply/weight confound (learner one heal potion, no explosion potions; empty bottles over the carry limit). Validation mixed (007: accuracy up, cross entropy worse); retention parent .645, unweighted .565, balanced .630. The queued 40-game frozen screen was cancelled before any match. Both candidates are invalidated.",
+      "result": "invalidated",
+      "files": [
+        "docs/history/lineage/docs/training/2026-10-07-initial-live-imitation-metrics.json",
+        "docs/history/lineage/docs/training/2026-10-07-live-imitation-fit.json",
+        "docs/history/lineage/docs/training/2026-10-07-live-imitation-validation-006.json",
+        "docs/history/lineage/docs/training/2026-10-07-live-imitation-validation-007.json",
+        "docs/history/lineage/docs/training/2026-10-07-imitation-simulator-retention.json"
+      ],
+      "context_files": [
+        "docs/history/lineage/docs/training/2026-10-07-effective-training.md"
+      ],
+      "candidates": [
+        {
+          "label": "unweighted live BC",
+          "sha256": "03b06cc71b859adf8394e37467f5e9f3e1df8996a576d417cf8c00264d819544",
+          "selection": "invalidated",
+          "deployment": "not_deployed",
+          "deployment_evidence": null
+        },
+        {
+          "label": "balanced live BC",
+          "sha256": "d0096ef90098f589c36194e3638dccdf087125159106b0b89fc6e496d1c8cf0a",
+          "selection": "invalidated",
+          "deployment": "not_deployed",
+          "deployment_evidence": null
+        }
+      ],
+      "server_changes": [],
+      "parent_evidence": [],
+      "deployment": "not_deployed",
+      "deployment_evidence": null,
+      "recorded_at_utc": "2026-10-07T13:56:46Z"
+    },
+    {
+      "id": "E11-supply-correction",
+      "title": "Supply correction acceptance",
+      "dates": "2026-10-07",
+      "source_ref": "feat/training-league",
+      "domain": [
+        "live_server_unranked"
+      ],
+      "hypothesis": "Banking empty bottles before refill gives both accounts equal, complete supplies that survive real consumption.",
+      "configuration": "Ordinary-client acceptance twice per account; first match of the fresh supply-fixed run.",
+      "outcome": "All reagents 100 and potions 5, zero bottles, weight 200/201 of 390; repeated after a real match (replay 28d7cb6b). Fixes resources; no strength claim.",
+      "result": "diagnostic",
+      "files": [
+        "docs/history/lineage/docs/training/2026-10-07-supply-acceptance.json",
+        "docs/history/lineage/docs/training/2026-10-07-first-replenishment-proof.json"
+      ],
+      "context_files": [
+        "docs/history/lineage/docs/training/2026-10-07-effective-training.md"
+      ],
+      "server_changes": [
+        "ServUO 32c2c2b81 (bank empty bottles before refill) deployed to the arena shard, Scripts.dll b30c8937...; a shard change, not a model."
+      ],
+      "candidates": [],
+      "parent_evidence": [],
+      "deployment": "not_deployed",
+      "deployment_evidence": null,
+      "recorded_at_utc": "2026-10-07T14:30:58Z"
+    },
+    {
+      "id": "E12-visibility-diagnosis",
+      "title": "Unseen-opponent movement deadlock diagnosis",
+      "dates": "2026-10-07",
+      "source_ref": "feat/training-league",
+      "domain": [
+        "live_server_unranked"
+      ],
+      "hypothesis": "The late passivity in the first corrected match is an executor mismatch.",
+      "configuration": "Read-only analysis of one match's actor trajectory.",
+      "outcome": "256 unseen decisions with every movement action masked; executor v8 (last-seen approach) was written locally, not deployed into the running trial.",
+      "result": "diagnostic",
+      "files": [
+        "docs/history/lineage/docs/training/2026-10-07-visibility-diagnosis.json"
+      ],
+      "context_files": [
+        "docs/history/lineage/docs/training/2026-10-07-effective-training.md"
+      ],
+      "candidates": [],
+      "server_changes": [],
+      "parent_evidence": [],
+      "deployment": "not_deployed",
+      "deployment_evidence": null,
+      "recorded_at_utc": "2026-10-07T14:41:59Z"
+    },
+    {
+      "id": "E13-supply-fixed-trial",
+      "title": "Supply-corrected BC and PPO trial (v7)",
+      "dates": "2026-10-07/2026-10-08",
+      "source_ref": "feat/training-league",
+      "domain": [
+        "live_server_unranked",
+        "offline_fit",
+        "approximate_simulator"
+      ],
+      "hypothesis": "With equal supplies, live BC and a live PPO batch improve on v3 BC 0c6ca921.",
+      "configuration": "Snapshot bc3f10b, 8 training + 20 frozen evaluation matches; 8-epoch BC on fixtures 001/002/003/005; PPO batch from 10 eligible episodes; 100-game retention.",
+      "outcome": "BC 5e56ab68: retention .735 versus .735, validation records 006/007 both invalid (post-death labels), so no held-out metric. PPO 3d0f7b45: retention .730 versus .735; live frozen comparison parent 7W/1L/1D versus PPO 4W/4L/1D (9 valid each, 1 invalid each). Terminated after fixture 028 lost state. Original incumbent retained.",
+      "result": "failed_gate",
+      "files": [
+        "docs/history/lineage/docs/training/2026-10-07-supply-fixed-imitation-fit.json",
+        "docs/history/lineage/docs/training/2026-10-07-supply-fixed-retention.json",
+        "docs/history/lineage/docs/training/2026-10-07-supply-fixed-validation.json",
+        "docs/history/lineage/docs/training/2026-10-08-supply-fixed-ppo-update.json",
+        "docs/history/lineage/docs/training/2026-10-08-supply-fixed-ppo-retention.json",
+        "docs/history/lineage/docs/training/2026-10-08-ppo-policy-drift.json",
+        "docs/history/lineage/docs/training/2026-10-08-supply-fixed-final-audit.json"
+      ],
+      "context_files": [
+        "docs/history/lineage/docs/training/2026-10-07-effective-training.md"
+      ],
+      "candidates": [
+        {
+          "label": "8-epoch supply-fixed BC",
+          "sha256": "5e56ab6879b253dc7b6f4b6482e06b43fb4dc3a8b5788e756a8e2424f1d7f8d0",
+          "selection": "rejected",
+          "deployment": "not_deployed",
+          "deployment_evidence": null,
+          "note": "simulator retention gate failed; screened live in E14"
+        },
+        {
+          "label": "supply-fixed PPO",
+          "sha256": "3d0f7b454607590cb0ff1eca5278ee5a7cac1521ee72e1b5e1c10e040df85b03",
+          "selection": "rejected",
+          "deployment": "not_deployed",
+          "deployment_evidence": null
+        }
+      ],
+      "server_changes": [],
+      "parent_evidence": [],
+      "deployment": "not_deployed",
+      "deployment_evidence": null,
+      "recorded_at_utc": "2026-10-07T14:54:28Z"
+    },
+    {
+      "id": "E14-v8-bc-screen",
+      "title": "40-game frozen v8 BC screen",
+      "dates": "2026-10-08",
+      "source_ref": "feat/training-league",
+      "domain": [
+        "live_server_unranked"
+      ],
+      "hypothesis": "BC 5e56ab68 beats v3 BC 0c6ca921 live with executor v8 and the optimized bridge.",
+      "configuration": "40 frozen matches, 4 per style per model, seed 20261008, CPU 200% both arms.",
+      "outcome": "Incumbent 14W/5L/1D, candidate 13W/7L; paired -0.075 [-0.30, 0.20]; balanced -0.25, burst -0.25. Gate rejected; 0c6ca921 retained. Runtime, low-health, burst and coverage audits are descriptive only.",
+      "result": "failed_gate",
+      "files": [
+        "docs/history/lineage/docs/training/2026-10-08-v8-first-heldout.json",
+        "docs/history/lineage/docs/training/2026-10-08-v8-first-four-runtime.json",
+        "docs/history/lineage/docs/training/2026-10-08-live-low-health-audit.json",
+        "docs/history/lineage/docs/training/2026-10-08-live-burst-interruption.json",
+        "docs/history/lineage/docs/training/2026-10-08-v8-ten-runtime.json",
+        "docs/history/lineage/docs/training/2026-10-08-live-twelve-interim.json",
+        "docs/history/lineage/docs/training/2026-10-08-real-imitation-coverage.json",
+        "docs/history/lineage/docs/training/2026-10-08-live-twenty-interim.json",
+        "docs/history/lineage/docs/training/2026-10-08-v8-bc-final.json"
+      ],
+      "context_files": [
+        "docs/history/lineage/docs/training/2026-10-07-effective-training.md"
+      ],
+      "candidates": [
+        {
+          "label": "8-epoch supply-fixed BC",
+          "sha256": "5e56ab6879b253dc7b6f4b6482e06b43fb4dc3a8b5788e756a8e2424f1d7f8d0",
+          "selection": "rejected",
+          "deployment": "not_deployed",
+          "deployment_evidence": null
+        },
+        {
+          "label": "v3 BC incumbent",
+          "sha256": "0c6ca921e8bfd19fbaab3fa353d11819b2ba523cd1a810c2c4782447b7a5f56d",
+          "selection": "registry_retained",
+          "deployment": "not_deployed",
+          "deployment_evidence": null
+        }
+      ],
+      "server_changes": [],
+      "parent_evidence": [],
+      "deployment": "not_deployed",
+      "deployment_evidence": null,
+      "recorded_at_utc": "2026-10-08T01:17:45Z"
+    },
+    {
+      "id": "E15-threat-memory",
+      "title": "Threat-memory simulator retraining",
+      "dates": "2026-10-08",
+      "source_ref": "feat/training-league",
+      "domain": [
+        "approximate_simulator"
+      ],
+      "hypothesis": "Keeping public Explosion-word expiry estimates (executor v9) improves simulator play.",
+      "configuration": "Same seed and budget as E09; held-out seed 3653000000, 100 games per model.",
+      "outcome": "BC 772c0fc6 .680 versus original .655: +.025 [-.085, .135], not passed; PPO versus BC -.105 [-.20, -.01], a regression. The run registry kept its BC warmstart.",
+      "result": "failed_gate",
+      "files": [
+        "docs/history/lineage/docs/training/2026-10-08-threat-memory-training.json"
+      ],
+      "context_files": [
+        "docs/history/lineage/docs/training/2026-10-07-effective-training.md"
+      ],
+      "candidates": [
+        {
+          "label": "threat-memory BC",
+          "sha256": "772c0fc6f5cacae8e0bd8cde8faf0c51e1fd1094fc76580e08ff982ee29d6232",
+          "selection": "registry_selected",
+          "deployment": "not_deployed",
+          "deployment_evidence": null,
+          "note": "run-local simulator registry; failed against the original"
+        },
+        {
+          "label": "threat-memory PPO",
+          "sha256": null,
+          "selection": "rejected",
+          "deployment": "not_deployed",
+          "deployment_evidence": null,
+          "note": "SHA not recorded in this record"
+        }
+      ],
+      "server_changes": [],
+      "parent_evidence": [],
+      "deployment": "not_deployed",
+      "deployment_evidence": null,
+      "recorded_at_utc": "2026-10-08T01:25:53Z"
+    },
+    {
+      "id": "E16-bc-rehearsal",
+      "title": "PPO with BC rehearsal",
+      "dates": "2026-10-08",
+      "source_ref": "feat/training-league",
+      "domain": [
+        "approximate_simulator"
+      ],
+      "hypothesis": "One BC rehearsal epoch after each PPO update retains imitation competence.",
+      "configuration": "Same budgets; held-out seed 3654000000.",
+      "outcome": "Rehearsal PPO .590 versus BC .625 [-.13, .06], original .665 [-.17, .02], plain PPO .575 [-.08, .11]: all gates failed.",
+      "result": "failed_gate",
+      "files": [
+        "docs/history/lineage/docs/training/2026-10-08-rehearsal-training.json"
+      ],
+      "context_files": [
+        "docs/history/lineage/docs/training/2026-10-07-effective-training.md"
+      ],
+      "candidates": [
+        {
+          "label": "run BC warmstart",
+          "sha256": "772c0fc6f5cacae8e0bd8cde8faf0c51e1fd1094fc76580e08ff982ee29d6232",
+          "selection": "registry_selected",
+          "deployment": "not_deployed",
+          "deployment_evidence": null,
+          "note": "run-local simulator registry; same seed reproduced the E15 BC"
+        },
+        {
+          "label": "rehearsal PPO",
+          "sha256": null,
+          "selection": "rejected",
+          "deployment": "not_deployed",
+          "deployment_evidence": null,
+          "note": "SHA not recorded in this record"
+        }
+      ],
+      "server_changes": [],
+      "parent_evidence": [],
+      "deployment": "not_deployed",
+      "deployment_evidence": null,
+      "recorded_at_utc": "2026-10-08T01:30:39Z"
+    },
+    {
+      "id": "E17-elapsed-time-discount",
+      "title": "Elapsed-time discount PPO",
+      "dates": "2026-10-08",
+      "source_ref": "feat/training-league",
+      "domain": [
+        "approximate_simulator"
+      ],
+      "hypothesis": "Discounting per elapsed second (as in live training) instead of per 0.25 s decision helps.",
+      "configuration": "Same budgets, no rehearsal; held-out seed 3655000000.",
+      "outcome": "Time PPO .700 versus original .630: +.070 [-.035, .180]; versus BC +.055; pressure style .575 versus .825. All gates failed.",
+      "result": "failed_gate",
+      "files": [
+        "docs/history/lineage/docs/training/2026-10-08-time-discount-training.json",
+        "docs/history/lineage/docs/training/2026-10-08-time-discount-pressure.json"
+      ],
+      "context_files": [
+        "docs/history/lineage/docs/training/2026-10-07-effective-training.md"
+      ],
+      "candidates": [
+        {
+          "label": "run BC warmstart",
+          "sha256": "772c0fc6f5cacae8e0bd8cde8faf0c51e1fd1094fc76580e08ff982ee29d6232",
+          "selection": "registry_selected",
+          "deployment": "not_deployed",
+          "deployment_evidence": null,
+          "note": "run-local simulator registry; same seed reproduced the E15 BC"
+        },
+        {
+          "label": "elapsed-time PPO",
+          "sha256": null,
+          "selection": "rejected",
+          "deployment": "not_deployed",
+          "deployment_evidence": null,
+          "note": "SHA not recorded in this record"
+        }
+      ],
+      "server_changes": [],
+      "parent_evidence": [],
+      "deployment": "not_deployed",
+      "deployment_evidence": null,
+      "recorded_at_utc": "2026-10-08T01:38:53Z"
+    },
+    {
+      "id": "E18-time-rehearsal",
+      "title": "Elapsed-time PPO with rehearsal (2x2 completion)",
+      "dates": "2026-10-08",
+      "source_ref": "feat/training-league",
+      "domain": [
+        "approximate_simulator"
+      ],
+      "hypothesis": "Rehearsal retains pressure defence with the longer horizon.",
+      "configuration": "Same budgets; time unit 1 s, one rehearsal epoch; held-out seed 3656000000.",
+      "outcome": "Time+rehearsal .765 versus original .760: +.005 [-.090, .105], pressure -.200, failed. It passed only against weaker baselines (per-step PPO, per-step rehearsal), which the record says does not warrant promotion.",
+      "result": "failed_gate",
+      "files": [
+        "docs/history/lineage/docs/training/2026-10-08-time-rehearsal-training.json"
+      ],
+      "context_files": [
+        "docs/history/lineage/docs/training/2026-10-07-effective-training.md"
+      ],
+      "candidates": [
+        {
+          "label": "run BC warmstart",
+          "sha256": "772c0fc6f5cacae8e0bd8cde8faf0c51e1fd1094fc76580e08ff982ee29d6232",
+          "selection": "registry_selected",
+          "deployment": "not_deployed",
+          "deployment_evidence": null,
+          "note": "run-local simulator registry; same seed reproduced the E15 BC"
+        },
+        {
+          "label": "time+rehearsal PPO",
+          "sha256": null,
+          "selection": "rejected",
+          "deployment": "not_deployed",
+          "deployment_evidence": null,
+          "note": "SHA not recorded in this record"
+        }
+      ],
+      "server_changes": [],
+      "parent_evidence": [],
+      "deployment": "not_deployed",
+      "deployment_evidence": null,
+      "recorded_at_utc": "2026-10-08T01:42:04Z"
+    },
+    {
+      "id": "E19-incumbent-continuation",
+      "title": "Direct continuation of the incumbent",
+      "dates": "2026-10-08",
+      "source_ref": "feat/training-league",
+      "domain": [
+        "approximate_simulator"
+      ],
+      "hypothesis": "Continuing PPO from 0c6ca921 retains its competence better than refitting BC.",
+      "configuration": "Start checkpoint 0c6ca921, 16 updates with rehearsal; 200 games per model, seed 3657000000. A first attempt was interrupted and preserved; the retry is the result.",
+      "outcome": "Both .6375, paired 0 [-.075, .0725]; potions -.100. No promotion; 0c6ca921 retained.",
+      "result": "failed_gate",
+      "files": [
+        "docs/history/lineage/docs/training/2026-10-08-incumbent-continuation.json"
+      ],
+      "context_files": [
+        "docs/history/lineage/docs/training/2026-10-07-effective-training.md"
+      ],
+      "candidates": [
+        {
+          "label": "continued incumbent",
+          "sha256": null,
+          "selection": "rejected",
+          "deployment": "not_deployed",
+          "deployment_evidence": null,
+          "note": "SHA not recorded in this record"
+        },
+        {
+          "label": "v3 BC incumbent",
+          "sha256": "0c6ca921e8bfd19fbaab3fa353d11819b2ba523cd1a810c2c4782447b7a5f56d",
+          "selection": "registry_retained",
+          "deployment": "not_deployed",
+          "deployment_evidence": null
+        }
+      ],
+      "server_changes": [],
+      "parent_evidence": [],
+      "deployment": "not_deployed",
+      "deployment_evidence": null,
+      "recorded_at_utc": "2026-10-08T01:47:16Z"
+    },
+    {
+      "id": "E20-recovered-bc-200",
+      "title": "Recovered BC and 200-game live evaluation",
+      "dates": "2026-10-08",
+      "source_ref": "feat/training-league",
+      "domain": [
+        "live_server_unranked",
+        "offline_fit"
+      ],
+      "hypothesis": "BC on 18 correctly supplied teacher matches beats 0c6ca921 live.",
+      "configuration": "The 30-game balanced collection stopped at fixture 019 (transport silence; 18 valid); a 10-game diagnostic collection became validation; 8 BC epochs, seed 20261010; independent 200-game evaluation, 20 per style per model, seed 20261012.",
+      "outcome": "Validation accuracy .620 to .774. Live: parent 52W/40L/8D (.560), candidate 63W/30L/7D (.665); paired +.105 [-.015, .225]. Gate failed (lower bound not positive); incumbent kept, public deployment false.",
+      "result": "failed_gate",
+      "files": [
+        "docs/history/lineage/docs/training/2026-10-08-recovered-bc-fit.json",
+        "docs/history/lineage/docs/training/2026-10-08-recovered-bc-final.json"
+      ],
+      "context_files": [
+        "docs/history/lineage/docs/training/2026-10-07-effective-training.md"
+      ],
+      "candidates": [
+        {
+          "label": "recovered BC",
+          "sha256": "5e03b62457dec56b80ec8e87c700cae29433a498103ad3f273b7d3fe45cfe0cc",
+          "selection": "rejected",
+          "deployment": "not_deployed",
+          "deployment_evidence": null
+        },
+        {
+          "label": "v3 BC incumbent",
+          "sha256": "0c6ca921e8bfd19fbaab3fa353d11819b2ba523cd1a810c2c4782447b7a5f56d",
+          "selection": "registry_retained",
+          "deployment": "not_deployed",
+          "deployment_evidence": null
+        }
+      ],
+      "server_changes": [
+        "ServUO 300366221/a15af9a0d (send-completion handoff race) deployed to the arena shard, ServUO.exe 3a44e60b...; a shard change, not a model."
+      ],
+      "parent_evidence": [],
+      "deployment": "not_deployed",
+      "deployment_evidence": null,
+      "recorded_at_utc": "2026-10-08T04:52:39Z"
+    },
+    {
+      "id": "E21-recovered-bc-replication-400",
+      "title": "Preregistered 400-game replication",
+      "dates": "2026-10-08/2026-10-09",
+      "source_ref": "feat/training-league",
+      "domain": [
+        "live_server_unranked"
+      ],
+      "hypothesis": "The recovered BC gain replicates on 400 fresh matches with the same models.",
+      "configuration": "Preregistered plan, seed 20261013, 40 per style per model, no early stop, prior 200 games excluded.",
+      "outcome": "Parent 114W/73L/13D (.6025), candidate 132W/56L/12D (.6900); paired +.0875 [.0025, .1750], but balanced -.150 breaches the -.10 floor. Gate failed; parent retained.",
+      "result": "failed_gate",
+      "files": [
+        "docs/history/lineage/docs/training/2026-10-08-recovered-bc-replication-plan.json",
+        "docs/history/lineage/docs/training/2026-10-09-recovered-bc-replication-final.json"
+      ],
+      "context_files": [
+        "docs/history/lineage/docs/training/2026-10-07-effective-training.md"
+      ],
+      "candidates": [
+        {
+          "label": "recovered BC",
+          "sha256": "5e03b62457dec56b80ec8e87c700cae29433a498103ad3f273b7d3fe45cfe0cc",
+          "selection": "rejected",
+          "deployment": "not_deployed",
+          "deployment_evidence": null
+        },
+        {
+          "label": "v3 BC incumbent",
+          "sha256": "0c6ca921e8bfd19fbaab3fa353d11819b2ba523cd1a810c2c4782447b7a5f56d",
+          "selection": "registry_retained",
+          "deployment": "not_deployed",
+          "deployment_evidence": null
+        }
+      ],
+      "server_changes": [],
+      "parent_evidence": [],
+      "deployment": "not_deployed",
+      "deployment_evidence": null,
+      "recorded_at_utc": "2026-10-08T14:41:55Z"
+    },
+    {
+      "id": "E22-reference-bc-fit",
+      "title": "Fresh teacher collection and reference-regularised BC",
+      "dates": "2026-10-09",
+      "source_ref": "feat/training-league",
+      "domain": [
+        "live_server_unranked",
+        "offline_fit"
+      ],
+      "hypothesis": "KL regularisation to the frozen parent limits imitation drift seen in the balanced regression.",
+      "configuration": "50-match collection (frozen recovered BC against five teachers, 40 train / 10 validation by match); plain BC and reference BC (KL 0.5) from 0c6ca921, 8 epochs, seed 20261020.",
+      "outcome": "Plain BC 0b3fb0a1: validation accuracy .557 to .841, absent-label mass up. Reference BC af3cb4ad: .557 to .707, drift near the parent. Offline tradeoff only; neither promoted; reference BC prespecified for a fresh live evaluation.",
+      "result": "diagnostic",
+      "files": [
+        "docs/history/lineage/docs/training/2026-10-09-candidate-teacher-collection-plan.json",
+        "docs/history/lineage/docs/training/2026-10-09-demonstration-distribution-audit.json",
+        "docs/history/lineage/docs/training/2026-10-09-reference-bc-plan.json",
+        "docs/history/lineage/docs/training/2026-10-09-reference-bc-fit-final.json",
+        "docs/history/lineage/docs/training/2026-10-09-reference-style-audit.json"
+      ],
+      "context_files": [
+        "docs/history/lineage/docs/training/2026-10-07-effective-training.md"
+      ],
+      "candidates": [
+        {
+          "label": "plain BC",
+          "sha256": "0b3fb0a17657dd7688ae3e20b0ab65601a3a1de8f65ea37b8097aaadd23557d1",
+          "selection": "not_gated",
+          "deployment": "not_deployed",
+          "deployment_evidence": null
+        },
+        {
+          "label": "reference BC",
+          "sha256": "af3cb4ad485e9c55ad647fa54c35c1fa90336166dcfb34ebd96a41efce108175",
+          "selection": "not_gated",
+          "deployment": "not_deployed",
+          "deployment_evidence": null
+        }
+      ],
+      "server_changes": [],
+      "parent_evidence": [],
+      "deployment": "not_deployed",
+      "deployment_evidence": null,
+      "recorded_at_utc": "2026-10-09T11:00:00Z"
+    },
+    {
+      "id": "E23-reference-simulator",
+      "title": "Reference BC simulator comparisons",
+      "dates": "2026-10-09",
+      "source_ref": "feat/training-league",
+      "domain": [
+        "approximate_simulator"
+      ],
+      "hypothesis": "Reference BC improves simulator play over the parent.",
+      "configuration": "Seed 3658000000 at 800 steps (200 s), then seed 3659000000 at 1200 steps (300 s, matching the server round limit); 40 per style per model; no training.",
+      "outcome": "200 s: plain +.0125 and reference +.0025, both failed. 300 s: plain +.025 [-.060, .110] failed; reference +.165 [.085, .2375] passed with every style positive. Seed and horizon both changed; simulator gain is not live gain.",
+      "result": "simulator_only",
+      "files": [
+        "docs/history/lineage/docs/training/2026-10-09-reference-simulator-final.json",
+        "docs/history/lineage/docs/training/2026-10-09-reference-simulator-300s-final.json"
+      ],
+      "context_files": [
+        "docs/history/lineage/docs/training/2026-10-07-effective-training.md"
+      ],
+      "candidates": [
+        {
+          "label": "plain BC",
+          "sha256": "0b3fb0a17657dd7688ae3e20b0ab65601a3a1de8f65ea37b8097aaadd23557d1",
+          "selection": "rejected",
+          "deployment": "not_deployed",
+          "deployment_evidence": null
+        },
+        {
+          "label": "reference BC",
+          "sha256": "af3cb4ad485e9c55ad647fa54c35c1fa90336166dcfb34ebd96a41efce108175",
+          "selection": "offline_selected",
+          "deployment": "not_deployed",
+          "deployment_evidence": null,
+          "note": "passed the 300-second simulator gate only"
+        }
+      ],
+      "server_changes": [],
+      "parent_evidence": [],
+      "deployment": "not_deployed",
+      "deployment_evidence": null,
+      "recorded_at_utc": "2026-10-09T14:02:55Z"
+    },
+    {
+      "id": "E24-reference-bc-live-200",
+      "title": "Reference BC fresh 200-game live evaluation",
+      "dates": "2026-10-09/2026-10-10",
+      "source_ref": "feat/training-league",
+      "domain": [
+        "live_server_unranked"
+      ],
+      "hypothesis": "Reference BC af3cb4ad beats 0c6ca921 on fresh live matches.",
+      "configuration": "Plan fixed before launch: 200 games, 20 per style per model, seed 20261021, frozen models, no extension; gate: paired bootstrap 95% lower bound above 0 and every style delta at least -0.10. The plan file was edited once, from prepared_not_launched to launched (ecfe9f3).",
+      "outcome": "Incumbent 55W/37L/8D (.590), candidate 74W/23L/3D (.755); paired +.165 [.045, .285]; potions -.050 within the floor. Gate passed; the experimental registry selected af3cb4ad and kept 0c6ca921 as rollback; registry and status record public_deployment false. Five fixed scripted styles only.",
+      "result": "passed_gate",
+      "files": [
+        "docs/history/lineage/docs/training/2026-10-09-reference-live-evaluation-plan.json",
+        "docs/history/lineage/docs/training/2026-10-10-reference-live-final.json",
+        "docs/history/lineage/docs/training/2026-10-10-training-completion-audit.json"
+      ],
+      "context_files": [
+        "docs/history/lineage/docs/training/2026-10-07-effective-training.md"
+      ],
+      "candidates": [
+        {
+          "label": "reference BC",
+          "sha256": "af3cb4ad485e9c55ad647fa54c35c1fa90336166dcfb34ebd96a41efce108175",
+          "selection": "registry_selected",
+          "deployment": "not_deployed",
+          "deployment_evidence": null,
+          "note": "selected in the experimental registry; not deployed"
+        },
+        {
+          "label": "v3 BC incumbent and rollback",
+          "sha256": "0c6ca921e8bfd19fbaab3fa353d11819b2ba523cd1a810c2c4782447b7a5f56d",
+          "selection": "rollback",
+          "deployment": "not_deployed",
+          "deployment_evidence": null
+        }
+      ],
+      "parent_evidence": [
+        "P1-reference-bc-audit",
+        "P2-model-evidence-doc",
+        "P3-readiness-smoke",
+        "P4-model-readiness-doc"
+      ],
+      "server_changes": [],
+      "deployment": "not_deployed",
+      "deployment_evidence": null,
+      "recorded_at_utc": "2026-10-09T14:07:28Z"
+    },
+    {
+      "id": "E25-jev-shadow",
+      "title": "Jev shadow prediction probe",
+      "dates": "2026-10-11",
+      "source_ref": "feat/training-league",
+      "domain": [
+        "offline_analysis"
+      ],
+      "hypothesis": "Jev tactical forecasts add predictive value for net health drop over a prevalence baseline.",
+      "configuration": "Scenes from previous training matches scored by a remote language-model service; leave-one-match-out prevalence baseline; no control of play.",
+      "outcome": "No better than the prevalence baseline (the Brier difference interval spans zero); decision: do not train or deploy from this probe.",
+      "result": "negative",
+      "files": [
+        "docs/history/lineage/docs/training/2026-10-11-jev-shadow-final.json"
+      ],
+      "context_files": [],
+      "candidates": [],
+      "server_changes": [],
+      "parent_evidence": [],
+      "deployment": "not_deployed",
+      "deployment_evidence": null,
+      "recorded_at_utc": "2026-10-10T16:48:30Z"
+    },
+    {
+      "id": "E26-tactical-pilot",
+      "title": "Public-observation tactical controller pilot",
+      "dates": "2026-10-11",
+      "source_ref": "feat/training-league",
+      "domain": [
+        "live_server_unranked"
+      ],
+      "hypothesis": "A scripted tactical teacher (burst finishers, ground rethrow) executes live.",
+      "configuration": "Two mechanics pilot games, snapshot 6bb1756, zero training updates.",
+      "outcome": "One win each; ground rethrow verified by the same serial changing thrower. No strength claim. The controller was not promoted to the neural incumbent.",
+      "result": "diagnostic",
+      "files": [
+        "docs/history/lineage/docs/training/2026-10-11-tactical-options.md",
+        "docs/history/lineage/docs/training/2026-10-11-tactical-pilot-final.json"
+      ],
+      "context_files": [],
+      "candidates": [],
+      "server_changes": [],
+      "parent_evidence": [],
+      "deployment": "not_deployed",
+      "deployment_evidence": null,
+      "recorded_at_utc": "2026-10-10T17:02:34Z"
+    },
+    {
+      "id": "E27-potion-defense",
+      "title": "Incoming potion defence and mana recovery",
+      "dates": "2026-10-11",
+      "source_ref": "feat/training-league",
+      "domain": [
+        "live_server_unranked"
+      ],
+      "hypothesis": "Tracking public potion projectiles lets the tactical teacher leave the blast.",
+      "configuration": "Snapshot 5672268 (two games), then corrected 99f0184 (two games); zero training updates.",
+      "outcome": "Tactical 1W/1L, then 2W/0L. Explosions without a damage event in the next 50 ms: 2/10, then 6/9 (temporal association, not attribution). No neural weights updated or promoted.",
+      "result": "diagnostic",
+      "files": [
+        "docs/history/lineage/docs/training/2026-10-11-defense-v11-live.json",
+        "docs/history/lineage/docs/training/2026-10-11-defense-v12-live.json"
+      ],
+      "context_files": [
+        "docs/history/lineage/docs/training/2026-10-11-tactical-options.md"
+      ],
+      "candidates": [],
+      "server_changes": [],
+      "parent_evidence": [],
+      "deployment": "not_deployed",
+      "deployment_evidence": null,
+      "recorded_at_utc": "2026-10-11T11:46:52Z"
+    }
+  ],
+  "gate_records": [
+    {
+      "experiment": "E07-curriculum-league-v2",
+      "file": "docs/history/lineage/docs/training/2026-10-06-curriculum-results.json",
+      "pointer": "/bc_gate",
+      "domain": "approximate-pre-aos-simulator",
+      "passed": true,
+      "reason": "improved"
+    },
+    {
+      "experiment": "E07-curriculum-league-v2",
+      "file": "docs/history/lineage/docs/training/2026-10-06-curriculum-results.json",
+      "pointer": "/ppo_gate",
+      "domain": "approximate-pre-aos-simulator",
+      "passed": false,
+      "reason": "retain incumbent: insufficient or regressed evidence"
+    },
+    {
+      "experiment": "E07-curriculum-league-v2",
+      "file": "docs/history/lineage/docs/training/2026-10-06-curriculum-results.json",
+      "pointer": "/selection_gate",
+      "domain": "approximate-pre-aos-simulator",
+      "passed": false,
+      "reason": "retain incumbent: insufficient or regressed evidence"
+    },
+    {
+      "experiment": "E08-live-pilot-28",
+      "file": "docs/history/lineage/docs/training/2026-10-06-live-pilot-results.json",
+      "pointer": "/summary/gate",
+      "domain": "servuo",
+      "passed": false,
+      "reason": "retain incumbent: insufficient or regressed evidence"
+    },
+    {
+      "experiment": "E08-live-pilot-28",
+      "file": "docs/history/lineage/docs/training/2026-10-06-live-pilot-results.json",
+      "pointer": "/registry/gate",
+      "domain": "servuo",
+      "passed": false,
+      "reason": "retain incumbent: insufficient or regressed evidence"
+    },
+    {
+      "experiment": "E09-skill-clock-simulator",
+      "file": "docs/history/lineage/docs/training/2026-10-07-skill-clock-simulator.json",
+      "pointer": "/registry/bc_gate",
+      "domain": "approximate-pre-aos-simulator",
+      "passed": true,
+      "reason": "improved"
+    },
+    {
+      "experiment": "E09-skill-clock-simulator",
+      "file": "docs/history/lineage/docs/training/2026-10-07-skill-clock-simulator.json",
+      "pointer": "/registry/ppo_gate",
+      "domain": "approximate-pre-aos-simulator",
+      "passed": false,
+      "reason": "retain incumbent: insufficient or regressed evidence"
+    },
+    {
+      "experiment": "E09-skill-clock-simulator",
+      "file": "docs/history/lineage/docs/training/2026-10-07-skill-clock-simulator.json",
+      "pointer": "/registry/selection_gate",
+      "domain": "approximate-pre-aos-simulator",
+      "passed": false,
+      "reason": "retain incumbent: insufficient or regressed evidence"
+    },
+    {
+      "experiment": "E13-supply-fixed-trial",
+      "file": "docs/history/lineage/docs/training/2026-10-07-supply-fixed-retention.json",
+      "pointer": "/gate",
+      "domain": "approximate-pre-aos-simulator",
+      "passed": false,
+      "reason": "retain incumbent: insufficient or regressed evidence"
+    },
+    {
+      "experiment": "E19-incumbent-continuation",
+      "file": "docs/history/lineage/docs/training/2026-10-08-incumbent-continuation.json",
+      "pointer": "/registry/bc_gate",
+      "domain": "approximate-pre-aos-simulator",
+      "passed": false,
+      "reason": "retain incumbent: insufficient or regressed evidence"
+    },
+    {
+      "experiment": "E19-incumbent-continuation",
+      "file": "docs/history/lineage/docs/training/2026-10-08-incumbent-continuation.json",
+      "pointer": "/registry/ppo_gate",
+      "domain": "approximate-pre-aos-simulator",
+      "passed": false,
+      "reason": "retain incumbent: insufficient or regressed evidence"
+    },
+    {
+      "experiment": "E19-incumbent-continuation",
+      "file": "docs/history/lineage/docs/training/2026-10-08-incumbent-continuation.json",
+      "pointer": "/registry/selection_gate",
+      "domain": "approximate-pre-aos-simulator",
+      "passed": false,
+      "reason": "retain incumbent: insufficient or regressed evidence"
+    },
+    {
+      "experiment": "E14-v8-bc-screen",
+      "file": "docs/history/lineage/docs/training/2026-10-08-live-twelve-interim.json",
+      "pointer": "/gate",
+      "domain": "servuo",
+      "passed": false,
+      "reason": "retain incumbent: insufficient or regressed evidence"
+    },
+    {
+      "experiment": "E20-recovered-bc-200",
+      "file": "docs/history/lineage/docs/training/2026-10-08-recovered-bc-final.json",
+      "pointer": "/registry/gate",
+      "domain": "servuo",
+      "passed": false,
+      "reason": "retain incumbent: insufficient or regressed evidence"
+    },
+    {
+      "experiment": "E16-bc-rehearsal",
+      "file": "docs/history/lineage/docs/training/2026-10-08-rehearsal-training.json",
+      "pointer": "/vs_original",
+      "domain": "approximate-pre-aos-simulator",
+      "passed": false,
+      "reason": "retain incumbent: insufficient or regressed evidence"
+    },
+    {
+      "experiment": "E16-bc-rehearsal",
+      "file": "docs/history/lineage/docs/training/2026-10-08-rehearsal-training.json",
+      "pointer": "/vs_plain_ppo",
+      "domain": "approximate-pre-aos-simulator",
+      "passed": false,
+      "reason": "retain incumbent: insufficient or regressed evidence"
+    },
+    {
+      "experiment": "E16-bc-rehearsal",
+      "file": "docs/history/lineage/docs/training/2026-10-08-rehearsal-training.json",
+      "pointer": "/vs_bc",
+      "domain": "approximate-pre-aos-simulator",
+      "passed": false,
+      "reason": "retain incumbent: insufficient or regressed evidence"
+    },
+    {
+      "experiment": "E16-bc-rehearsal",
+      "file": "docs/history/lineage/docs/training/2026-10-08-rehearsal-training.json",
+      "pointer": "/registry/bc_gate",
+      "domain": "approximate-pre-aos-simulator",
+      "passed": true,
+      "reason": "improved"
+    },
+    {
+      "experiment": "E16-bc-rehearsal",
+      "file": "docs/history/lineage/docs/training/2026-10-08-rehearsal-training.json",
+      "pointer": "/registry/ppo_gate",
+      "domain": "approximate-pre-aos-simulator",
+      "passed": false,
+      "reason": "retain incumbent: insufficient or regressed evidence"
+    },
+    {
+      "experiment": "E16-bc-rehearsal",
+      "file": "docs/history/lineage/docs/training/2026-10-08-rehearsal-training.json",
+      "pointer": "/registry/selection_gate",
+      "domain": "approximate-pre-aos-simulator",
+      "passed": false,
+      "reason": "retain incumbent: insufficient or regressed evidence"
+    },
+    {
+      "experiment": "E13-supply-fixed-trial",
+      "file": "docs/history/lineage/docs/training/2026-10-08-supply-fixed-ppo-retention.json",
+      "pointer": "/gate",
+      "domain": "approximate-pre-aos-simulator",
+      "passed": false,
+      "reason": "retain incumbent: insufficient or regressed evidence"
+    },
+    {
+      "experiment": "E15-threat-memory",
+      "file": "docs/history/lineage/docs/training/2026-10-08-threat-memory-training.json",
+      "pointer": "/registry/bc_gate",
+      "domain": "approximate-pre-aos-simulator",
+      "passed": true,
+      "reason": "improved"
+    },
+    {
+      "experiment": "E15-threat-memory",
+      "file": "docs/history/lineage/docs/training/2026-10-08-threat-memory-training.json",
+      "pointer": "/registry/ppo_gate",
+      "domain": "approximate-pre-aos-simulator",
+      "passed": false,
+      "reason": "retain incumbent: insufficient or regressed evidence"
+    },
+    {
+      "experiment": "E15-threat-memory",
+      "file": "docs/history/lineage/docs/training/2026-10-08-threat-memory-training.json",
+      "pointer": "/registry/selection_gate",
+      "domain": "approximate-pre-aos-simulator",
+      "passed": false,
+      "reason": "retain incumbent: insufficient or regressed evidence"
+    },
+    {
+      "experiment": "E15-threat-memory",
+      "file": "docs/history/lineage/docs/training/2026-10-08-threat-memory-training.json",
+      "pointer": "/original_to_new_bc",
+      "domain": "approximate-pre-aos-simulator",
+      "passed": false,
+      "reason": "retain incumbent: insufficient or regressed evidence"
+    },
+    {
+      "experiment": "E17-elapsed-time-discount",
+      "file": "docs/history/lineage/docs/training/2026-10-08-time-discount-training.json",
+      "pointer": "/comparisons/original-parent",
+      "domain": "approximate-pre-aos-simulator",
+      "passed": false,
+      "reason": "retain incumbent: insufficient or regressed evidence"
+    },
+    {
+      "experiment": "E17-elapsed-time-discount",
+      "file": "docs/history/lineage/docs/training/2026-10-08-time-discount-training.json",
+      "pointer": "/comparisons/per-step-ppo",
+      "domain": "approximate-pre-aos-simulator",
+      "passed": false,
+      "reason": "retain incumbent: insufficient or regressed evidence"
+    },
+    {
+      "experiment": "E17-elapsed-time-discount",
+      "file": "docs/history/lineage/docs/training/2026-10-08-time-discount-training.json",
+      "pointer": "/comparisons/warmstart",
+      "domain": "approximate-pre-aos-simulator",
+      "passed": false,
+      "reason": "retain incumbent: insufficient or regressed evidence"
+    },
+    {
+      "experiment": "E17-elapsed-time-discount",
+      "file": "docs/history/lineage/docs/training/2026-10-08-time-discount-training.json",
+      "pointer": "/registry/bc_gate",
+      "domain": "approximate-pre-aos-simulator",
+      "passed": true,
+      "reason": "improved"
+    },
+    {
+      "experiment": "E17-elapsed-time-discount",
+      "file": "docs/history/lineage/docs/training/2026-10-08-time-discount-training.json",
+      "pointer": "/registry/ppo_gate",
+      "domain": "approximate-pre-aos-simulator",
+      "passed": false,
+      "reason": "retain incumbent: insufficient or regressed evidence"
+    },
+    {
+      "experiment": "E17-elapsed-time-discount",
+      "file": "docs/history/lineage/docs/training/2026-10-08-time-discount-training.json",
+      "pointer": "/registry/selection_gate",
+      "domain": "approximate-pre-aos-simulator",
+      "passed": false,
+      "reason": "retain incumbent: insufficient or regressed evidence"
+    },
+    {
+      "experiment": "E18-time-rehearsal",
+      "file": "docs/history/lineage/docs/training/2026-10-08-time-rehearsal-training.json",
+      "pointer": "/comparisons/original-parent",
+      "domain": "approximate-pre-aos-simulator",
+      "passed": false,
+      "reason": "retain incumbent: insufficient or regressed evidence"
+    },
+    {
+      "experiment": "E18-time-rehearsal",
+      "file": "docs/history/lineage/docs/training/2026-10-08-time-rehearsal-training.json",
+      "pointer": "/comparisons/warmstart",
+      "domain": "approximate-pre-aos-simulator",
+      "passed": false,
+      "reason": "retain incumbent: insufficient or regressed evidence"
+    },
+    {
+      "experiment": "E18-time-rehearsal",
+      "file": "docs/history/lineage/docs/training/2026-10-08-time-rehearsal-training.json",
+      "pointer": "/comparisons/per-step-ppo",
+      "domain": "approximate-pre-aos-simulator",
+      "passed": true,
+      "reason": "improved"
+    },
+    {
+      "experiment": "E18-time-rehearsal",
+      "file": "docs/history/lineage/docs/training/2026-10-08-time-rehearsal-training.json",
+      "pointer": "/comparisons/time-ppo",
+      "domain": "approximate-pre-aos-simulator",
+      "passed": false,
+      "reason": "retain incumbent: insufficient or regressed evidence"
+    },
+    {
+      "experiment": "E18-time-rehearsal",
+      "file": "docs/history/lineage/docs/training/2026-10-08-time-rehearsal-training.json",
+      "pointer": "/comparisons/per-step-rehearsal",
+      "domain": "approximate-pre-aos-simulator",
+      "passed": true,
+      "reason": "improved"
+    },
+    {
+      "experiment": "E18-time-rehearsal",
+      "file": "docs/history/lineage/docs/training/2026-10-08-time-rehearsal-training.json",
+      "pointer": "/registry/bc_gate",
+      "domain": "approximate-pre-aos-simulator",
+      "passed": true,
+      "reason": "improved"
+    },
+    {
+      "experiment": "E18-time-rehearsal",
+      "file": "docs/history/lineage/docs/training/2026-10-08-time-rehearsal-training.json",
+      "pointer": "/registry/ppo_gate",
+      "domain": "approximate-pre-aos-simulator",
+      "passed": false,
+      "reason": "retain incumbent: insufficient or regressed evidence"
+    },
+    {
+      "experiment": "E18-time-rehearsal",
+      "file": "docs/history/lineage/docs/training/2026-10-08-time-rehearsal-training.json",
+      "pointer": "/registry/selection_gate",
+      "domain": "approximate-pre-aos-simulator",
+      "passed": false,
+      "reason": "retain incumbent: insufficient or regressed evidence"
+    },
+    {
+      "experiment": "E14-v8-bc-screen",
+      "file": "docs/history/lineage/docs/training/2026-10-08-v8-bc-final.json",
+      "pointer": "/registry/gate",
+      "domain": "servuo",
+      "passed": false,
+      "reason": "retain incumbent: insufficient or regressed evidence"
+    },
+    {
+      "experiment": "E21-recovered-bc-replication-400",
+      "file": "docs/history/lineage/docs/training/2026-10-09-recovered-bc-replication-final.json",
+      "pointer": "/registry/gate",
+      "domain": "servuo",
+      "passed": false,
+      "reason": "retain incumbent: insufficient or regressed evidence"
+    },
+    {
+      "experiment": "E23-reference-simulator",
+      "file": "docs/history/lineage/docs/training/2026-10-09-reference-simulator-300s-final.json",
+      "pointer": "/comparisons/bc",
+      "domain": "approximate-pre-aos-simulator",
+      "passed": false,
+      "reason": "retain incumbent: insufficient or regressed evidence"
+    },
+    {
+      "experiment": "E23-reference-simulator",
+      "file": "docs/history/lineage/docs/training/2026-10-09-reference-simulator-300s-final.json",
+      "pointer": "/comparisons/reference-bc",
+      "domain": "approximate-pre-aos-simulator",
+      "passed": true,
+      "reason": "improved"
+    },
+    {
+      "experiment": "E23-reference-simulator",
+      "file": "docs/history/lineage/docs/training/2026-10-09-reference-simulator-final.json",
+      "pointer": "/comparisons/bc",
+      "domain": "approximate-pre-aos-simulator",
+      "passed": false,
+      "reason": "retain incumbent: insufficient or regressed evidence"
+    },
+    {
+      "experiment": "E23-reference-simulator",
+      "file": "docs/history/lineage/docs/training/2026-10-09-reference-simulator-final.json",
+      "pointer": "/comparisons/reference-bc",
+      "domain": "approximate-pre-aos-simulator",
+      "passed": false,
+      "reason": "retain incumbent: insufficient or regressed evidence"
+    },
+    {
+      "experiment": "E24-reference-bc-live-200",
+      "file": "docs/history/lineage/docs/training/2026-10-10-reference-live-final.json",
+      "pointer": "/registry/gate",
+      "domain": "servuo",
+      "passed": true,
+      "reason": "improved"
+    },
+    {
+      "experiment": "E24-reference-bc-live-200",
+      "file": "docs/history/lineage/docs/training/2026-10-10-reference-live-final.json",
+      "pointer": "/independently_recomputed_gate",
+      "domain": "servuo",
+      "passed": true,
+      "reason": "improved"
+    },
+    {
+      "experiment": "E24-reference-bc-live-200",
+      "file": "docs/history/lineage/docs/training/2026-10-10-training-completion-audit.json",
+      "pointer": "/requirements/3/gate_recomputed",
+      "domain": "servuo",
+      "passed": true,
+      "reason": "improved"
+    }
+  ],
+  "parent_evidence": [
+    {
+      "id": "P1-reference-bc-audit",
+      "repository": "uotavern/uo (private)",
+      "commit": "ecade9d35c0638603a3c41be16c684219f57e962",
+      "path": "evidence/reference-bc-20261010-summary.json",
+      "bytes": 2601,
+      "sha256": "087248ab359d38b4f743db9ff381e4d9b06eb8e41beb6782b728a79258493c4f",
+      "git_blob": "d87754823a6692a962d716c944fb9b8a2c63678d",
+      "asserts": {
+        "audited_at_utc": "2026-11-17T12:00:10.107648+00:00",
+        "audit_passed": true,
+        "selected_policy_sha256": "af3cb4ad485e9c55ad647fa54c35c1fa90336166dcfb34ebd96a41efce108175",
+        "recorded_public_deployment": false,
+        "registry_sha256": "e41538c1cae54b0b3ffaed3260f33fc8d137625a4c589fc5c50cfc833a070892",
+        "matches": 200,
+        "recomputed_delta": 0.165
+      }
+    },
+    {
+      "id": "P2-model-evidence-doc",
+      "repository": "uotavern/uo (private)",
+      "commit": "ecade9d35c0638603a3c41be16c684219f57e962",
+      "path": "docs/model-evidence.md",
+      "bytes": 7262,
+      "sha256": "e867fadabe597aa619359d1d22b1c0a6fc297a70f964ebbd113c47a616339109",
+      "git_blob": "a65d6aab788da920f34b692ded0602aabd66e233",
+      "asserts": null
+    },
+    {
+      "id": "P3-readiness-smoke",
+      "repository": "uotavern/uo (private)",
+      "commit": "33e04d9acb4cfae9d816d7642068e89bbec25415",
+      "path": "evidence/model-readiness-20261117.json",
+      "bytes": 3895,
+      "sha256": "e8653850d36de956f9b6dd843bb52013dd42365a0cab4318ce00e477e8af5134",
+      "git_blob": "2b3d3b8c536e5f061cc5b48a83dd15fee7a40a5f",
+      "asserts": {
+        "finished_utc": "2026-11-17T12:17:43.091855+00:00",
+        "status": "passed",
+        "purpose": "compatibility smoke, not playing-strength evaluation",
+        "budget": 2,
+        "candidate_sha256": "af3cb4ad485e9c55ad647fa54c35c1fa90336166dcfb34ebd96a41efce108175",
+        "historical_registry_sha256_after": "e41538c1cae54b0b3ffaed3260f33fc8d137625a4c589fc5c50cfc833a070892",
+        "public_deployment": false,
+        "training_updates": 0
+      }
+    },
+    {
+      "id": "P4-model-readiness-doc",
+      "repository": "uotavern/uo (private)",
+      "commit": "33e04d9acb4cfae9d816d7642068e89bbec25415",
+      "path": "docs/model-readiness.md",
+      "bytes": 5558,
+      "sha256": "dc3cccff9974904e0f46d439f2710d0b350b13a496c4d3e381edb199a6d68de1",
+      "git_blob": "3222eacd9ad95e82eb05b33d33a67f8dcf44b595",
+      "asserts": null
+    },
+    {
+      "id": "P5-deployment-map",
+      "repository": "uotavern/uo (private)",
+      "commit": "33e04d9acb4cfae9d816d7642068e89bbec25415",
+      "path": "evidence/deployment-map-20261117.json",
+      "bytes": 106673,
+      "sha256": "9cc6a970f4f005ffed0ffc5b41ae2d55b7c7665344b5866bfc0a64c2fe1ce082",
+      "git_blob": "9b9631b04698dbe44224ac585901be087c3c6a32",
+      "asserts": {
+        "arena_worker_or_learner_unit_observed": false
+      }
+    }
+  ],
+  "not_imported": [
+    {
+      "kind": "checkpoint_blob",
+      "location": "819f4f426bfaf72e1a132abff9354480250f1444:models/duel-continuation-live/optimizer-50f8730ba91e88b5dc1338a600a6092783b284d7c71ff19024f9e0443ed29828.pt",
+      "bytes": 1030629,
+      "sha256": "50f8730ba91e88b5dc1338a600a6092783b284d7c71ff19024f9e0443ed29828",
+      "git_blob": "bced2a8ecaf826d16a3fcbd456a574fa245c2156",
+      "manifest": "docs/history/lineage/models/duel-continuation-live/manifest.json",
+      "reason": "Binary checkpoint (weights, optimizer or RNG state). Schema-v1 policies (fingerprint e39b7b42...) that the current schema-3 loader refuses; kept on origin/feat/training-league and recorded here by hash only."
+    },
+    {
+      "kind": "checkpoint_blob",
+      "location": "819f4f426bfaf72e1a132abff9354480250f1444:models/duel-continuation-live/rng-bf9e7301a38e6bf268faef99e7323d1da6390991504bde730553c7433ff42b1b.pt",
+      "bytes": 6633,
+      "sha256": "bf9e7301a38e6bf268faef99e7323d1da6390991504bde730553c7433ff42b1b",
+      "git_blob": "fcc0df0289e7bde77717b638aa9dc67416acf926",
+      "manifest": "docs/history/lineage/models/duel-continuation-live/manifest.json",
+      "reason": "Binary checkpoint (weights, optimizer or RNG state). Schema-v1 policies (fingerprint e39b7b42...) that the current schema-3 loader refuses; kept on origin/feat/training-league and recorded here by hash only."
+    },
+    {
+      "kind": "checkpoint_blob",
+      "location": "819f4f426bfaf72e1a132abff9354480250f1444:models/duel-continuation-live/weights-fe5796b401fe276cb6c916d5c613e8dc286dcaa0432b136d5aee3465f2803a38.pt",
+      "bytes": 513977,
+      "sha256": "fe5796b401fe276cb6c916d5c613e8dc286dcaa0432b136d5aee3465f2803a38",
+      "git_blob": "489ab864720a56cdd6a28a97b0b474d5f1ac9336",
+      "manifest": "docs/history/lineage/models/duel-continuation-live/manifest.json",
+      "reason": "Binary checkpoint (weights, optimizer or RNG state). Schema-v1 policies (fingerprint e39b7b42...) that the current schema-3 loader refuses; kept on origin/feat/training-league and recorded here by hash only."
+    },
+    {
+      "kind": "checkpoint_blob",
+      "location": "819f4f426bfaf72e1a132abff9354480250f1444:models/duel-continuation/optimizer-3f833515c54ba5e842c6e5a28e6ca84856917413046ba779776932ee2c573504.pt",
+      "bytes": 1030629,
+      "sha256": "3f833515c54ba5e842c6e5a28e6ca84856917413046ba779776932ee2c573504",
+      "git_blob": "d36ff6bf611e92d118137cea0f6aa530f3d610db",
+      "manifest": "docs/history/lineage/models/duel-continuation/manifest.json",
+      "reason": "Binary checkpoint (weights, optimizer or RNG state). Schema-v1 policies (fingerprint e39b7b42...) that the current schema-3 loader refuses; kept on origin/feat/training-league and recorded here by hash only."
+    },
+    {
+      "kind": "checkpoint_blob",
+      "location": "819f4f426bfaf72e1a132abff9354480250f1444:models/duel-continuation/rng-eab4afd514b6c631003e616598239e85d6982252615abdf5c2489f9ff54b5507.pt",
+      "bytes": 6633,
+      "sha256": "eab4afd514b6c631003e616598239e85d6982252615abdf5c2489f9ff54b5507",
+      "git_blob": "81c2c13762c1421768a8172fb9e6b8603c8a3d02",
+      "manifest": "docs/history/lineage/models/duel-continuation/manifest.json",
+      "reason": "Binary checkpoint (weights, optimizer or RNG state). Schema-v1 policies (fingerprint e39b7b42...) that the current schema-3 loader refuses; kept on origin/feat/training-league and recorded here by hash only."
+    },
+    {
+      "kind": "checkpoint_blob",
+      "location": "819f4f426bfaf72e1a132abff9354480250f1444:models/duel-continuation/weights-22bc333e08741e402c0245fb97ca8cc0b588199cfc6531364e7e908ee8f70526.pt",
+      "bytes": 513977,
+      "sha256": "22bc333e08741e402c0245fb97ca8cc0b588199cfc6531364e7e908ee8f70526",
+      "git_blob": "3a1b1016dce795fd3adfb1c2feb26bce03a6ca5f",
+      "manifest": "docs/history/lineage/models/duel-continuation/manifest.json",
+      "reason": "Binary checkpoint (weights, optimizer or RNG state). Schema-v1 policies (fingerprint e39b7b42...) that the current schema-3 loader refuses; kept on origin/feat/training-league and recorded here by hash only."
+    },
+    {
+      "kind": "checkpoint_blob",
+      "location": "819f4f426bfaf72e1a132abff9354480250f1444:models/duel-live-candidate/optimizer-47abd4dbc2d2f822a58d44f4073e3dba7668414b9a3272806d916db5ce01ab6e.pt",
+      "bytes": 1030629,
+      "sha256": "47abd4dbc2d2f822a58d44f4073e3dba7668414b9a3272806d916db5ce01ab6e",
+      "git_blob": "46adaab9d1d72ee8da65966582ade77028241af0",
+      "manifest": "docs/history/lineage/models/duel-live-candidate/manifest.json",
+      "reason": "Binary checkpoint (weights, optimizer or RNG state). Schema-v1 policies (fingerprint e39b7b42...) that the current schema-3 loader refuses; kept on origin/feat/training-league and recorded here by hash only."
+    },
+    {
+      "kind": "checkpoint_blob",
+      "location": "819f4f426bfaf72e1a132abff9354480250f1444:models/duel-live-candidate/rng-b44dcdc4bca180f948be9fc8d5a81b04a7cedfadf6ec20053071848bc3dc6ca9.pt",
+      "bytes": 6633,
+      "sha256": "b44dcdc4bca180f948be9fc8d5a81b04a7cedfadf6ec20053071848bc3dc6ca9",
+      "git_blob": "11171a41338e18936b8621a536939bcd1ec9cbfd",
+      "manifest": "docs/history/lineage/models/duel-live-candidate/manifest.json",
+      "reason": "Binary checkpoint (weights, optimizer or RNG state). Schema-v1 policies (fingerprint e39b7b42...) that the current schema-3 loader refuses; kept on origin/feat/training-league and recorded here by hash only."
+    },
+    {
+      "kind": "checkpoint_blob",
+      "location": "819f4f426bfaf72e1a132abff9354480250f1444:models/duel-live-candidate/weights-2953462ad05642e68bfc1c66e751cfa6fc6a7ddc5a6d4a2731c502e9d0ddfa89.pt",
+      "bytes": 513977,
+      "sha256": "2953462ad05642e68bfc1c66e751cfa6fc6a7ddc5a6d4a2731c502e9d0ddfa89",
+      "git_blob": "64958635014d1dac8b752da4e5fde2eed6882dda",
+      "manifest": "docs/history/lineage/models/duel-live-candidate/manifest.json",
+      "reason": "Binary checkpoint (weights, optimizer or RNG state). Schema-v1 policies (fingerprint e39b7b42...) that the current schema-3 loader refuses; kept on origin/feat/training-league and recorded here by hash only."
+    },
+    {
+      "kind": "checkpoint_blob",
+      "location": "819f4f426bfaf72e1a132abff9354480250f1444:models/duel-starter/optimizer-838b9dc4a88ea52e952902a4edd88b906280519f141f5a62b4d080ce17f11aef.pt",
+      "bytes": 1030629,
+      "sha256": "838b9dc4a88ea52e952902a4edd88b906280519f141f5a62b4d080ce17f11aef",
+      "git_blob": "6202f2a2a1f672a9660de908a888553ad3a1309f",
+      "manifest": "docs/history/lineage/models/duel-starter/manifest.json",
+      "reason": "Binary checkpoint (weights, optimizer or RNG state). Schema-v1 policies (fingerprint e39b7b42...) that the current schema-3 loader refuses; kept on origin/feat/training-league and recorded here by hash only."
+    },
+    {
+      "kind": "checkpoint_blob",
+      "location": "819f4f426bfaf72e1a132abff9354480250f1444:models/duel-starter/rng-dbf325eee8ddf233212273a65079d15cbfb36b5335d77893122a3522ccdde768.pt",
+      "bytes": 6633,
+      "sha256": "dbf325eee8ddf233212273a65079d15cbfb36b5335d77893122a3522ccdde768",
+      "git_blob": "9497880bc9451c667394e3473223efc11be1d6cb",
+      "manifest": "docs/history/lineage/models/duel-starter/manifest.json",
+      "reason": "Binary checkpoint (weights, optimizer or RNG state). Schema-v1 policies (fingerprint e39b7b42...) that the current schema-3 loader refuses; kept on origin/feat/training-league and recorded here by hash only."
+    },
+    {
+      "kind": "checkpoint_blob",
+      "location": "819f4f426bfaf72e1a132abff9354480250f1444:models/duel-starter/weights-7c0cbe1a04729b0be553022a84ce6c032424b6ba51a9194bf3f5e7e7c5a51789.pt",
+      "bytes": 513977,
+      "sha256": "7c0cbe1a04729b0be553022a84ce6c032424b6ba51a9194bf3f5e7e7c5a51789",
+      "git_blob": "f4fdea346ed9b2a3df441016531de940611739cd",
+      "manifest": "docs/history/lineage/models/duel-starter/manifest.json",
+      "reason": "Binary checkpoint (weights, optimizer or RNG state). Schema-v1 policies (fingerprint e39b7b42...) that the current schema-3 loader refuses; kept on origin/feat/training-league and recorded here by hash only."
+    },
+    {
+      "kind": "local_registry",
+      "location": "feat/training-league worktree, untracked .logs/curriculum-incumbent-continue-20261008-retry/registry.json",
+      "bytes": 1959,
+      "sha256": "05ebd6a174f7026cbf1581f4aafe183db5afaaf956e044f5f546b57302345d4a",
+      "reason": "Untracked run output in the historical training worktree (no source commit); its run directories also hold checkpoints and episodes (about 635 MB). Recorded by hash only."
+    },
+    {
+      "kind": "local_registry",
+      "location": "feat/training-league worktree, untracked .logs/curriculum-league-20261006/registry.json",
+      "bytes": 1318,
+      "sha256": "a0d34321fe6a6a6a8ad00de493d8ef574dc47060247f1dfdee9cc904415ca914",
+      "reason": "Untracked run output in the historical training worktree (no source commit); its run directories also hold checkpoints and episodes (about 635 MB). Recorded by hash only."
+    },
+    {
+      "kind": "local_registry",
+      "location": "feat/training-league worktree, untracked .logs/curriculum-league-20261006-v2/registry.json",
+      "bytes": 1733,
+      "sha256": "609e2a779983be683c15ef1a35f805666962fc026a977e09ae69474911af8d13",
+      "reason": "Untracked run output in the historical training worktree (no source commit); its run directories also hold checkpoints and episodes (about 635 MB). Recorded by hash only."
+    },
+    {
+      "kind": "local_registry",
+      "location": "feat/training-league worktree, untracked .logs/curriculum-league-20261006-v3/registry.json",
+      "bytes": 1721,
+      "sha256": "9cbac2aa7a2fc69f2c4fa6f85d9310f2a2dafcc655a18f94ed6b4bc1d27b1ed5",
+      "reason": "Untracked run output in the historical training worktree (no source commit); its run directories also hold checkpoints and episodes (about 635 MB). Recorded by hash only."
+    },
+    {
+      "kind": "local_registry",
+      "location": "feat/training-league worktree, untracked .logs/curriculum-league-20261007-skill-clock/registry.json",
+      "bytes": 1911,
+      "sha256": "498d7c81ea6f9705df6fe50bba579950c406aa69ee3667516614b316e2f41718",
+      "reason": "Untracked run output in the historical training worktree (no source commit); its run directories also hold checkpoints and episodes (about 635 MB). Recorded by hash only."
+    },
+    {
+      "kind": "local_registry",
+      "location": "feat/training-league worktree, untracked .logs/curriculum-rehearsal-20261008/registry.json",
+      "bytes": 1892,
+      "sha256": "f3723baf8f7d27ce17c6182ee401ad91e3c68c02b2d41663f77bf974c5a7c677",
+      "reason": "Untracked run output in the historical training worktree (no source commit); its run directories also hold checkpoints and episodes (about 635 MB). Recorded by hash only."
+    },
+    {
+      "kind": "local_registry",
+      "location": "feat/training-league worktree, untracked .logs/curriculum-threat-memory-20261008/registry.json",
+      "bytes": 1916,
+      "sha256": "eb0ef35d04132706f8ed57c7e0abe5bd3feae6ea08aef6aedfcd1153f01e5bec",
+      "reason": "Untracked run output in the historical training worktree (no source commit); its run directories also hold checkpoints and episodes (about 635 MB). Recorded by hash only."
+    },
+    {
+      "kind": "local_registry",
+      "location": "feat/training-league worktree, untracked .logs/curriculum-time-discount-20261008/registry.json",
+      "bytes": 1901,
+      "sha256": "4b6d779fa6109e535e74c5c525548b5167e9ee082d11eeec5f95c0766813f4b2",
+      "reason": "Untracked run output in the historical training worktree (no source commit); its run directories also hold checkpoints and episodes (about 635 MB). Recorded by hash only."
+    },
+    {
+      "kind": "local_registry",
+      "location": "feat/training-league worktree, untracked .logs/curriculum-time-rehearsal-20261008/registry.json",
+      "bytes": 1900,
+      "sha256": "5cd8667e17d9e10feeba96c0d7dce8a12e1643d997ad5c530e8a0073392a9500",
+      "reason": "Untracked run output in the historical training worktree (no source commit); its run directories also hold checkpoints and episodes (about 635 MB). Recorded by hash only."
+    },
+    {
+      "kind": "local_registry",
+      "location": "feat/training-league worktree, untracked .logs/recovered-bc-final-audit/registry.json",
+      "bytes": 1045,
+      "sha256": "fda86e819087fb11cf06f681b084288529ee95797406b07326da9db050c237a3",
+      "reason": "Untracked run output in the historical training worktree (no source commit); its run directories also hold checkpoints and episodes (about 635 MB). Recorded by hash only.",
+      "matches_record": {
+        "file": "docs/history/lineage/docs/training/2026-10-08-recovered-bc-final.json",
+        "pointer": "/artifact_sha256/registry.json"
+      }
+    },
+    {
+      "kind": "local_registry",
+      "location": "feat/training-league worktree, untracked .logs/recovered-bc-replication-final-audit/registry.json",
+      "bytes": 1052,
+      "sha256": "5246b9b84298397c89d1cbfc0f83e37d350cc1d9243729b15547a97c4d5b41be",
+      "reason": "Untracked run output in the historical training worktree (no source commit); its run directories also hold checkpoints and episodes (about 635 MB). Recorded by hash only.",
+      "matches_record": {
+        "file": "docs/history/lineage/docs/training/2026-10-09-recovered-bc-replication-final.json",
+        "pointer": "/artifact_sha256/registry.json"
+      }
+    },
+    {
+      "kind": "local_registry",
+      "location": "feat/training-league worktree, untracked .logs/reference-live-final-audit/registry.json",
+      "bytes": 1001,
+      "sha256": "e41538c1cae54b0b3ffaed3260f33fc8d137625a4c589fc5c50cfc833a070892",
+      "reason": "Untracked run output in the historical training worktree (no source commit); its run directories also hold checkpoints and episodes (about 635 MB). Recorded by hash only.",
+      "matches_record": {
+        "file": "docs/history/lineage/docs/training/2026-10-10-reference-live-final.json",
+        "pointer": "/artifact_sha256/registry.json"
+      }
+    },
+    {
+      "kind": "local_registry",
+      "location": "feat/training-league worktree, untracked .logs/v8-bc-final-audit/registry.json",
+      "bytes": 1033,
+      "sha256": "64a1b14cb4b8158b476d5d2844a36a353ff2a664650e8e0096a30113c05533f2",
+      "reason": "Untracked run output in the historical training worktree (no source commit); its run directories also hold checkpoints and episodes (about 635 MB). Recorded by hash only.",
+      "matches_record": {
+        "file": "docs/history/lineage/docs/training/2026-10-08-v8-bc-final.json",
+        "pointer": "/source_files_sha256/registry.json"
+      }
+    },
+    {
+      "kind": "lineage_document",
+      "location": "819f4f426bfaf72e1a132abff9354480250f1444:docs/PLUTO_BINARY_ANALYSIS.ko.md",
+      "bytes": 10106,
+      "sha256": "555b4e3867d878a2d2c0d5e472226d7464695e30c799c3cfa1097e120fcc40f4",
+      "git_blob": "91d74492a58de7ca17459959abf7f0007b2b4c0b",
+      "reason": "Static analysis of a third-party release, not an Anima3 experiment; redistribution of its disassembly notes needs its own review."
+    },
+    {
+      "kind": "lineage_document",
+      "location": "819f4f426bfaf72e1a132abff9354480250f1444:docs/analysis/pluto-cog2026/manifest.json",
+      "bytes": 1084,
+      "sha256": "0fb2f99b0921dd6075e8e873e3c79919af7d7f6d5750be9bf2f92360cc97d45f",
+      "git_blob": "babb7a285160a95f9766e0187558927dc4784988",
+      "reason": "Part of the third-party Pluto analysis."
+    },
+    {
+      "kind": "lineage_document",
+      "location": "819f4f426bfaf72e1a132abff9354480250f1444:docs/analysis/pluto-cog2026/binaries-summary.json",
+      "bytes": 8605,
+      "sha256": "b640fa7491c555d4ad9817df8d3492e4fa40a4a42d5cec52a656af1b10bbd0eb",
+      "git_blob": "a3753e1c27f01211edee735c6b48b26c38d24481",
+      "reason": "Part of the third-party Pluto analysis."
+    },
+    {
+      "kind": "lineage_document",
+      "location": "819f4f426bfaf72e1a132abff9354480250f1444:docs/analysis/pluto-cog2026/disassembly-findings.json",
+      "bytes": 1553,
+      "sha256": "9179ac16bec0fc8a5a94c812ded03fcf06f02e2faafc92b65e6d6e5b1901b59d",
+      "git_blob": "f955da9fd368d261b8ca9b0f09b399afac16f957",
+      "reason": "Part of the third-party Pluto analysis."
+    },
+    {
+      "kind": "lineage_document",
+      "location": "819f4f426bfaf72e1a132abff9354480250f1444:docs/analysis/pluto-cog2026/model-summary.json",
+      "bytes": 3011,
+      "sha256": "09d269171d7322079f3ba102f2f8a956f3c769707730397e95a9dbda24f97805",
+      "git_blob": "5ccdf6665d1bd1896e2752ce9dc1f450bf43fea8",
+      "reason": "Part of the third-party Pluto analysis."
+    },
+    {
+      "kind": "lineage_document",
+      "location": "819f4f426bfaf72e1a132abff9354480250f1444:docs/analysis/pluto-cog2026/weights-header.json",
+      "bytes": 55321,
+      "sha256": "f917118f6ed0b8be23b7d4d9d54eb292914e4d854507864efc8a53d32483c0a0",
+      "git_blob": "77053e86e76bfb309cba39b0ddd1391b48481270",
+      "reason": "Part of the third-party Pluto analysis."
+    },
+    {
+      "kind": "lineage_document",
+      "location": "819f4f426bfaf72e1a132abff9354480250f1444:docs/ARENA_LEARNING.ko.md",
+      "bytes": 4898,
+      "sha256": "590f3a885729aae42c5d41f7eb6871b5540ccd6c1b6f078557322b4ebdc32176",
+      "git_blob": "8f797cb7a82b5973d2eba559289de4601711f670",
+      "reason": "Operating guide for the Jev replay-learning agent, not an experiment result; belongs with a port of that agent."
+    },
+    {
+      "kind": "lineage_document",
+      "location": "819f4f426bfaf72e1a132abff9354480250f1444:docs/ARENA_STRATEGY.ko.md",
+      "bytes": 5641,
+      "sha256": "e22de5226f15bdddcf7a9105d439a338c280651fb87e0252afa29673dc606061",
+      "git_blob": "51cb2deb259dbd0ee47b9ab606a871f8fe56047c",
+      "reason": "Operating guide for the Jev strategy agent, not an experiment result; belongs with a port of that agent."
+    },
+    {
+      "kind": "lineage_document",
+      "location": "819f4f426bfaf72e1a132abff9354480250f1444:deploy/arena/champion.json",
+      "bytes": 91,
+      "sha256": "d704e02d328099701da8868d4ed8397a6e20755c7ef91970e8162bce72b86d78",
+      "git_blob": "e8181a8d5704cf380ddae8bf0fee8f8b7f21d1d1",
+      "reason": "Scripted champion configuration (mage, baseline-v1, standard playbook); deployment configuration, not an experiment record."
+    },
+    {
+      "kind": "lineage_document",
+      "location": "819f4f426bfaf72e1a132abff9354480250f1444:README.md",
+      "bytes": 43270,
+      "sha256": "91b952da9028bc084be94ddfe5d48e81dd8c6747be9ee84104789b92f1ce79b7",
+      "git_blob": "55d1a1b55c89c0ad09a608347e004f2c13927ef6",
+      "reason": "Project README of the training branch; its neural section summarises the imported records and NEURAL_DUEL.ko.md."
+    },
+    {
+      "kind": "lineage_document",
+      "location": "819f4f426bfaf72e1a132abff9354480250f1444:deploy/arena-replay-assets.service",
+      "bytes": 481,
+      "sha256": "ecbbcd38a30a0cb358e0da1d309af4193e6beffc3c03d6684c87ace84140c910",
+      "git_blob": "4397ac0da137dac0f5965e887d6d0042043c09ed",
+      "reason": "Server unit and configuration files, including the legacy hosted worker and learner (--promote) units; deployment configuration, not experiment records."
+    },
+    {
+      "kind": "lineage_document",
+      "location": "819f4f426bfaf72e1a132abff9354480250f1444:deploy/arena/Arena.cfg",
+      "bytes": 146,
+      "sha256": "341e769cf6b2d0a403978879828abc42a622b4bff5638b2d277b945f7ffcdea5",
+      "git_blob": "2c7a46a65db64bb581d2cd1a1cc2c1d0abe83205",
+      "reason": "Server unit and configuration files, including the legacy hosted worker and learner (--promote) units; deployment configuration, not experiment records."
+    },
+    {
+      "kind": "lineage_document",
+      "location": "819f4f426bfaf72e1a132abff9354480250f1444:deploy/arena/Caddyfile",
+      "bytes": 639,
+      "sha256": "d8f346432de3c6bed0932f532771bd80d35b8a31de5a26ffc91fa4a3a9c91446",
+      "git_blob": "712698fe2eadd9aa4f2f578c5010cd5c057d1afd",
+      "reason": "Server unit and configuration files, including the legacy hosted worker and learner (--promote) units; deployment configuration, not experiment records."
+    },
+    {
+      "kind": "lineage_document",
+      "location": "819f4f426bfaf72e1a132abff9354480250f1444:deploy/arena/Duel.cfg",
+      "bytes": 167,
+      "sha256": "1b06a14d7afc536781202aa61fef558cead9808ed11c15bd9bd44a6a31904347",
+      "git_blob": "cdfd2c181a8d4d954b763763912393e6185236ea",
+      "reason": "Server unit and configuration files, including the legacy hosted worker and learner (--promote) units; deployment configuration, not experiment records."
+    },
+    {
+      "kind": "lineage_document",
+      "location": "819f4f426bfaf72e1a132abff9354480250f1444:deploy/arena/Server.cfg",
+      "bytes": 94,
+      "sha256": "d0cfef32bcb20beab09141477f816c3ee886fc56e6c640eaae0a40127207f386",
+      "git_blob": "f9751028b11c179e9bae3313135b8704e4beea40",
+      "reason": "Server unit and configuration files, including the legacy hosted worker and learner (--promote) units; deployment configuration, not experiment records."
+    },
+    {
+      "kind": "lineage_document",
+      "location": "819f4f426bfaf72e1a132abff9354480250f1444:deploy/arena/arena-learner.service",
+      "bytes": 551,
+      "sha256": "f56d5a0e4243f903bb0cd655cc980efbf3c6b6eac6433b90406670d6adb3e7bd",
+      "git_blob": "1a8801d1f60c69c3009620c4f58fb817d55987a5",
+      "reason": "Server unit and configuration files, including the legacy hosted worker and learner (--promote) units; deployment configuration, not experiment records."
+    },
+    {
+      "kind": "lineage_document",
+      "location": "819f4f426bfaf72e1a132abff9354480250f1444:deploy/arena/arena-shard.service",
+      "bytes": 383,
+      "sha256": "6f3a7e1486acecfd3c5a9cc1a3058dd35ea5bd138b576b58301f95fcde1cb9c3",
+      "git_blob": "cb4282e034b3cfbb4177c0df11a790bebf0745a8",
+      "reason": "Server unit and configuration files, including the legacy hosted worker and learner (--promote) units; deployment configuration, not experiment records."
+    },
+    {
+      "kind": "lineage_document",
+      "location": "819f4f426bfaf72e1a132abff9354480250f1444:deploy/arena/arena-worker@.service",
+      "bytes": 866,
+      "sha256": "8387833992514e4f3e5eba1a6b37aaa9cb7cde2ff1f83fb7b1358a7af0566c41",
+      "git_blob": "4426d80f5eb24b509aefbbac426b19e3d3a98747",
+      "reason": "Server unit and configuration files, including the legacy hosted worker and learner (--promote) units; deployment configuration, not experiment records."
+    },
+    {
+      "kind": "lineage_document",
+      "location": "819f4f426bfaf72e1a132abff9354480250f1444:deploy/arena/worker.env.example",
+      "bytes": 519,
+      "sha256": "a48ca489bc06bddf2eb6d7946a7f74eb785a44d9939726ab535df6ad8665c8ec",
+      "git_blob": "ac33bef9550d60c0d7b12abc2857d32a63e25c1d",
+      "reason": "Server unit and configuration files, including the legacy hosted worker and learner (--promote) units; deployment configuration, not experiment records."
+    },
+    {
+      "kind": "lineage_document",
+      "location": "819f4f426bfaf72e1a132abff9354480250f1444:deploy/replay.caddy",
+      "bytes": 425,
+      "sha256": "b7de638265d8c312f44a23b94e5c20b4ccc19b6fa75d274493ac9f4b3f6286f7",
+      "git_blob": "9c21d5617feded22b9f4095a38a0215fc61f9b41",
+      "reason": "Server unit and configuration files, including the legacy hosted worker and learner (--promote) units; deployment configuration, not experiment records."
+    },
+    {
+      "kind": "lineage_document",
+      "location": "819f4f426bfaf72e1a132abff9354480250f1444:docs/ARENA.md",
+      "bytes": 4224,
+      "sha256": "b81d5d6ac1d1c4837ee8887c65dcb6ee1ce5afd8d76921245b15b883bdf8d669",
+      "git_blob": "4d0f8ac343e8343b2a1067dd18dd567f45584d83",
+      "reason": "Arena operating or player documentation, not an experiment result."
+    },
+    {
+      "kind": "lineage_document",
+      "location": "819f4f426bfaf72e1a132abff9354480250f1444:docs/ARENA_BUILDERS.md",
+      "bytes": 4359,
+      "sha256": "df0efe523790b414f0c2282dd9809ae302c9e6db9abd0f5184388a7d0a30657a",
+      "git_blob": "af55120c5e00a832375b6343d8ed317a5c193fae",
+      "reason": "Arena operating or player documentation, not an experiment result."
+    },
+    {
+      "kind": "lineage_document",
+      "location": "819f4f426bfaf72e1a132abff9354480250f1444:docs/ARENA_HOSTED_LEGACY.md",
+      "bytes": 7816,
+      "sha256": "a8fbb34251afd584900de167c0d1049086a4b4e4609338057f115a3d0e6d826d",
+      "git_blob": "8114e3cb065029abd7772e3f491f90c3effed432",
+      "reason": "Archived hosted-AI architecture (private test fixture). Operations."
+    },
+    {
+      "kind": "lineage_document",
+      "location": "819f4f426bfaf72e1a132abff9354480250f1444:docs/ARENA_LINODE.md",
+      "bytes": 10579,
+      "sha256": "9ab48013699e88b5d7260f61caa7e72028b59804567eb1e8f897678395ad37ca",
+      "git_blob": "41c24155334913fa129ec6039a0e0089cf407e44",
+      "reason": "Hosted-arena operations and live verification. Records the public mage/warrior and training worker services and the learner on baseline-v1; cited in deployment_findings."
+    },
+    {
+      "kind": "lineage_document",
+      "location": "819f4f426bfaf72e1a132abff9354480250f1444:docs/ARENA_PEER_HANDOFF.md",
+      "bytes": 13463,
+      "sha256": "ab40daf3432ba2da471c23b1b28994918bfa794943092e6e77598ce91c5339e1",
+      "git_blob": "44afc98e41f59626494220be7eec88577a06ea80",
+      "reason": "Peer-arena operations handoff; says the learner and hosted worker units are stopped and disabled. Operations, not an experiment result."
+    },
+    {
+      "kind": "lineage_document",
+      "location": "819f4f426bfaf72e1a132abff9354480250f1444:docs/ARENA_PLAY.ko.md",
+      "bytes": 8946,
+      "sha256": "e17a1057bdb5e421d92f2edb43a3138d3c9c89ab22dba3676221297dc8334f97",
+      "git_blob": "a94dca72fdaeffacbd385a5e1be95a3af7cf0e8b",
+      "reason": "Arena operating or player documentation, not an experiment result."
+    },
+    {
+      "kind": "lineage_document",
+      "location": "819f4f426bfaf72e1a132abff9354480250f1444:docs/ARENA_REPLAY.md",
+      "bytes": 12080,
+      "sha256": "c3aabbae8249bdda605aa39c7161c145013cc45fff4bf8f46396cf1a285438da",
+      "git_blob": "50b496609dd17e1e9466904c5bc9aa610c9e63c4",
+      "reason": "Arena operating or player documentation, not an experiment result."
+    },
+    {
+      "kind": "lineage_document",
+      "location": "819f4f426bfaf72e1a132abff9354480250f1444:docs/ARENA_VALIDATION.md",
+      "bytes": 8935,
+      "sha256": "ad91083f2d1631b8a61575658b69867f904dd8b1bb5f05c14b51063699f3c2ac",
+      "git_blob": "9ed444b4db8511da3f2c7f9fa2ecac881bb4c410",
+      "reason": "Hosted-arena acceptance log. Records the non-neural public mage and warrior workers and the playbook learner, which had no real promotion; cited in deployment_findings."
+    },
+    {
+      "kind": "lineage_document",
+      "location": "819f4f426bfaf72e1a132abff9354480250f1444:examples/arena_policy.py",
+      "bytes": 662,
+      "sha256": "67ea51f60dea8965dfdba02617c84cafab4853cd7d4440f439c4eb70ef515370",
+      "git_blob": "45903e5d58fb6d8c1c9be5c1d8d0a305d8637258",
+      "reason": "Example code, not a record."
+    },
+    {
+      "kind": "lineage_document",
+      "location": "819f4f426bfaf72e1a132abff9354480250f1444:pyproject.toml",
+      "bytes": 717,
+      "sha256": "8c5257f8d187fce8febb0e1f3d9568b65362a53f78f38212e2435c08cbe263a4",
+      "git_blob": "e142ef830accda511657434c46b8bb25c96adfa4",
+      "reason": "Dependency metadata, handled by units 5-8."
+    },
+    {
+      "kind": "lineage_document",
+      "location": "819f4f426bfaf72e1a132abff9354480250f1444:scripts/arena_deployment_check.py",
+      "bytes": 2831,
+      "sha256": "9db81e6e9702031b8ebc9e804aee8e6ae332290b2d8420811c2183a3222ed00a",
+      "git_blob": "bf6b8f62817ea1eea9dd3c90b4603a3651d25422",
+      "reason": "Runner, smoke and summary code. Belongs to the code units (training league and simulator in row 7b), not to the records."
+    },
+    {
+      "kind": "lineage_document",
+      "location": "819f4f426bfaf72e1a132abff9354480250f1444:scripts/arena_fault_smoke.py",
+      "bytes": 3269,
+      "sha256": "80727a823906b94c713a77873a19bae0172bab4a828f86b663162166ba724e7a",
+      "git_blob": "740dd4e81569c48e6db69ba2c9674cf2e7fcb168",
+      "reason": "Runner, smoke and summary code. Belongs to the code units (training league and simulator in row 7b), not to the records."
+    },
+    {
+      "kind": "lineage_document",
+      "location": "819f4f426bfaf72e1a132abff9354480250f1444:scripts/arena_live_smoke.py",
+      "bytes": 4917,
+      "sha256": "5e82d9d1ca236aba65c56ec56c571fcde4dbc8fa7c165913be2dfcfd27e10c1e",
+      "git_blob": "f2ad39edaaf3762b2aa56976e962349a7dc612ef",
+      "reason": "Runner, smoke and summary code. Belongs to the code units (training league and simulator in row 7b), not to the records."
+    },
+    {
+      "kind": "lineage_document",
+      "location": "819f4f426bfaf72e1a132abff9354480250f1444:scripts/arena_peer_smoke.py",
+      "bytes": 3451,
+      "sha256": "621a1160a8013b4415d702835fbc9c429a0ddcef5aeffc9df47bfb8e9b5e757d",
+      "git_blob": "6e28e6c86254aec1fa00bf4c5ab1894c258aff2c",
+      "reason": "Runner, smoke and summary code. Belongs to the code units (training league and simulator in row 7b), not to the records."
+    },
+    {
+      "kind": "lineage_document",
+      "location": "819f4f426bfaf72e1a132abff9354480250f1444:scripts/arena_potions_smoke.py",
+      "bytes": 4870,
+      "sha256": "83f5008f7eb6e7f70d2df86d4e96581adf5b764cadfa21e5ac86b3665fa965a6",
+      "git_blob": "d5803ea6c00ac71d4a36037ac50eb1b1650398bd",
+      "reason": "Runner, smoke and summary code. Belongs to the code units (training league and simulator in row 7b), not to the records."
+    },
+    {
+      "kind": "lineage_document",
+      "location": "819f4f426bfaf72e1a132abff9354480250f1444:scripts/arena_rules_smoke.py",
+      "bytes": 4292,
+      "sha256": "5658ca68e1b8db1ccc13201e9b4586cbd49bbad9c1386c6508ff1cdc1ef63e9f",
+      "git_blob": "13ff049a22fa3dd211d5124add70cede24549e36",
+      "reason": "Runner, smoke and summary code. Belongs to the code units (training league and simulator in row 7b), not to the records."
+    },
+    {
+      "kind": "lineage_document",
+      "location": "819f4f426bfaf72e1a132abff9354480250f1444:scripts/arena_selfplay_smoke.py",
+      "bytes": 2274,
+      "sha256": "9b341487c7f828018da6b22b0806da668b19362e92db444237cb544a0ffdb763",
+      "git_blob": "d2b4cbbbc4da3288c20933aeb513f54e6b3f2975",
+      "reason": "Runner, smoke and summary code. Belongs to the code units (training league and simulator in row 7b), not to the records."
+    },
+    {
+      "kind": "lineage_document",
+      "location": "819f4f426bfaf72e1a132abff9354480250f1444:scripts/arena_showdown_smoke.py",
+      "bytes": 4790,
+      "sha256": "515908c5bc0d9e297254126753930225e9a5f4d3fd6817ebf9c7c6ade231846d",
+      "git_blob": "2c7042f8135be1b61746ee9c4f2a9fea820c1560",
+      "reason": "Runner, smoke and summary code. Belongs to the code units (training league and simulator in row 7b), not to the records."
+    },
+    {
+      "kind": "lineage_document",
+      "location": "819f4f426bfaf72e1a132abff9354480250f1444:scripts/arena_skill_selection_smoke.py",
+      "bytes": 3362,
+      "sha256": "2a8676acaa02dd382d31428759a0c3154ca2e8d08f34bd3b23d7c9d77bfe647b",
+      "git_blob": "280993cbb6b5e012bffc148c21f6deb66d2b31a6",
+      "reason": "Runner, smoke and summary code. Belongs to the code units (training league and simulator in row 7b), not to the records."
+    },
+    {
+      "kind": "lineage_document",
+      "location": "819f4f426bfaf72e1a132abff9354480250f1444:scripts/arena_training_smoke.py",
+      "bytes": 5617,
+      "sha256": "4a8506fd2c80f6bcb2bb521c1909f06afd088c6a51239d893b153790e5f3176c",
+      "git_blob": "d7382f82489820b32fb1901847f9e745d7baa9fe",
+      "reason": "Runner, smoke and summary code. Belongs to the code units (training league and simulator in row 7b), not to the records."
+    },
+    {
+      "kind": "lineage_document",
+      "location": "819f4f426bfaf72e1a132abff9354480250f1444:scripts/clone_live_demonstrations.py",
+      "bytes": 4047,
+      "sha256": "0cedbb8cbfd65722ea67addc63cdf81940975ed05568e2d6f03d9d62dde3ab5d",
+      "git_blob": "6609cf1351d9521b28ecd17385d42e045828a5a9",
+      "reason": "Runner, smoke and summary code. Belongs to the code units (training league and simulator in row 7b), not to the records."
+    },
+    {
+      "kind": "lineage_document",
+      "location": "819f4f426bfaf72e1a132abff9354480250f1444:scripts/fit_collected_demonstrations.py",
+      "bytes": 4211,
+      "sha256": "ec8a9d0e6e36137520863ec7da05a73f3df16fd52536820c85e0cce3c36c11ba",
+      "git_blob": "baf43dd9ce9c477c632ae70556a730e5b93cc932",
+      "reason": "Runner, smoke and summary code. Belongs to the code units (training league and simulator in row 7b), not to the records."
+    },
+    {
+      "kind": "lineage_document",
+      "location": "819f4f426bfaf72e1a132abff9354480250f1444:scripts/jev_shadow_probe.py",
+      "bytes": 9842,
+      "sha256": "8e222c8a5c142a75f17672413b7bf24ab502706b753e98687e80a946a132b5fb",
+      "git_blob": "f9ae43230862422f6bcbcefa71866a7944a25092",
+      "reason": "Runner, smoke and summary code. Belongs to the code units (training league and simulator in row 7b), not to the records."
+    },
+    {
+      "kind": "lineage_document",
+      "location": "819f4f426bfaf72e1a132abff9354480250f1444:scripts/report_jev_shadow.py",
+      "bytes": 4431,
+      "sha256": "c2e8ef908fe62025a8f2a60a25d13a7470a8be3427f380c89d7e789b0cbdbcbf",
+      "git_blob": "4fff68d8386ddaed9ed092a1f5c7d23515c7c559",
+      "reason": "Runner, smoke and summary code. Belongs to the code units (training league and simulator in row 7b), not to the records."
+    },
+    {
+      "kind": "lineage_document",
+      "location": "819f4f426bfaf72e1a132abff9354480250f1444:scripts/report_potion_defense.py",
+      "bytes": 3674,
+      "sha256": "0311aab5da3164622b34139007e52f0386bdc1e1aedc694bfd293525cc057629",
+      "git_blob": "0e0e4af884c3a15c21db3692a30e69d3ca296a6b",
+      "reason": "Runner, smoke and summary code. Belongs to the code units (training league and simulator in row 7b), not to the records."
+    },
+    {
+      "kind": "lineage_document",
+      "location": "819f4f426bfaf72e1a132abff9354480250f1444:scripts/review_sparring.py",
+      "bytes": 1891,
+      "sha256": "ec8a58ba5dcb76baaccc7b1ec4044b51e5fa26cb2361dfca6ac00118e84d8835",
+      "git_blob": "5fdd46bd19345d93af2050a150dc3ac4f85daf8f",
+      "reason": "Runner, smoke and summary code. Belongs to the code units (training league and simulator in row 7b), not to the records."
+    },
+    {
+      "kind": "lineage_document",
+      "location": "819f4f426bfaf72e1a132abff9354480250f1444:scripts/run_arena_local.py",
+      "bytes": 3578,
+      "sha256": "f398bdeda4cdda74ead53621e9499a674a7835cb062ec681ace600c2d3220c7b",
+      "git_blob": "7a4e09b711ff29dd8b3cb0dbbf3cb7c7813f12e0",
+      "reason": "Runner, smoke and summary code. Belongs to the code units (training league and simulator in row 7b), not to the records."
+    },
+    {
+      "kind": "lineage_document",
+      "location": "819f4f426bfaf72e1a132abff9354480250f1444:scripts/run_hundred_live_duels.py",
+      "bytes": 7319,
+      "sha256": "07d762cd87b0e7b8e47b7741c5269df3e719743385be7cddee96bc3214e389e3",
+      "git_blob": "4158eabc98e50818522136f3b312a3b04d0df227",
+      "reason": "Runner, smoke and summary code. Belongs to the code units (training league and simulator in row 7b), not to the records."
+    },
+    {
+      "kind": "lineage_document",
+      "location": "819f4f426bfaf72e1a132abff9354480250f1444:scripts/run_melee_probe.py",
+      "bytes": 2829,
+      "sha256": "0b746df82a967c93c1909194fd42f7d585c6198aa4c9c4e5a5cf54cae4ceddd8",
+      "git_blob": "ef3d26fb4f9543d4281d8972ec54cfc3b51be908",
+      "reason": "Runner, smoke and summary code. Belongs to the code units (training league and simulator in row 7b), not to the records."
+    },
+    {
+      "kind": "lineage_document",
+      "location": "819f4f426bfaf72e1a132abff9354480250f1444:scripts/run_tactical_pilot.py",
+      "bytes": 1444,
+      "sha256": "aef8b8aee5349373cf31a55b6f78894203c418775f6852d2ab575b026cd841c8",
+      "git_blob": "d3395f63ee8338afe45ebfd1c7118cab327b435f",
+      "reason": "Runner, smoke and summary code. Belongs to the code units (training league and simulator in row 7b), not to the records."
+    },
+    {
+      "kind": "lineage_document",
+      "location": "819f4f426bfaf72e1a132abff9354480250f1444:scripts/run_training_league.py",
+      "bytes": 16314,
+      "sha256": "ec74ea7ab05f53103c46bfb4bc84c211619548ba8f3678369c66a8576621fbc2",
+      "git_blob": "6be2f853fe7219674de51aea13aaf79c40936625",
+      "reason": "Runner, smoke and summary code. Belongs to the code units (training league and simulator in row 7b), not to the records."
+    },
+    {
+      "kind": "lineage_document",
+      "location": "819f4f426bfaf72e1a132abff9354480250f1444:scripts/summarize_cast_dump.py",
+      "bytes": 4296,
+      "sha256": "30c4a00bc49e511c87c6c2c1f260ef3a91a2a3600ac9e587e436fc5f9880b613",
+      "git_blob": "f185e86b632018fbfe1727b427b5e0d0b992e69d",
+      "reason": "Runner, smoke and summary code. Belongs to the code units (training league and simulator in row 7b), not to the records."
+    },
+    {
+      "kind": "lineage_document",
+      "location": "819f4f426bfaf72e1a132abff9354480250f1444:scripts/summarize_melee_probe.py",
+      "bytes": 3148,
+      "sha256": "1be40f0b6871157bf0be96acc05aba632f614f88137e5c981bbaaa273efff4fc",
+      "git_blob": "fb8ad2a6131edd9fd23a644c4cc43c970c6bbd3f",
+      "reason": "Runner, smoke and summary code. Belongs to the code units (training league and simulator in row 7b), not to the records."
+    },
+    {
+      "kind": "lineage_document",
+      "location": "819f4f426bfaf72e1a132abff9354480250f1444:scripts/summarize_training_league.py",
+      "bytes": 3846,
+      "sha256": "ed10e6b6219f50b334702814529dff78a74c6e5727c85f5dc9eab23be0164ade",
+      "git_blob": "d5b2fd1d76d0eca6b66211fb02f780d311bd32c3",
+      "reason": "Runner, smoke and summary code. Belongs to the code units (training league and simulator in row 7b), not to the records."
+    },
+    {
+      "kind": "lineage_document",
+      "location": "819f4f426bfaf72e1a132abff9354480250f1444:tools/analyze_pluto.py",
+      "bytes": 7904,
+      "sha256": "be42f6efdf8995fa453c1894a0fcdf820a2f24e5e9a53d61d1bd69537dc6f458",
+      "git_blob": "eeebde5de03aa034ddfd4543f4f348d1465b5004",
+      "reason": "Pluto analysis tool for the third-party analysis listed above."
+    },
+    {
+      "kind": "remote_run_data",
+      "location": "arena host /opt/uoarena/* run directories (.logs/*)",
+      "reason": "Replays, episodes, demonstrations, status and receipts of every live run, and the server-side checkpoints (for example anima3-reference-fit-d4da520/candidate-reference-bc). On a remote host; not accessed under the offline rule."
+    }
+  ],
+  "deployment_findings": {
+    "public_model_deployment_found": false,
+    "scope": [
+      "No neural policy was publicly deployed.",
+      "Non-neural workers were publicly hosted: before the peer arena (2026-09-27/28) public mage and warrior workers ran as services on the public shard. The mage chose among five scripted playbooks and the warrior used a fixed rule (ARENA_VALIDATION.md, ARENA_LINODE.md).",
+      "The playbook learner (arena-learner, --promote) never made a real promotion: it reported collecting_training with baseline-v1 still active, and its promotion logic was tested only with synthetic evidence.",
+      "The peer-arena handoff (ARENA_PEER_HANDOFF.md) keeps the learner and all hosted worker units stopped and disabled."
+    ],
+    "scope_sources": [
+      "819f4f426bfaf72e1a132abff9354480250f1444:docs/ARENA_VALIDATION.md",
+      "819f4f426bfaf72e1a132abff9354480250f1444:docs/ARENA_LINODE.md",
+      "819f4f426bfaf72e1a132abff9354480250f1444:docs/ARENA_PEER_HANDOFF.md",
+      "819f4f426bfaf72e1a132abff9354480250f1444:deploy/arena/arena-learner.service",
+      "819f4f426bfaf72e1a132abff9354480250f1444:deploy/arena/arena-worker@.service"
+    ],
+    "basis": [
+      "Every public_deployment field in the imported JSON records is false; none is true.",
+      "Every registry decision records public_deployment false; league-v2.md calls the registry experimental and says public agents are never replaced by its commands.",
+      "Checkpoint READMEs: 'not a promoted public-arena champion', 'has not replaced the public arena agent', 'No public promotion is automatic', 'No public agent was replaced'.",
+      "The ten-duel record states that the public champion was not changed; the lineage champion configuration is a scripted build (deploy/arena/champion.json).",
+      "Parent audit (P1, 2026-11-17) and compatibility smoke (P3) record public_deployment false and no public worker replacement.",
+      "Parent deployment map (P5, 2026-11-17) lists no arena-worker or arena-learner unit among the observed services."
+    ],
+    "limits": [
+      "Stored flags and disk artifacts do not attest which bytes a running process loaded (P1 and P5 limitations).",
+      "Server runs on /opt/uoarena snapshots are training and evaluation runs with training accounts; the lineage text calls them deployed, but they serve no public player.",
+      "ServUO patches were deployed to the arena shard during this lineage (see server_changes). They change the game server, not the policy."
+    ]
+  }
+}

@@ -1,0 +1,84 @@
+{
+  "match_id": "145a73b76b7341b5b09af32d03bb4c47",
+  "executor_evidence": [
+    {
+      "utc": 1791423227.5568583,
+      "clock": 904651.629187392,
+      "type": "action_finished",
+      "at": 904651.628846411,
+      "epoch": "145a73b76b7341b5b09af32d03bb4c47:1:57",
+      "executor_version": "pre-aos-options-v8-last-seen-approach",
+      "action": 21,
+      "name": "burst_bolt",
+      "success": false,
+      "reason": "concentration disturbed",
+      "duration": 0.3215373180573806,
+      "intervention": false,
+      "scope": "option_execution",
+      "policy_override": false,
+      "cast_at": 904651.374529826,
+      "target_at": null,
+      "potion_prime_at": null,
+      "potion_throw_at": null
+    },
+    {
+      "utc": 1791423250.5172067,
+      "clock": 904674.589541025,
+      "type": "action_finished",
+      "at": 904674.589322785,
+      "epoch": "145a73b76b7341b5b09af32d03bb4c47:1:57",
+      "executor_version": "pre-aos-options-v8-last-seen-approach",
+      "action": 21,
+      "name": "burst_bolt",
+      "success": false,
+      "reason": "concentration disturbed",
+      "duration": 0.2798247130122036,
+      "intervention": false,
+      "scope": "option_execution",
+      "policy_override": false,
+      "cast_at": 904674.384941619,
+      "target_at": null,
+      "potion_prime_at": null,
+      "potion_throw_at": null
+    }
+  ],
+  "server_evidence": [
+    {
+      "seq": 62,
+      "t": 7263,
+      "type": "cast",
+      "actor": 57,
+      "target": 0,
+      "name": "ExplosionSpell",
+      "amount": 0
+    },
+    {
+      "seq": 65,
+      "t": 7350,
+      "type": "spell_target",
+      "actor": 58,
+      "target": 57,
+      "name": "ClumsySpell",
+      "amount": 0
+    },
+    {
+      "seq": 369,
+      "t": 30273,
+      "type": "cast",
+      "actor": 57,
+      "target": 0,
+      "name": "ExplosionSpell",
+      "amount": 0
+    },
+    {
+      "seq": 375,
+      "t": 30434,
+      "type": "damage",
+      "actor": 58,
+      "target": 57,
+      "name": null,
+      "amount": 35
+    }
+  ],
+  "conclusion": "Both burst cancellations follow real adverse server events during Explosion cast: Clumsy target and 35 damage. Consistent with cast interruption, not evidence of executor refusal. Existing simulator already interrupts casts on debuffs and damage; no duplicate behavior change."
+}

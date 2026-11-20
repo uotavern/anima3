@@ -1,0 +1,1750 @@
+{
+  "schema": "anima3-neural-continuation-v1",
+  "date": "2026-09-30",
+  "status": "complete",
+  "plan": {
+    "created_utc": "2026-09-30T06:21:11Z",
+    "parent": "models/duel-starter",
+    "parent_sha": "7c0cbe1a04729b0be553022a84ce6c032424b6ba51a9194bf3f5e7e7c5a51789",
+    "arms": [
+      {
+        "name": "same-config",
+        "additional_steps": 1000000,
+        "discount_time_unit": 0.0
+      },
+      {
+        "name": "time-discount-free-choice",
+        "additional_steps": 1000000,
+        "discount_time_unit": 1.0,
+        "actor_normalization": "only valid frames with more than one legal option; critic uses all valid frames"
+      }
+    ],
+    "fixed": {
+      "gamma": 0.995,
+      "gae_lambda": 0.95,
+      "entropy_coef": 0.01,
+      "learning_rate": 0.0003,
+      "seed": 37,
+      "rollout_steps": 4096,
+      "max_episode_steps": 1200,
+      "threads": 2
+    },
+    "diagnostic": {
+      "games": 40,
+      "seed": 2600000000
+    },
+    "selection": "maximum wins + half draws; ties keep parent then same-config",
+    "final_evaluation": {
+      "games_per_model": 200,
+      "seed": 2700000000,
+      "models": [
+        "parent",
+        "selected_candidate"
+      ],
+      "paired_sides": true
+    },
+    "automatic_promotion": false,
+    "training_game_target": "7x + explosion potions",
+    "strength_claim_requires_fresh_comparison": true,
+    "same_config_source_commit": "6b8d6f0f8a0fcc37fdcefa58399fed83a1b95caa",
+    "training_code_change_rationale": "Forced hold frames have no actor choice and dilute actor/KL statistics. Time-based discounts increase terminal outcome credit over long duels.",
+    "selected_candidate_comparison_does_not_isolate_individual_changes": true,
+    "amendment": {
+      "recorded_utc": "2026-09-30T06:24:40Z",
+      "reason": "Deployed server nonlethal damage stamina fatigue confirmed against binary+replay; v4 simulator omitted it.",
+      "initial_two_arms_environment": "approximate-pre-aos-options-v4",
+      "third_stage": {
+        "name": "calibrated-stamina",
+        "parent": "selected winner of v4 diagnostic, with original parent included",
+        "additional_steps": 1000000,
+        "environment": "approximate-pre-aos-options-v5",
+        "actor_normalization": "free-choice",
+        "discount_time_unit": 1.0,
+        "gamma": 0.995,
+        "gae_lambda": 0.95,
+        "entropy_coef": 0.01,
+        "learning_rate": 0.0003,
+        "seed": 47,
+        "diagnostic_seed": 2650000000,
+        "diagnostic_games": 40
+      },
+      "fresh_comparison_environment": "approximate-pre-aos-options-v5",
+      "final_selection": "Choose original parent, v4-selected, or v5-continuation using paired v5 diagnostic40 only, then freeze before200 fresh pairedseedgames.",
+      "no_fresh_results_observed_before_amendment": true
+    },
+    "sampling_evaluation_amendment": {
+      "reason": "Existing evaluate used argmax but live and wait use categorical sampling. Measure deployed selection rule separately; retain greedy results without relabeling.",
+      "selection_environment": "approximate-pre-aos-options-v5",
+      "selection_games": 80,
+      "selection_seed": 2660000000,
+      "selection_candidates": [
+        "parent",
+        "same-config",
+        "time-discount-free-choice",
+        "calibrated-stamina"
+      ],
+      "selection_mode": "categorical with fixed per-game policy seed; highest win+halfdraw, ties keep parent",
+      "final_games_per_model": 200,
+      "final_seed": 2800000000,
+      "final_mode": "categorical",
+      "freeze_before_final": true,
+      "no_categorical_results_observed_before_amendment": true
+    },
+    "live_runtime_validation": {
+      "additional_matches": 2,
+      "matches_per_connection": 1,
+      "iterations": 2,
+      "deadline_ms": 1000,
+      "previous_deadline_ms": 500,
+      "rationale": "observed actor-loop gaps535-737ms; record timestamps and preserve original observation age. Declared wider budget, not a claim of fixing model inference latency.",
+      "old_rejected_episodes_stay_excluded": true
+    }
+  },
+  "training_runs": [
+    {
+      "name": "same-config",
+      "policy_sha": "46fb23175cfca015839fc0a508d6e271d9a0c9ae5e08b0ca1a254331e07ce4cd",
+      "parent_policy_sha": "7c0cbe1a04729b0be553022a84ce6c032424b6ba51a9194bf3f5e7e7c5a51789",
+      "additional_steps": 1000000,
+      "lineage_environment_steps": 2000000,
+      "completed_training_games": 1029,
+      "seconds": 298.482,
+      "configuration": {
+        "batch_sequences": 8,
+        "burn_in": 8,
+        "clip_range": 0.2,
+        "discount_time_unit": 0.0,
+        "entropy_coef": 0.01,
+        "epochs": 4,
+        "gae_lambda": 0.95,
+        "gamma": 0.995,
+        "learning_rate": 0.0003,
+        "max_grad_norm": 0.5,
+        "sequence_length": 64,
+        "target_kl": 0.04,
+        "value_coef": 0.5
+      },
+      "actor_normalization": "all-frames-legacy",
+      "simulator": {
+        "dt": 0.25,
+        "max_episode_steps": 1200,
+        "shaping_gamma": 0.995,
+        "showdown_after": 180,
+        "version": "approximate-pre-aos-options-v4"
+      },
+      "diagnostic_greedy": {
+        "games": 40,
+        "wins": 4,
+        "losses": 36,
+        "draws": 0
+      }
+    },
+    {
+      "name": "time-discount-free-choice",
+      "policy_sha": "558a7dde1c38f7ade4d12ecb943fb5c567bb5fac5b236c381a2048599d224d92",
+      "parent_policy_sha": "7c0cbe1a04729b0be553022a84ce6c032424b6ba51a9194bf3f5e7e7c5a51789",
+      "additional_steps": 1000000,
+      "lineage_environment_steps": 2000000,
+      "completed_training_games": 1013,
+      "seconds": 309.054,
+      "configuration": {
+        "batch_sequences": 8,
+        "burn_in": 8,
+        "clip_range": 0.2,
+        "discount_time_unit": 1.0,
+        "entropy_coef": 0.01,
+        "epochs": 4,
+        "gae_lambda": 0.95,
+        "gamma": 0.995,
+        "learning_rate": 0.0003,
+        "max_grad_norm": 0.5,
+        "sequence_length": 64,
+        "target_kl": 0.04,
+        "value_coef": 0.5
+      },
+      "actor_normalization": "free-choice",
+      "simulator": {
+        "dt": 0.25,
+        "max_episode_steps": 1200,
+        "shaping_gamma": 0.9987476493904754,
+        "showdown_after": 180,
+        "version": "approximate-pre-aos-options-v4"
+      },
+      "diagnostic_greedy": {
+        "games": 40,
+        "wins": 4,
+        "losses": 36,
+        "draws": 0
+      }
+    },
+    {
+      "name": "calibrated-stamina",
+      "policy_sha": "22bc333e08741e402c0245fb97ca8cc0b588199cfc6531364e7e908ee8f70526",
+      "parent_policy_sha": "7c0cbe1a04729b0be553022a84ce6c032424b6ba51a9194bf3f5e7e7c5a51789",
+      "additional_steps": 1000000,
+      "lineage_environment_steps": 2000000,
+      "completed_training_games": 1175,
+      "seconds": 359.55,
+      "configuration": {
+        "batch_sequences": 8,
+        "burn_in": 8,
+        "clip_range": 0.2,
+        "discount_time_unit": 1.0,
+        "entropy_coef": 0.01,
+        "epochs": 4,
+        "gae_lambda": 0.95,
+        "gamma": 0.995,
+        "learning_rate": 0.0003,
+        "max_grad_norm": 0.5,
+        "sequence_length": 64,
+        "target_kl": 0.04,
+        "value_coef": 0.5
+      },
+      "actor_normalization": "free-choice",
+      "simulator": {
+        "dt": 0.25,
+        "max_episode_steps": 1200,
+        "shaping_gamma": 0.9987476493904754,
+        "showdown_after": 180,
+        "version": "approximate-pre-aos-options-v5"
+      },
+      "diagnostic_greedy": {
+        "games": 40,
+        "wins": 27,
+        "losses": 13,
+        "draws": 0
+      }
+    }
+  ],
+  "greedy_fresh_comparison": {
+    "parent": {
+      "policy_sha": "7c0cbe1a04729b0be553022a84ce6c032424b6ba51a9194bf3f5e7e7c5a51789",
+      "games": 200,
+      "wins": 91,
+      "losses": 106,
+      "draws": 3,
+      "win_rate": 0.455,
+      "sampling": "greedy",
+      "simulator_version": "approximate-pre-aos-options-v5",
+      "free_action_counts": {
+        "hold": 32087,
+        "approach": 3071,
+        "retreat": 235,
+        "strafe_left": 79,
+        "strafe_right": 252,
+        "weaken": 0,
+        "clumsy": 0,
+        "magic_arrow": 1974,
+        "harm": 32,
+        "explosion": 0,
+        "energy_bolt": 1679,
+        "flamestrike": 691,
+        "greater_heal": 3545,
+        "heal": 1383,
+        "cure": 284,
+        "poison": 0,
+        "paralyze": 0,
+        "meditate": 10035,
+        "heal_potion": 973,
+        "cure_potion": 1000,
+        "explosion_potion": 833,
+        "burst_bolt": 0,
+        "burst_flame": 233
+      },
+      "mean_damage": 333.2911429732833,
+      "self_damage": 0.0
+    },
+    "candidate": {
+      "policy_sha": "22bc333e08741e402c0245fb97ca8cc0b588199cfc6531364e7e908ee8f70526",
+      "games": 200,
+      "wins": 110,
+      "losses": 89,
+      "draws": 1,
+      "win_rate": 0.55,
+      "sampling": "greedy",
+      "simulator_version": "approximate-pre-aos-options-v5",
+      "free_action_counts": {
+        "hold": 9660,
+        "approach": 3908,
+        "retreat": 5003,
+        "strafe_left": 6080,
+        "strafe_right": 2313,
+        "weaken": 2,
+        "clumsy": 106,
+        "magic_arrow": 1599,
+        "harm": 0,
+        "explosion": 3545,
+        "energy_bolt": 401,
+        "flamestrike": 0,
+        "greater_heal": 2775,
+        "heal": 1716,
+        "cure": 170,
+        "poison": 0,
+        "paralyze": 0,
+        "meditate": 7429,
+        "heal_potion": 945,
+        "cure_potion": 990,
+        "explosion_potion": 823,
+        "burst_bolt": 203,
+        "burst_flame": 0
+      },
+      "mean_damage": 336.71284352944514,
+      "self_damage": 136.0
+    },
+    "paired_score_difference": 0.09,
+    "paired_seed_bootstrap_95_ci": [
+      -0.0075,
+      0.1875
+    ],
+    "bootstrap_seed": 20260930,
+    "bootstrap_resamples": 20000,
+    "independent_seed_blocks": 100,
+    "same_seed_two_sides_per_block": true,
+    "real_server_strength_established": false,
+    "automatic_promotion": false
+  },
+  "categorical_fresh_comparison": {
+    "parent": {
+      "policy_sha": "7c0cbe1a04729b0be553022a84ce6c032424b6ba51a9194bf3f5e7e7c5a51789",
+      "games": 200,
+      "wins": 49,
+      "losses": 151,
+      "draws": 0,
+      "win_rate": 0.245,
+      "sampling": "categorical",
+      "simulator_version": "approximate-pre-aos-options-v5",
+      "free_action_counts": {
+        "hold": 23702,
+        "approach": 6751,
+        "retreat": 3621,
+        "strafe_left": 4882,
+        "strafe_right": 3836,
+        "weaken": 13,
+        "clumsy": 27,
+        "magic_arrow": 3797,
+        "harm": 1432,
+        "explosion": 54,
+        "energy_bolt": 956,
+        "flamestrike": 560,
+        "greater_heal": 3409,
+        "heal": 1901,
+        "cure": 167,
+        "poison": 16,
+        "paralyze": 37,
+        "meditate": 8920,
+        "heal_potion": 980,
+        "cure_potion": 977,
+        "explosion_potion": 903,
+        "burst_bolt": 0,
+        "burst_flame": 192
+      },
+      "mean_damage": 280.8522842653807,
+      "self_damage": 50.0
+    },
+    "candidate": {
+      "policy_sha": "22bc333e08741e402c0245fb97ca8cc0b588199cfc6531364e7e908ee8f70526",
+      "games": 200,
+      "wins": 99,
+      "losses": 100,
+      "draws": 1,
+      "win_rate": 0.495,
+      "sampling": "categorical",
+      "simulator_version": "approximate-pre-aos-options-v5",
+      "free_action_counts": {
+        "hold": 8191,
+        "approach": 5397,
+        "retreat": 6774,
+        "strafe_left": 8324,
+        "strafe_right": 5145,
+        "weaken": 54,
+        "clumsy": 165,
+        "magic_arrow": 2537,
+        "harm": 236,
+        "explosion": 2175,
+        "energy_bolt": 540,
+        "flamestrike": 111,
+        "greater_heal": 2299,
+        "heal": 1915,
+        "cure": 209,
+        "poison": 82,
+        "paralyze": 16,
+        "meditate": 7874,
+        "heal_potion": 933,
+        "cure_potion": 977,
+        "explosion_potion": 867,
+        "burst_bolt": 159,
+        "burst_flame": 13
+      },
+      "mean_damage": 329.53921286111114,
+      "self_damage": 146.0
+    },
+    "paired_score_difference": 0.2525,
+    "paired_seed_bootstrap_95_ci": [
+      0.1575,
+      0.345
+    ],
+    "bootstrap_seed": 20260930,
+    "bootstrap_resamples": 20000,
+    "independent_seed_blocks": 100,
+    "same_seed_two_sides_per_block": true,
+    "real_server_strength_established": false,
+    "automatic_promotion": false
+  },
+  "selection_greedy": {
+    "stage": "v5-diagnostic",
+    "selected": "calibrated-stamina",
+    "checkpoint": ".logs/neural-continuation-20260930/calibrated-stamina",
+    "policy_sha": "22bc333e08741e402c0245fb97ca8cc0b588199cfc6531364e7e908ee8f70526",
+    "rows": [
+      {
+        "games": 40,
+        "wins": 19,
+        "losses": 21,
+        "draws": 0,
+        "name": "parent"
+      },
+      {
+        "games": 40,
+        "wins": 19,
+        "losses": 21,
+        "draws": 0,
+        "name": "parent"
+      },
+      {
+        "games": 40,
+        "wins": 27,
+        "losses": 13,
+        "draws": 0,
+        "name": "calibrated-stamina"
+      }
+    ],
+    "frozen_before_fresh_evaluation": true
+  },
+  "selection_categorical": {
+    "selected": {
+      "policy_sha": "22bc333e08741e402c0245fb97ca8cc0b588199cfc6531364e7e908ee8f70526",
+      "games": 80,
+      "wins": 29,
+      "losses": 50,
+      "draws": 1,
+      "sampling": "categorical",
+      "simulator_version": "approximate-pre-aos-options-v5",
+      "name": "calibrated-stamina",
+      "checkpoint": ".logs/neural-continuation-20260930/calibrated-stamina"
+    },
+    "rows": [
+      {
+        "policy_sha": "7c0cbe1a04729b0be553022a84ce6c032424b6ba51a9194bf3f5e7e7c5a51789",
+        "games": 80,
+        "wins": 19,
+        "losses": 60,
+        "draws": 1,
+        "sampling": "categorical",
+        "simulator_version": "approximate-pre-aos-options-v5",
+        "name": "parent",
+        "checkpoint": "models/duel-starter"
+      },
+      {
+        "policy_sha": "46fb23175cfca015839fc0a508d6e271d9a0c9ae5e08b0ca1a254331e07ce4cd",
+        "games": 80,
+        "wins": 17,
+        "losses": 63,
+        "draws": 0,
+        "sampling": "categorical",
+        "simulator_version": "approximate-pre-aos-options-v5",
+        "name": "same-config",
+        "checkpoint": ".logs/neural-continuation-20260930/same-config"
+      },
+      {
+        "policy_sha": "558a7dde1c38f7ade4d12ecb943fb5c567bb5fac5b236c381a2048599d224d92",
+        "games": 80,
+        "wins": 7,
+        "losses": 73,
+        "draws": 0,
+        "sampling": "categorical",
+        "simulator_version": "approximate-pre-aos-options-v5",
+        "name": "time-discount-free-choice",
+        "checkpoint": ".logs/neural-continuation-20260930/time-discount-free-choice"
+      },
+      {
+        "policy_sha": "22bc333e08741e402c0245fb97ca8cc0b588199cfc6531364e7e908ee8f70526",
+        "games": 80,
+        "wins": 29,
+        "losses": 50,
+        "draws": 1,
+        "sampling": "categorical",
+        "simulator_version": "approximate-pre-aos-options-v5",
+        "name": "calibrated-stamina",
+        "checkpoint": ".logs/neural-continuation-20260930/calibrated-stamina"
+      }
+    ],
+    "frozen_before_fresh_evaluation": true
+  },
+  "simulator_calibration": {
+    "schema": "anima3-stamina-calibration-v1",
+    "simulator_before": "approximate-pre-aos-options-v4",
+    "simulator_after": "approximate-pre-aos-options-v5",
+    "scope": "Standard damage fatigue only; source timing before HP reduction, overkill skip, integer quotient/truncation, pre-AOS armor reduction zero. No other mechanics changed.",
+    "local_source_root": "/Users/dkkang/dev/uo/arena-worktrees/servuo",
+    "source_sha256": {
+      "Scripts/Misc/WeightOverloading.cs": "bb9d9d638899b76255776fb408c4d1ca56f83f54574b16316b92ade094ad8983",
+      "Server/Mobile.cs": "580e86b71d82c165fef6f6fd31527f375d8c97872b728a6aac85439f638f4086",
+      "Scripts/Items/Equipment/Armor/BaseArmor.cs": "e7e949cce398af7d216899a752ff75393acac4ae0701589492370c17569108a7",
+      "Scripts/Misc/RegenRates.cs": "93550abc701a0d9b52d9be8c8750321681abf4b73aa3f0daa271138be38b9cb7"
+    },
+    "deployed_evidence": {
+      "host": "172.234.206.216",
+      "service": "arena-shard.service",
+      "pid": 76512,
+      "process_started_utc": "2026-09-28T22:49:07Z",
+      "scripts_path": "/opt/uoarena/shard/Scripts.dll",
+      "scripts_sha256": "b03a253bb85b1ead9eff732dab7e8749e9e3a38476351ccfaa149dfa678225b0",
+      "scripts_mtime_utc": "2026-09-28T22:49:08.821753459Z",
+      "server_path": "/opt/uoarena/shard/ServUO.exe",
+      "server_sha256": "49fd952b952e11939c194c3cc8fdec03309f14a19e0d7a8a0eece750dbc10898",
+      "local_server_binary_same_sha256": true,
+      "fatigue_method_verified": "ikdasm disassembled deployed Server.Misc.WeightOverloading.FatigueOnDamage, 251 IL bytes. Reviewed against current source. Local Scripts.dll differs as a whole; method body has only a changed internal BaseArmor method metadata token, resolving to GetInherentStaminaLossReduction in deployed IL.",
+      "runtime_source_available": false,
+      "shard_restarted": false
+    },
+    "formula": {
+      "standard": "fatigue = damage * (HitsMax integer_divide max(1, Hits)) * (double(Stam) / StamMax) - 5",
+      "armor": "GetInherentStaminaLossReduction returns 0 when !Core.SA; no reduction in this pre-AOS environment",
+      "subtract": "if fatigue>0: loss=int(fatigue*(double(Hits)/HitsMax)) if Stam-fatigue<=10 else int(fatigue); Stam=max(0,Stam-loss)",
+      "timing": "Mobile.Damage computes oldHits-amount and invokes fatigue before assigning newHits only when newHits>=0. Exact-zero damage follows fatigue path; overkill skips it.",
+      "simulator_fractional_boundary": "Existing fractional HP, regen and spell damage remain. HP/maxHP/damage/stamina inputs are truncated to source integer field types inside fatigue calculation; original simulator amount<=HP determines its branch."
+    },
+    "observed_transition": {
+      "match_id": "b470dc944875413194d96fcc97b8e079",
+      "replay_sha256": "0c7c1396a22134f2506f1235aace655b161ae2c4087f0ed2693ae1a81923b683",
+      "replay_time_ms": 13923,
+      "actor": 57,
+      "before": {
+        "hp": 89,
+        "hp_max": 89,
+        "stamina": 14,
+        "stamina_max": 14
+      },
+      "damage": 40,
+      "fatigue": 35,
+      "after": {
+        "hp": 49,
+        "stamina": 0
+      },
+      "simulator_reproduced": true
+    },
+    "training_isolation": "Both initial two-arm v4 training jobs had imported simulator before this edit. Do not compare v4 and v5 scores as a fixed environment. Use v5 for the predeclared calibrated continuation and parent/candidate evaluation.",
+    "verification": {
+      "command": ".venv/bin/python -m pytest tests/test_neural_sim.py -q",
+      "passed": 33,
+      "ruff": "passed",
+      "new_test_cases": 7
+    },
+    "changed_source_sha256": {
+      "anima3/neural/sim.py": "3d8a05e6d425151b7105bbbced04355df11d5a0e5c60b535c04cb423149483d5",
+      "tests/test_neural_sim.py": "eae442ed1b6779d210cf10d7df63332869be2a56c3fdab8ac3715e40b82a2a18"
+    },
+    "remaining_live_mismatches": [
+      "GM Weaken/Clumsy actually remove11 stat points (observed HPmax89,StamMax14); v5 still approximates90/15.",
+      "Live cursor/target/ack cadence increases action duration. b470 EnergyBolt option3.148s; v5 immediate simulator target after cast remains approximate.",
+      "Refresh potion is supplied by server but absent from the fixed23-action schema; v5 damage stamina can therefore constrain mobility longer than a complete UO action set would."
+    ],
+    "live_healing_diagnostic": {
+      "free_choices": 11,
+      "total_decisions": 83,
+      "forced_hold_frames": 72,
+      "free_hold_choices": 1,
+      "heal_potion_legal_but_greater_heal_selected": [
+        {
+          "hp": 49,
+          "hp_max": 89,
+          "completed_heal": 40,
+          "option_seconds": 2.603
+        },
+        {
+          "hp": 65,
+          "hp_max": 89,
+          "completed_heal": 24,
+          "option_seconds": 2.719
+        },
+        {
+          "hp": 24,
+          "hp_max": 89,
+          "completed_heal": 0,
+          "result": "died before heal"
+        }
+      ],
+      "heal_potions_remaining_each_choice": 5,
+      "heal_potions_used": 0,
+      "last_heal_counterfactual": "Pre-AOS potion heals9..30 immediately, final incoming damage35 from24HP requires12 or more heal to survive; survival is possible but not proven, and no victory claim follows."
+    }
+  },
+  "previous_collection_diagnosis": {
+    "schema": "anima3-live-collection-diagnosis-v1",
+    "source": "Existing read-only SSH log, metadata, journalctl and objdump observations; no new remote checks for this report.",
+    "host": "172.234.206.216",
+    "remote_collection": "/opt/uoarena/anima3-neural-lab-20260930/.logs/continued-live-20260930/round-002/collection",
+    "launch_log": "/opt/uoarena/anima3-neural-lab-20260930/.logs/continued-live-20260930.log",
+    "third_match": {
+      "match_id": "ee7128afd4494cc58d3ace3ab980df31",
+      "winner": 58,
+      "episode_file": "ee7128afd4494cc58d3ace3ab980df31/episode-57.json",
+      "verified": true,
+      "complete": true,
+      "training": true,
+      "aborted": false,
+      "replay_sha256": "a8a37dc116ca2220df012912e8676f99d02f64a3964596525dceed4f23bb5fdb",
+      "transitions": 126,
+      "eligible": false,
+      "invalid_reasons": [
+        "deadline"
+      ],
+      "policy_sha": "c44190a67ad4aac97ca7e73604c473c7024d55a71628afebace17320936429a5",
+      "deadline_rejection_ids": [
+        90,
+        93
+      ],
+      "salvage_for_training": false
+    },
+    "fourth_match": {
+      "match_id": "141783bd6539400dae40a386f1a81ad8",
+      "source_metadata": "/opt/uoarena/shard/Export/DuelReplays/141783bd6539400dae40a386f1a81ad8.meta.json",
+      "source_replay": "/opt/uoarena/shard/Export/DuelReplays/141783bd6539400dae40a386f1a81ad8.jsonl.gz",
+      "winner": 58,
+      "neural_actor": 57,
+      "ranked": false,
+      "training": true,
+      "complete": true,
+      "aborted": null,
+      "dropped": 0,
+      "started": "2026-09-30T06:26:33.7588280Z",
+      "ended": "2026-09-30T06:27:30.5547110Z",
+      "duration_ms": 56794,
+      "rules": "7x-magic-explosion-classic-training",
+      "arena": 3,
+      "score": [
+        1,
+        0
+      ],
+      "player_serial_order": [
+        58,
+        57
+      ],
+      "metadata_reported_replay_sha256": "03c04451dff248a00c78e2f3b19bd810f326d4c0ef2a2ed8b6f2919dfda5ea71",
+      "metadata_file_sha256": null,
+      "sha_note": "The SHA above is metadata.sha256 for the replay payload, not a hash of the metadata file. Metadata file hash was not computed. Parent may independently verify downloaded payload.",
+      "server_replay_end": {
+        "seq": 565,
+        "t": 56794,
+        "type": "end",
+        "winner": 58,
+        "complete": true,
+        "dropped": 0,
+        "aborted": null
+      },
+      "server_replay_round_end": {
+        "seq": 550,
+        "t": 55760,
+        "type": "round_end",
+        "winner": 58,
+        "reason": "defeat"
+      },
+      "terminal_outcome_verified_from_server_records": "normal defeat, not disconnect forfeit",
+      "collector_completed": false,
+      "episode_file_exists": false,
+      "deadline_rejection_ids": [
+        174,
+        178,
+        180
+      ],
+      "training_eligible": false,
+      "exclusion": "Incomplete collection plus three inference deadline rejections; do not reconstruct a trainable episode by relaxing the integrity gate."
+    },
+    "journal_cessation": {
+      "error": "lost authoritative live duel state",
+      "actor_57_last_state": {
+        "clock": 231074.728469977,
+        "phase": "RoundOver",
+        "match_id": "141783bd6539400dae40a386f1a81ad8"
+      },
+      "actor_58_last_state": {
+        "clock": 231073.829338036,
+        "phase": "Fighting",
+        "match_id": "141783bd6539400dae40a386f1a81ad8",
+        "showdownRemaining": 130
+      },
+      "subsequent_poll_journal_count": 0,
+      "actor_57_lobby_position": [
+        5224,
+        334
+      ],
+      "actor_57_last_observed_hp": 10,
+      "actor_58_lobby_position": [
+        5222,
+        334
+      ],
+      "actor_58_last_observed_hp": 84,
+      "timeout_seconds": 20,
+      "bridge_diagnostics_present": false,
+      "server_disconnect_log_times_utc": [
+        "2026-09-30T06:27:50Z",
+        "2026-09-30T06:27:51Z"
+      ],
+      "interpretation": "Both clients observed lobby teleport around normal match end, then journal state stopped. Final Idle was not received. Server disconnects were logged at collector cleanup. This does not identify whether decoding, transport input, or server response delivery stalled.",
+      "root_cause_proven": false
+    },
+    "linux_rollover_hypothesis": {
+      "binary": "/opt/uoarena/anima-client/target/release/anima-bridge",
+      "sha256": "b562d067d5a63723132df7053ec658bc0a4f3cee3c120eb2e1f4bbc71b123c27",
+      "mtime_utc": "2026-09-27T14:22:46.687649847Z",
+      "size_bytes": 6200952,
+      "source_checkout": "/Users/dkkang/dev/uo/arena-worktrees/anima-client-neural-bridge",
+      "source_files": [
+        "crates/anima-core/src/world/mod.rs:2240",
+        "crates/anima-core/src/agent.rs:1366"
+      ],
+      "binary_fix_present": true,
+      "hypothesis_missing_fix_disproved": true,
+      "push_journal_symbol_address": "0x36e130",
+      "push_proof": "0x36e1b3 checks512-entry bound; 0x36e1ff adds evicted count to World+0x780 journal_offset; 0x36e211 stores saturated offset.",
+      "observe_symbol_address": "0x369540",
+      "observe_proof": "0x369c3b reads World+0x780; 0x369c4b adds retained len for absolute end; 0x369c66 subtracts offset from cursor with saturating branch; 0x369c6d..70 clamps slice start to retained len.",
+      "conclusion": "Existing Linux binary already implements absolute journal offsets across eviction. A stale binary alone is not evidence of the old512-line rollover fault."
+    },
+    "server_state": {
+      "service": "arena-shard.service",
+      "pid": 76512,
+      "active_since": "2026-09-28T22:49:08Z",
+      "restart_observed": false,
+      "world_save_time": "2026-09-30T06:26:46Z",
+      "world_save_seconds": 0.03,
+      "world_save_note": "Approximately44seconds before match end; no evidence linking save to final journal cessation."
+    },
+    "recommended_next_diagnostic": "An isolated Linux bridge built from existing diagnostics branch, followed by one bounded match-end/lobby reproduction, would expose bytes/packets/buffer/journal counters. No speculative rollover patch or shard restart justified.",
+    "actions_taken": [
+      "Read remote logs/metadata/replay terminal records",
+      "Read server journal",
+      "Read existing binary symbols and disassembly"
+    ],
+    "actions_not_taken": [
+      "No bridge build",
+      "No server deployment",
+      "No shard restart",
+      "No new matches"
+    ]
+  },
+  "model_export": {
+    "selected": "calibrated-stamina",
+    "model_sha": "22bc333e08741e402c0245fb97ca8cc0b588199cfc6531364e7e908ee8f70526",
+    "archive_sha256": "3ef24e129a16d6ba4445de1f25577eff81f12030566491646698b27ba9cb7591",
+    "archive_bytes": 1421804,
+    "optimizer_rng_restored": true
+  },
+  "live_collections": {
+    "continued-live-20260930": {
+      "status": "failed",
+      "error": "lost authoritative live duel state",
+      "history": [
+        {
+          "checkpoint": "/opt/uoarena/anima3-neural-lab-20260930/.logs/continued-live-20260930/round-001/candidate",
+          "iteration": 1,
+          "learning": {
+            "accepted_episodes": 1,
+            "automatic_promotion": false,
+            "rejected": [
+              {
+                "file": "/opt/uoarena/anima3-neural-lab-20260930/.logs/continued-live-20260930/round-001/collection/6cc47acb301b4103b1a3c8e05d36d843/episode-57.json",
+                "reasons": [
+                  "deadline"
+                ]
+              }
+            ],
+            "source": "/opt/uoarena/anima3-neural-lab-20260930/.logs/continued-live-20260930/round-001/collection",
+            "update": {
+              "automatic_promotion": false,
+              "episodes": 1,
+              "metrics": {
+                "approximate_kl": 0.00015284709866136836,
+                "clip_fraction": 0.0,
+                "entropy": 0.35700037330389023,
+                "grad_norm": 1.5936066955327988,
+                "kl_early_stop": false,
+                "optimized_steps": 152,
+                "policy_loss": -0.0027458455588202924,
+                "rollout_steps": 38,
+                "value_loss": 0.10486387461423874
+              },
+              "parent_policy_sha": "2953462ad05642e68bfc1c66e751cfa6fc6a7ddc5a6d4a2731c502e9d0ddfa89",
+              "policy_sha": "c44190a67ad4aac97ca7e73604c473c7024d55a71628afebace17320936429a5"
+            }
+          },
+          "matches": [
+            {
+              "episodes": [
+                "/opt/uoarena/anima3-neural-lab-20260930/.logs/continued-live-20260930/round-001/collection/2034e574a44648c5b1b9d150c09f3d0d/episode-57.json"
+              ],
+              "game": 1,
+              "match_id": "2034e574a44648c5b1b9d150c09f3d0d",
+              "metrics": {
+                "57": {
+                  "casts": 4,
+                  "damage": 0,
+                  "fizzles": 0,
+                  "healing": 0,
+                  "potion_throws": 1,
+                  "self_damage": 0
+                },
+                "58": {
+                  "casts": 4,
+                  "damage": 105,
+                  "fizzles": 0,
+                  "healing": 0,
+                  "potion_throws": 1,
+                  "self_damage": 0
+                }
+              },
+              "replay": "https://arena.uotavern.com/replay/?replay=2034e574a44648c5b1b9d150c09f3d0d",
+              "winner": 58
+            },
+            {
+              "episodes": [
+                "/opt/uoarena/anima3-neural-lab-20260930/.logs/continued-live-20260930/round-001/collection/6cc47acb301b4103b1a3c8e05d36d843/episode-57.json"
+              ],
+              "game": 2,
+              "match_id": "6cc47acb301b4103b1a3c8e05d36d843",
+              "metrics": {
+                "57": {
+                  "casts": 16,
+                  "damage": 152,
+                  "fizzles": 1,
+                  "healing": 273,
+                  "potion_throws": 3,
+                  "self_damage": 0
+                },
+                "58": {
+                  "casts": 15,
+                  "damage": 311,
+                  "fizzles": 0,
+                  "healing": 41,
+                  "potion_throws": 4,
+                  "self_damage": 0
+                }
+              },
+              "replay": "https://arena.uotavern.com/replay/?replay=6cc47acb301b4103b1a3c8e05d36d843",
+              "winner": 57
+            }
+          ]
+        }
+      ],
+      "completed_collected_matches": [
+        {
+          "episodes": [
+            "/opt/uoarena/anima3-neural-lab-20260930/.logs/continued-live-20260930/round-001/collection/2034e574a44648c5b1b9d150c09f3d0d/episode-57.json"
+          ],
+          "game": 1,
+          "match_id": "2034e574a44648c5b1b9d150c09f3d0d",
+          "metrics": {
+            "57": {
+              "casts": 4,
+              "damage": 0,
+              "fizzles": 0,
+              "healing": 0,
+              "potion_throws": 1,
+              "self_damage": 0
+            },
+            "58": {
+              "casts": 4,
+              "damage": 105,
+              "fizzles": 0,
+              "healing": 0,
+              "potion_throws": 1,
+              "self_damage": 0
+            }
+          },
+          "replay": "https://arena.uotavern.com/replay/?replay=2034e574a44648c5b1b9d150c09f3d0d",
+          "winner": 58
+        },
+        {
+          "episodes": [
+            "/opt/uoarena/anima3-neural-lab-20260930/.logs/continued-live-20260930/round-001/collection/6cc47acb301b4103b1a3c8e05d36d843/episode-57.json"
+          ],
+          "game": 2,
+          "match_id": "6cc47acb301b4103b1a3c8e05d36d843",
+          "metrics": {
+            "57": {
+              "casts": 16,
+              "damage": 152,
+              "fizzles": 1,
+              "healing": 273,
+              "potion_throws": 3,
+              "self_damage": 0
+            },
+            "58": {
+              "casts": 15,
+              "damage": 311,
+              "fizzles": 0,
+              "healing": 41,
+              "potion_throws": 4,
+              "self_damage": 0
+            }
+          },
+          "replay": "https://arena.uotavern.com/replay/?replay=6cc47acb301b4103b1a3c8e05d36d843",
+          "winner": 57
+        },
+        {
+          "episodes": [
+            "/opt/uoarena/anima3-neural-lab-20260930/.logs/continued-live-20260930/round-002/collection/ee7128afd4494cc58d3ace3ab980df31/episode-57.json"
+          ],
+          "game": 1,
+          "match_id": "ee7128afd4494cc58d3ace3ab980df31",
+          "metrics": {
+            "57": {
+              "casts": 9,
+              "damage": 143,
+              "fizzles": 0,
+              "healing": 107,
+              "potion_throws": 2,
+              "self_damage": 0
+            },
+            "58": {
+              "casts": 11,
+              "damage": 213,
+              "fizzles": 0,
+              "healing": 92,
+              "potion_throws": 2,
+              "self_damage": 0
+            }
+          },
+          "replay": "https://arena.uotavern.com/replay/?replay=ee7128afd4494cc58d3ace3ab980df31",
+          "winner": 58
+        }
+      ],
+      "episodes": [
+        {
+          "match": "2034e574a44648c5b1b9d150c09f3d0d",
+          "policy_sha": "2953462ad05642e68bfc1c66e751cfa6fc6a7ddc5a6d4a2731c502e9d0ddfa89",
+          "outcome": -1.0,
+          "eligible": true,
+          "invalid_reasons": [],
+          "decisions": 38,
+          "free_choices": 8,
+          "collector_version": "fixed-cadence-options-v3",
+          "collection_end_phase": null
+        },
+        {
+          "match": "6cc47acb301b4103b1a3c8e05d36d843",
+          "policy_sha": "2953462ad05642e68bfc1c66e751cfa6fc6a7ddc5a6d4a2731c502e9d0ddfa89",
+          "outcome": 1.0,
+          "eligible": false,
+          "invalid_reasons": [
+            "deadline"
+          ],
+          "decisions": 162,
+          "free_choices": 21,
+          "collector_version": "fixed-cadence-options-v3",
+          "collection_end_phase": null
+        },
+        {
+          "match": "ee7128afd4494cc58d3ace3ab980df31",
+          "policy_sha": "c44190a67ad4aac97ca7e73604c473c7024d55a71628afebace17320936429a5",
+          "outcome": -1.0,
+          "eligible": false,
+          "invalid_reasons": [
+            "deadline"
+          ],
+          "decisions": 126,
+          "free_choices": 16,
+          "collector_version": "fixed-cadence-options-v3",
+          "collection_end_phase": null
+        }
+      ]
+    },
+    "runtime-continuation-20260930": {
+      "status": "complete",
+      "error": null,
+      "history": [
+        {
+          "checkpoint": "/opt/uoarena/anima3-neural-lab-20260930/.logs/runtime-continuation-20260930/round-001/candidate",
+          "iteration": 1,
+          "learning": {
+            "accepted_episodes": 1,
+            "automatic_promotion": false,
+            "rejected": [],
+            "source": "/opt/uoarena/anima3-neural-lab-20260930/.logs/runtime-continuation-20260930/round-001/collection",
+            "update": {
+              "automatic_promotion": false,
+              "episodes": 1,
+              "metrics": {
+                "approximate_kl": 0.005215105455135927,
+                "clip_fraction": 0.08999999798834324,
+                "entropy": 1.7424561977386475,
+                "grad_norm": 1.4969331324100494,
+                "kl_early_stop": false,
+                "optimized_steps": 720,
+                "policy_loss": -0.03632012287154751,
+                "policy_optimized_steps": 100,
+                "rollout_steps": 180,
+                "value_loss": 0.015590202063322067
+              },
+              "parent_policy_sha": "c44190a67ad4aac97ca7e73604c473c7024d55a71628afebace17320936429a5",
+              "policy_sha": "fb9eb67a5e1bd9baddfed2d2c5b9652ae1169d8f198486a56e1c478f454adf70"
+            }
+          },
+          "matches": [
+            {
+              "episodes": [
+                "/opt/uoarena/anima3-neural-lab-20260930/.logs/runtime-continuation-20260930/round-001/collection/72e35ead94024daf8a02dfca5d527805/episode-57.json"
+              ],
+              "game": 1,
+              "match_id": "72e35ead94024daf8a02dfca5d527805",
+              "metrics": {
+                "57": {
+                  "casts": 13,
+                  "damage": 139,
+                  "fizzles": 0,
+                  "healing": 100,
+                  "potion_throws": 2,
+                  "self_damage": 0
+                },
+                "58": {
+                  "casts": 13,
+                  "damage": 218,
+                  "fizzles": 0,
+                  "healing": 87,
+                  "potion_throws": 4,
+                  "self_damage": 0
+                }
+              },
+              "replay": "https://arena.uotavern.com/replay/?replay=72e35ead94024daf8a02dfca5d527805",
+              "winner": 58
+            }
+          ]
+        },
+        {
+          "checkpoint": "/opt/uoarena/anima3-neural-lab-20260930/.logs/runtime-continuation-20260930/round-002/candidate",
+          "iteration": 2,
+          "learning": {
+            "accepted_episodes": 1,
+            "automatic_promotion": false,
+            "rejected": [],
+            "source": "/opt/uoarena/anima3-neural-lab-20260930/.logs/runtime-continuation-20260930/round-002/collection",
+            "update": {
+              "automatic_promotion": false,
+              "episodes": 1,
+              "metrics": {
+                "approximate_kl": 0.010850932449102402,
+                "clip_fraction": 0.15625,
+                "entropy": 1.6674702167510986,
+                "grad_norm": 1.191419556736946,
+                "kl_early_stop": false,
+                "optimized_steps": 232,
+                "policy_loss": -0.015920699574053288,
+                "policy_optimized_steps": 32,
+                "rollout_steps": 58,
+                "value_loss": 0.006051249918527901
+              },
+              "parent_policy_sha": "fb9eb67a5e1bd9baddfed2d2c5b9652ae1169d8f198486a56e1c478f454adf70",
+              "policy_sha": "b77c569bd3372d4862fbba928fc073d8d3d1e2ba86296f2fdc0aa1c210be5058"
+            }
+          },
+          "matches": [
+            {
+              "episodes": [
+                "/opt/uoarena/anima3-neural-lab-20260930/.logs/runtime-continuation-20260930/round-002/collection/776113ad5b6d47a9bda8db4c047281b1/episode-57.json"
+              ],
+              "game": 1,
+              "match_id": "776113ad5b6d47a9bda8db4c047281b1",
+              "metrics": {
+                "57": {
+                  "casts": 6,
+                  "damage": 6,
+                  "fizzles": 0,
+                  "healing": 43,
+                  "potion_throws": 0,
+                  "self_damage": 0
+                },
+                "58": {
+                  "casts": 6,
+                  "damage": 154,
+                  "fizzles": 0,
+                  "healing": 0,
+                  "potion_throws": 1,
+                  "self_damage": 0
+                }
+              },
+              "replay": "https://arena.uotavern.com/replay/?replay=776113ad5b6d47a9bda8db4c047281b1",
+              "winner": 58
+            }
+          ]
+        }
+      ],
+      "completed_collected_matches": [
+        {
+          "episodes": [
+            "/opt/uoarena/anima3-neural-lab-20260930/.logs/runtime-continuation-20260930/round-001/collection/72e35ead94024daf8a02dfca5d527805/episode-57.json"
+          ],
+          "game": 1,
+          "match_id": "72e35ead94024daf8a02dfca5d527805",
+          "metrics": {
+            "57": {
+              "casts": 13,
+              "damage": 139,
+              "fizzles": 0,
+              "healing": 100,
+              "potion_throws": 2,
+              "self_damage": 0
+            },
+            "58": {
+              "casts": 13,
+              "damage": 218,
+              "fizzles": 0,
+              "healing": 87,
+              "potion_throws": 4,
+              "self_damage": 0
+            }
+          },
+          "replay": "https://arena.uotavern.com/replay/?replay=72e35ead94024daf8a02dfca5d527805",
+          "winner": 58
+        },
+        {
+          "episodes": [
+            "/opt/uoarena/anima3-neural-lab-20260930/.logs/runtime-continuation-20260930/round-002/collection/776113ad5b6d47a9bda8db4c047281b1/episode-57.json"
+          ],
+          "game": 1,
+          "match_id": "776113ad5b6d47a9bda8db4c047281b1",
+          "metrics": {
+            "57": {
+              "casts": 6,
+              "damage": 6,
+              "fizzles": 0,
+              "healing": 43,
+              "potion_throws": 0,
+              "self_damage": 0
+            },
+            "58": {
+              "casts": 6,
+              "damage": 154,
+              "fizzles": 0,
+              "healing": 0,
+              "potion_throws": 1,
+              "self_damage": 0
+            }
+          },
+          "replay": "https://arena.uotavern.com/replay/?replay=776113ad5b6d47a9bda8db4c047281b1",
+          "winner": 58
+        }
+      ],
+      "episodes": [
+        {
+          "match": "72e35ead94024daf8a02dfca5d527805",
+          "policy_sha": "c44190a67ad4aac97ca7e73604c473c7024d55a71628afebace17320936429a5",
+          "outcome": -1.0,
+          "eligible": true,
+          "invalid_reasons": [],
+          "decisions": 180,
+          "free_choices": 25,
+          "collector_version": "fixed-cadence-options-v4",
+          "collection_end_phase": "RoundOver"
+        },
+        {
+          "match": "776113ad5b6d47a9bda8db4c047281b1",
+          "policy_sha": "fb9eb67a5e1bd9baddfed2d2c5b9652ae1169d8f198486a56e1c478f454adf70",
+          "outcome": -1.0,
+          "eligible": true,
+          "invalid_reasons": [],
+          "decisions": 58,
+          "free_choices": 8,
+          "collector_version": "fixed-cadence-options-v4",
+          "collection_end_phase": "RoundOver"
+        }
+      ]
+    },
+    "calibrated-live-20260930": {
+      "status": "complete",
+      "error": null,
+      "history": [
+        {
+          "checkpoint": "/opt/uoarena/anima3-neural-lab-20260930/.logs/calibrated-live-20260930/round-001/candidate",
+          "iteration": 1,
+          "learning": {
+            "accepted_episodes": 1,
+            "automatic_promotion": false,
+            "rejected": [],
+            "source": "/opt/uoarena/anima3-neural-lab-20260930/.logs/calibrated-live-20260930/round-001/collection",
+            "update": {
+              "automatic_promotion": false,
+              "episodes": 1,
+              "metrics": {
+                "approximate_kl": 0.002419895620550949,
+                "clip_fraction": 0.02500000037252903,
+                "entropy": 1.5783590078353882,
+                "grad_norm": 3.0045637488365173,
+                "kl_early_stop": false,
+                "optimized_steps": 532,
+                "policy_loss": -0.03225615909323132,
+                "policy_optimized_steps": 80,
+                "rollout_steps": 133,
+                "value_loss": 0.14008708856999874
+              },
+              "parent_policy_sha": "22bc333e08741e402c0245fb97ca8cc0b588199cfc6531364e7e908ee8f70526",
+              "policy_sha": "5a9afe696ceab8230d6e22d170e397c7c39d4cda18960966424264617b1ab7d6"
+            }
+          },
+          "matches": [
+            {
+              "challenger": 57,
+              "episodes": [
+                "/opt/uoarena/anima3-neural-lab-20260930/.logs/calibrated-live-20260930/round-001/collection/af9e520e0cbd4bffa6f7b00d8d7d0914/episode-57.json"
+              ],
+              "game": 1,
+              "match_id": "af9e520e0cbd4bffa6f7b00d8d7d0914",
+              "metrics": {
+                "57": {
+                  "casts": 12,
+                  "damage": 145,
+                  "fizzles": 0,
+                  "healing": 90,
+                  "potion_throws": 2,
+                  "self_damage": 0
+                },
+                "58": {
+                  "casts": 10,
+                  "damage": 187,
+                  "fizzles": 0,
+                  "healing": 96,
+                  "potion_throws": 3,
+                  "self_damage": 0
+                }
+              },
+              "replay": "https://arena.uotavern.com/replay/?replay=af9e520e0cbd4bffa6f7b00d8d7d0914",
+              "winner": 58
+            }
+          ]
+        },
+        {
+          "checkpoint": "/opt/uoarena/anima3-neural-lab-20260930/.logs/calibrated-live-20260930/round-002/candidate",
+          "iteration": 2,
+          "learning": {
+            "accepted_episodes": 1,
+            "automatic_promotion": false,
+            "rejected": [],
+            "source": "/opt/uoarena/anima3-neural-lab-20260930/.logs/calibrated-live-20260930/round-002/collection",
+            "update": {
+              "automatic_promotion": false,
+              "episodes": 1,
+              "metrics": {
+                "approximate_kl": 0.003480326384305954,
+                "clip_fraction": 0.0625,
+                "entropy": 1.9432628154754639,
+                "grad_norm": 4.295585811138153,
+                "kl_early_stop": false,
+                "optimized_steps": 200,
+                "policy_loss": -0.04691121727228165,
+                "policy_optimized_steps": 32,
+                "rollout_steps": 50,
+                "value_loss": 0.29132987558841705
+              },
+              "parent_policy_sha": "5a9afe696ceab8230d6e22d170e397c7c39d4cda18960966424264617b1ab7d6",
+              "policy_sha": "f5e9c7e1ff53e0cbe4424709018cf1e88eb1d545ad5355d6fd94db6638aa617c"
+            }
+          },
+          "matches": [
+            {
+              "challenger": 58,
+              "episodes": [
+                "/opt/uoarena/anima3-neural-lab-20260930/.logs/calibrated-live-20260930/round-002/collection/d1cdce16976848d0b7b3ca3dac9b3b59/episode-57.json"
+              ],
+              "game": 1,
+              "match_id": "d1cdce16976848d0b7b3ca3dac9b3b59",
+              "metrics": {
+                "57": {
+                  "casts": 3,
+                  "damage": 102,
+                  "fizzles": 0,
+                  "healing": 0,
+                  "potion_throws": 1,
+                  "self_damage": 0
+                },
+                "58": {
+                  "casts": 4,
+                  "damage": 34,
+                  "fizzles": 0,
+                  "healing": 0,
+                  "potion_throws": 1,
+                  "self_damage": 0
+                }
+              },
+              "replay": "https://arena.uotavern.com/replay/?replay=d1cdce16976848d0b7b3ca3dac9b3b59",
+              "winner": 57
+            }
+          ]
+        },
+        {
+          "checkpoint": "/opt/uoarena/anima3-neural-lab-20260930/.logs/calibrated-live-20260930/round-003/candidate",
+          "iteration": 3,
+          "learning": {
+            "accepted_episodes": 1,
+            "automatic_promotion": false,
+            "rejected": [],
+            "source": "/opt/uoarena/anima3-neural-lab-20260930/.logs/calibrated-live-20260930/round-003/collection",
+            "update": {
+              "automatic_promotion": false,
+              "episodes": 1,
+              "metrics": {
+                "approximate_kl": 0.006360430736094713,
+                "clip_fraction": 0.08928571827709675,
+                "entropy": 1.5415273308753967,
+                "grad_norm": 2.117478162050247,
+                "kl_early_stop": false,
+                "optimized_steps": 816,
+                "policy_loss": -0.02280367558289953,
+                "policy_optimized_steps": 112,
+                "rollout_steps": 204,
+                "value_loss": 0.0854092687368393
+              },
+              "parent_policy_sha": "f5e9c7e1ff53e0cbe4424709018cf1e88eb1d545ad5355d6fd94db6638aa617c",
+              "policy_sha": "0698f95bbd313469d459968fbc70e7878ead4c5d17572568ebbfbff6dd711c79"
+            }
+          },
+          "matches": [
+            {
+              "challenger": 57,
+              "episodes": [
+                "/opt/uoarena/anima3-neural-lab-20260930/.logs/calibrated-live-20260930/round-003/collection/0bd5a94b6934449986938bfd2cbc9bf0/episode-57.json"
+              ],
+              "game": 1,
+              "match_id": "0bd5a94b6934449986938bfd2cbc9bf0",
+              "metrics": {
+                "57": {
+                  "casts": 22,
+                  "damage": 159,
+                  "fizzles": 0,
+                  "healing": 291,
+                  "potion_throws": 3,
+                  "self_damage": 0
+                },
+                "58": {
+                  "casts": 18,
+                  "damage": 314,
+                  "fizzles": 0,
+                  "healing": 46,
+                  "potion_throws": 4,
+                  "self_damage": 0
+                }
+              },
+              "replay": "https://arena.uotavern.com/replay/?replay=0bd5a94b6934449986938bfd2cbc9bf0",
+              "winner": 57
+            }
+          ]
+        },
+        {
+          "checkpoint": "/opt/uoarena/anima3-neural-lab-20260930/.logs/calibrated-live-20260930/round-004/candidate",
+          "iteration": 4,
+          "learning": {
+            "accepted_episodes": 1,
+            "automatic_promotion": false,
+            "rejected": [],
+            "source": "/opt/uoarena/anima3-neural-lab-20260930/.logs/calibrated-live-20260930/round-004/collection",
+            "update": {
+              "automatic_promotion": false,
+              "episodes": 1,
+              "metrics": {
+                "approximate_kl": 0.00273608262068592,
+                "clip_fraction": 0.03333333507180214,
+                "entropy": 1.5592947006225586,
+                "grad_norm": 1.3482921421527863,
+                "kl_early_stop": false,
+                "optimized_steps": 932,
+                "policy_loss": -0.01947502849313132,
+                "policy_optimized_steps": 120,
+                "rollout_steps": 233,
+                "value_loss": 0.05749911442399025
+              },
+              "parent_policy_sha": "0698f95bbd313469d459968fbc70e7878ead4c5d17572568ebbfbff6dd711c79",
+              "policy_sha": "fe5796b401fe276cb6c916d5c613e8dc286dcaa0432b136d5aee3465f2803a38"
+            }
+          },
+          "matches": [
+            {
+              "challenger": 58,
+              "episodes": [
+                "/opt/uoarena/anima3-neural-lab-20260930/.logs/calibrated-live-20260930/round-004/collection/27e442010d144d16959852721e6d71d6/episode-57.json"
+              ],
+              "game": 1,
+              "match_id": "27e442010d144d16959852721e6d71d6",
+              "metrics": {
+                "57": {
+                  "casts": 21,
+                  "damage": 256,
+                  "fizzles": 0,
+                  "healing": 290,
+                  "potion_throws": 4,
+                  "self_damage": 0
+                },
+                "58": {
+                  "casts": 20,
+                  "damage": 293,
+                  "fizzles": 0,
+                  "healing": 134,
+                  "potion_throws": 4,
+                  "self_damage": 0
+                }
+              },
+              "replay": "https://arena.uotavern.com/replay/?replay=27e442010d144d16959852721e6d71d6",
+              "winner": 57
+            }
+          ]
+        }
+      ],
+      "completed_collected_matches": [
+        {
+          "challenger": 57,
+          "episodes": [
+            "/opt/uoarena/anima3-neural-lab-20260930/.logs/calibrated-live-20260930/round-001/collection/af9e520e0cbd4bffa6f7b00d8d7d0914/episode-57.json"
+          ],
+          "game": 1,
+          "match_id": "af9e520e0cbd4bffa6f7b00d8d7d0914",
+          "metrics": {
+            "57": {
+              "casts": 12,
+              "damage": 145,
+              "fizzles": 0,
+              "healing": 90,
+              "potion_throws": 2,
+              "self_damage": 0
+            },
+            "58": {
+              "casts": 10,
+              "damage": 187,
+              "fizzles": 0,
+              "healing": 96,
+              "potion_throws": 3,
+              "self_damage": 0
+            }
+          },
+          "replay": "https://arena.uotavern.com/replay/?replay=af9e520e0cbd4bffa6f7b00d8d7d0914",
+          "winner": 58
+        },
+        {
+          "challenger": 58,
+          "episodes": [
+            "/opt/uoarena/anima3-neural-lab-20260930/.logs/calibrated-live-20260930/round-002/collection/d1cdce16976848d0b7b3ca3dac9b3b59/episode-57.json"
+          ],
+          "game": 1,
+          "match_id": "d1cdce16976848d0b7b3ca3dac9b3b59",
+          "metrics": {
+            "57": {
+              "casts": 3,
+              "damage": 102,
+              "fizzles": 0,
+              "healing": 0,
+              "potion_throws": 1,
+              "self_damage": 0
+            },
+            "58": {
+              "casts": 4,
+              "damage": 34,
+              "fizzles": 0,
+              "healing": 0,
+              "potion_throws": 1,
+              "self_damage": 0
+            }
+          },
+          "replay": "https://arena.uotavern.com/replay/?replay=d1cdce16976848d0b7b3ca3dac9b3b59",
+          "winner": 57
+        },
+        {
+          "challenger": 57,
+          "episodes": [
+            "/opt/uoarena/anima3-neural-lab-20260930/.logs/calibrated-live-20260930/round-003/collection/0bd5a94b6934449986938bfd2cbc9bf0/episode-57.json"
+          ],
+          "game": 1,
+          "match_id": "0bd5a94b6934449986938bfd2cbc9bf0",
+          "metrics": {
+            "57": {
+              "casts": 22,
+              "damage": 159,
+              "fizzles": 0,
+              "healing": 291,
+              "potion_throws": 3,
+              "self_damage": 0
+            },
+            "58": {
+              "casts": 18,
+              "damage": 314,
+              "fizzles": 0,
+              "healing": 46,
+              "potion_throws": 4,
+              "self_damage": 0
+            }
+          },
+          "replay": "https://arena.uotavern.com/replay/?replay=0bd5a94b6934449986938bfd2cbc9bf0",
+          "winner": 57
+        },
+        {
+          "challenger": 58,
+          "episodes": [
+            "/opt/uoarena/anima3-neural-lab-20260930/.logs/calibrated-live-20260930/round-004/collection/27e442010d144d16959852721e6d71d6/episode-57.json"
+          ],
+          "game": 1,
+          "match_id": "27e442010d144d16959852721e6d71d6",
+          "metrics": {
+            "57": {
+              "casts": 21,
+              "damage": 256,
+              "fizzles": 0,
+              "healing": 290,
+              "potion_throws": 4,
+              "self_damage": 0
+            },
+            "58": {
+              "casts": 20,
+              "damage": 293,
+              "fizzles": 0,
+              "healing": 134,
+              "potion_throws": 4,
+              "self_damage": 0
+            }
+          },
+          "replay": "https://arena.uotavern.com/replay/?replay=27e442010d144d16959852721e6d71d6",
+          "winner": 57
+        }
+      ],
+      "episodes": [
+        {
+          "match": "af9e520e0cbd4bffa6f7b00d8d7d0914",
+          "policy_sha": "22bc333e08741e402c0245fb97ca8cc0b588199cfc6531364e7e908ee8f70526",
+          "outcome": -1.0,
+          "eligible": true,
+          "invalid_reasons": [],
+          "decisions": 133,
+          "free_choices": 20,
+          "collector_version": "fixed-cadence-options-v4",
+          "collection_end_phase": "RoundOver"
+        },
+        {
+          "match": "d1cdce16976848d0b7b3ca3dac9b3b59",
+          "policy_sha": "5a9afe696ceab8230d6e22d170e397c7c39d4cda18960966424264617b1ab7d6",
+          "outcome": 1.0,
+          "eligible": true,
+          "invalid_reasons": [],
+          "decisions": 50,
+          "free_choices": 8,
+          "collector_version": "fixed-cadence-options-v4",
+          "collection_end_phase": "RoundOver"
+        },
+        {
+          "match": "0bd5a94b6934449986938bfd2cbc9bf0",
+          "policy_sha": "f5e9c7e1ff53e0cbe4424709018cf1e88eb1d545ad5355d6fd94db6638aa617c",
+          "outcome": 1.0,
+          "eligible": true,
+          "invalid_reasons": [],
+          "decisions": 204,
+          "free_choices": 28,
+          "collector_version": "fixed-cadence-options-v4",
+          "collection_end_phase": "RoundOver"
+        },
+        {
+          "match": "27e442010d144d16959852721e6d71d6",
+          "policy_sha": "0698f95bbd313469d459968fbc70e7878ead4c5d17572568ebbfbff6dd711c79",
+          "outcome": 1.0,
+          "eligible": true,
+          "invalid_reasons": [],
+          "decisions": 233,
+          "free_choices": 30,
+          "collector_version": "fixed-cadence-options-v4",
+          "collection_end_phase": "RoundOver"
+        }
+      ]
+    }
+  },
+  "automatic_promotion": false,
+  "real_server_strength_established": false,
+  "additional_ppo_steps_total": 3000000,
+  "additional_completed_simulation_games": 3217,
+  "source_sha256": {
+    "anima3/neural/__init__.py": "4e2c91a01cea493aa1c7c61ee68b61c86d9473700fc0a896bee317c5168fa615",
+    "anima3/neural/__main__.py": "3166181468397a40af59f62966959f2d12ed0bd54faf9f326210da04479e39b3",
+    "anima3/neural/checkpoints.py": "ed25d234ae834ee922a14bc88c31810207fc56a7faed643858b6469d9cc76903",
+    "anima3/neural/executor.py": "f41c01c7c7f07064120142901413a2cf5947d35706aa33efe6af867f35d70f29",
+    "anima3/neural/inference.py": "c19c6333f9ecf6513cdb3bbc51ec04c219306594c0777c48cd74dcb130009f69",
+    "anima3/neural/live.py": "aaef8308291434a0918506326027fa763a848a8fc7fbaee0da1a7bb678d65613",
+    "anima3/neural/model.py": "4cb7dcde863000bd03950b5338e88888cf77cbde549be41aa0859911c4c79261",
+    "anima3/neural/online.py": "c47974e0d7dce4207ea5cb6b87ec8a3cfd27c48d9b34ba0d37b633e8508218d3",
+    "anima3/neural/schema.py": "64ea4987d27ba9f28007bb207e62f2fb7bdb5699b50d6e3b7a565f8a518910a3",
+    "anima3/neural/sim.py": "3d8a05e6d425151b7105bbbced04355df11d5a0e5c60b535c04cb423149483d5",
+    "anima3/neural/train.py": "256b3b0b69b834364ec9a7ef1fcf078f8a6e5a90ceda281e153f84832ba278c4",
+    "anima3/neural/wait.py": "28be2714854dae6efec03593cb5ce4197beed44cf282c7450e5511492c52e0e5"
+  },
+  "verification": {
+    "neural_suite": {
+      "tests": 121,
+      "result": "passed",
+      "command": "pytest tests/test_neural_sim.py tests/test_neural_training.py tests/test_neural_runtime.py tests/test_neural_live.py tests/test_neural_online.py -q"
+    },
+    "after_fixture_alternation": {
+      "tests": 21,
+      "result": "passed",
+      "command": "pytest tests/test_neural_online.py tests/test_neural_live.py -q"
+    },
+    "ruff": "passed",
+    "fixture_alternation_adds_one_parameterized_test": true
+  },
+  "runtime_diagnostics": {
+    "replays_independently_verified": [
+      {
+        "match": "776113ad5b6d47a9bda8db4c047281b1",
+        "decisions": 58,
+        "end_phase": "RoundOver"
+      },
+      {
+        "match": "72e35ead94024daf8a02dfca5d527805",
+        "decisions": 180,
+        "end_phase": "RoundOver"
+      }
+    ],
+    "rpc": {
+      "observe": {
+        "n": 282,
+        "median_ms": 202.37795199500397,
+        "p95_ms": 239.04264299198985,
+        "max_ms": 555.4896240064409
+      },
+      "act:duel_state": {
+        "n": 85,
+        "median_ms": 0.8534110093023628,
+        "p95_ms": 1.39997000223957,
+        "max_ms": 11.606342974118888
+      },
+      "pump": {
+        "n": 280,
+        "median_ms": 63.052214492927305,
+        "p95_ms": 67.68093298887834,
+        "max_ms": 213.77273002872244
+      },
+      "act:status_request": {
+        "n": 2,
+        "median_ms": 0.3878860152326524,
+        "p95_ms": 0.37721102125942707,
+        "max_ms": 0.3985610092058778
+      },
+      "act:CastSpell": {
+        "n": 19,
+        "median_ms": 0.21060998551547527,
+        "p95_ms": 0.31624999246560037,
+        "max_ms": 0.4634099896065891
+      },
+      "act:TargetObject": {
+        "n": 16,
+        "median_ms": 0.2396100026089698,
+        "p95_ms": 0.6119500030763447,
+        "max_ms": 3.188920993125066
+      },
+      "act:UseSkill": {
+        "n": 9,
+        "median_ms": 0.2925200096797198,
+        "p95_ms": 0.34889898961409926,
+        "max_ms": 0.351160007994622
+      },
+      "act:Walk": {
+        "n": 2,
+        "median_ms": 0.1735299883875996,
+        "p95_ms": 0.15929999062791467,
+        "max_ms": 0.1877599861472845
+      },
+      "act:Use": {
+        "n": 3,
+        "median_ms": 0.27207101811654866,
+        "p95_ms": 0.27207101811654866,
+        "max_ms": 0.358410004992038
+      }
+    },
+    "policy_observation_age": {
+      "n": 238,
+      "median_ms": 271.81597749586217,
+      "p95_ms": 333.530422009062,
+      "max_ms": 640.2239779999945
+    },
+    "archive_sha256": "ad4cef012140d0fa840ee758bc74a17dff28bcb72289631cec712f889d6c3e23"
+  },
+  "final_live_verification": {
+    "archive_sha256": "83e96dfa34c9d79ae61a070d65f3393e424fe4b8ee5c7aee5c5ac097b05bb4ee",
+    "archive_bytes": 3978340,
+    "episodes": [
+      {
+        "match": "af9e520e0cbd4bffa6f7b00d8d7d0914",
+        "steps": 133,
+        "outcome": -1.0,
+        "policy_sha": "22bc333e08741e402c0245fb97ca8cc0b588199cfc6531364e7e908ee8f70526",
+        "next_sha": "5a9afe696ceab8230d6e22d170e397c7c39d4cda18960966424264617b1ab7d6",
+        "end_phase": "RoundOver"
+      },
+      {
+        "match": "d1cdce16976848d0b7b3ca3dac9b3b59",
+        "steps": 50,
+        "outcome": 1.0,
+        "policy_sha": "5a9afe696ceab8230d6e22d170e397c7c39d4cda18960966424264617b1ab7d6",
+        "next_sha": "f5e9c7e1ff53e0cbe4424709018cf1e88eb1d545ad5355d6fd94db6638aa617c",
+        "end_phase": "RoundOver"
+      },
+      {
+        "match": "0bd5a94b6934449986938bfd2cbc9bf0",
+        "steps": 204,
+        "outcome": 1.0,
+        "policy_sha": "f5e9c7e1ff53e0cbe4424709018cf1e88eb1d545ad5355d6fd94db6638aa617c",
+        "next_sha": "0698f95bbd313469d459968fbc70e7878ead4c5d17572568ebbfbff6dd711c79",
+        "end_phase": "RoundOver"
+      },
+      {
+        "match": "27e442010d144d16959852721e6d71d6",
+        "steps": 233,
+        "outcome": 1.0,
+        "policy_sha": "0698f95bbd313469d459968fbc70e7878ead4c5d17572568ebbfbff6dd711c79",
+        "next_sha": "fe5796b401fe276cb6c916d5c613e8dc286dcaa0432b136d5aee3465f2803a38",
+        "end_phase": "RoundOver"
+      }
+    ],
+    "policy_sha": "fe5796b401fe276cb6c916d5c613e8dc286dcaa0432b136d5aee3465f2803a38",
+    "optimizer_restored_on_macos": true,
+    "rng_restored_on_macos": true,
+    "shard_pid": 76512,
+    "active_bridge_processes_after_cycle": 0,
+    "automatic_promotion": false
+  },
+  "final_live_summary": {
+    "matches": 4,
+    "wins": 3,
+    "losses": 1,
+    "draws": 0,
+    "eligible_episodes": 4,
+    "transitions": 620,
+    "free_choices": 86,
+    "ppo_epochs_per_update": 4,
+    "updates": 4,
+    "parent_model": "models/duel-continuation",
+    "final_model": "models/duel-continuation-live",
+    "strength_improvement_established_in_real_matches": false
+  },
+  "live_candidate_regression": {
+    "policy_sha": "fe5796b401fe276cb6c916d5c613e8dc286dcaa0432b136d5aee3465f2803a38",
+    "games": 80,
+    "wins": 43,
+    "losses": 37,
+    "draws": 0,
+    "sampling": "categorical",
+    "simulator_version": "approximate-pre-aos-options-v5",
+    "seed": 2660000000,
+    "parent_wins": 29,
+    "parent_losses": 50,
+    "parent_draws": 1,
+    "reused_diagnostic_set": true,
+    "new_held_out_evaluation": false
+  },
+  "all_live_summary": {
+    "matches_completed_on_server": 10,
+    "episodes_used_for_updates": 7,
+    "used_transitions": 896,
+    "excluded_matches": 3,
+    "note": "Three original collection failures excluded; separate parent lineages are recorded. Final model used only the last four matches."
+  }
+}

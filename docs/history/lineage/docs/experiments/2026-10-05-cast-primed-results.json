@@ -1,0 +1,287 @@
+{
+  "status": "complete",
+  "matches": [
+    {
+      "mode": "dump-primed",
+      "match_id": "7926ace9ea1d4e2a89569369158e01da",
+      "won": true,
+      "server_target_to_cast": {
+        "WeakenSpell -> ClumsySpell": {
+          "n": 1,
+          "min_ms": 761,
+          "median_ms": 761,
+          "max_ms": 761
+        },
+        "ClumsySpell -> ExplosionSpell": {
+          "n": 1,
+          "min_ms": 1194,
+          "median_ms": 1194,
+          "max_ms": 1194
+        },
+        "EnergyBoltSpell -> FlameStrikeSpell": {
+          "n": 1,
+          "min_ms": 1056,
+          "median_ms": 1056,
+          "max_ms": 1056
+        },
+        "GreaterHealSpell -> FlameStrikeSpell": {
+          "n": 1,
+          "min_ms": 3225,
+          "median_ms": 3225,
+          "max_ms": 3225
+        },
+        "FlameStrikeSpell -> GreaterHealSpell": {
+          "n": 1,
+          "min_ms": 13410,
+          "median_ms": 13410,
+          "max_ms": 13410
+        },
+        "GreaterHealSpell -> GreaterHealSpell": {
+          "n": 2,
+          "min_ms": 3366,
+          "median_ms": 6638.5,
+          "max_ms": 9911
+        },
+        "GreaterHealSpell -> ExplosionSpell": {
+          "n": 1,
+          "min_ms": 8643,
+          "median_ms": 8643,
+          "max_ms": 8643
+        },
+        "GreaterHealSpell -> EnergyBoltSpell": {
+          "n": 1,
+          "min_ms": 15861,
+          "median_ms": 15861,
+          "max_ms": 15861
+        },
+        "FlameStrikeSpell -> ExplosionSpell": {
+          "n": 1,
+          "min_ms": 16164,
+          "median_ms": 16164,
+          "max_ms": 16164
+        }
+      },
+      "client_target_to_cast": {
+        "n": 14,
+        "min_ms": 102.25,
+        "median_ms": 3296.11,
+        "max_ms": 16164.05
+      },
+      "client_target_to_cast_by_pair": {
+        "weaken -> clumsy": {
+          "n": 1,
+          "min_ms": 760.43,
+          "median_ms": 760.43,
+          "max_ms": 760.43
+        },
+        "clumsy -> explosion": {
+          "n": 1,
+          "min_ms": 1194.17,
+          "median_ms": 1194.17,
+          "max_ms": 1194.17
+        },
+        "explosion -> energy_bolt": {
+          "n": 2,
+          "min_ms": 102.25,
+          "median_ms": 106.11,
+          "max_ms": 109.97
+        },
+        "energy_bolt -> flamestrike": {
+          "n": 1,
+          "min_ms": 1055.24,
+          "median_ms": 1055.24,
+          "max_ms": 1055.24
+        },
+        "flamestrike -> explosion": {
+          "n": 2,
+          "min_ms": 782.62,
+          "median_ms": 8473.34,
+          "max_ms": 16164.05
+        },
+        "greater_heal -> flamestrike": {
+          "n": 1,
+          "min_ms": 3225.91,
+          "median_ms": 3225.91,
+          "max_ms": 3225.91
+        },
+        "flamestrike -> greater_heal": {
+          "n": 1,
+          "min_ms": 13410.09,
+          "median_ms": 13410.09,
+          "max_ms": 13410.09
+        },
+        "greater_heal -> greater_heal": {
+          "n": 2,
+          "min_ms": 3366.31,
+          "median_ms": 6638.2,
+          "max_ms": 9910.08
+        },
+        "greater_heal -> explosion": {
+          "n": 1,
+          "min_ms": 8642.66,
+          "median_ms": 8642.66,
+          "max_ms": 8642.66
+        },
+        "explosion -> greater_heal": {
+          "n": 1,
+          "min_ms": 7090.89,
+          "median_ms": 7090.89,
+          "max_ms": 7090.89
+        },
+        "greater_heal -> energy_bolt": {
+          "n": 1,
+          "min_ms": 15860.13,
+          "median_ms": 15860.13,
+          "max_ms": 15860.13
+        }
+      },
+      "max_damage_in_100ms": {
+        "damage": 64,
+        "span_ms": 62,
+        "hits": [
+          {
+            "t": 13894,
+            "amount": 37
+          },
+          {
+            "t": 13956,
+            "amount": 27
+          }
+        ]
+      },
+      "observe_rpc": {
+        "n": 1290,
+        "min_ms": 46.53,
+        "median_ms": 73.21,
+        "max_ms": 334.8
+      },
+      "verdicts": {
+        "502632": 1,
+        "500641": 3
+      },
+      "metrics": {
+        "57": {
+          "casts": 18,
+          "damage": 228,
+          "fizzles": 1,
+          "healing": 323,
+          "potion_throws": 0,
+          "self_damage": 0
+        },
+        "58": {
+          "casts": 33,
+          "damage": 367,
+          "fizzles": 0,
+          "healing": 97,
+          "potion_throws": 5,
+          "self_damage": 0
+        }
+      },
+      "replay": "https://arena.uotavern.com/replay/?replay=7926ace9ea1d4e2a89569369158e01da"
+    },
+    {
+      "mode": "dump-primed",
+      "match_id": "0ca2c80de63648dca6909121a1e27bb1",
+      "won": true,
+      "server_target_to_cast": {
+        "WeakenSpell -> ClumsySpell": {
+          "n": 1,
+          "min_ms": 821,
+          "median_ms": 821,
+          "max_ms": 821
+        },
+        "ClumsySpell -> ExplosionSpell": {
+          "n": 1,
+          "min_ms": 1875,
+          "median_ms": 1875,
+          "max_ms": 1875
+        },
+        "EnergyBoltSpell -> FlameStrikeSpell": {
+          "n": 1,
+          "min_ms": 1060,
+          "median_ms": 1060,
+          "max_ms": 1060
+        }
+      },
+      "client_target_to_cast": {
+        "n": 5,
+        "min_ms": 93.8,
+        "median_ms": 822.03,
+        "max_ms": 1875.36
+      },
+      "client_target_to_cast_by_pair": {
+        "weaken -> clumsy": {
+          "n": 1,
+          "min_ms": 822.03,
+          "median_ms": 822.03,
+          "max_ms": 822.03
+        },
+        "clumsy -> explosion": {
+          "n": 1,
+          "min_ms": 1875.36,
+          "median_ms": 1875.36,
+          "max_ms": 1875.36
+        },
+        "explosion -> energy_bolt": {
+          "n": 1,
+          "min_ms": 93.8,
+          "median_ms": 93.8,
+          "max_ms": 93.8
+        },
+        "energy_bolt -> flamestrike": {
+          "n": 1,
+          "min_ms": 1059.56,
+          "median_ms": 1059.56,
+          "max_ms": 1059.56
+        },
+        "flamestrike -> explosion": {
+          "n": 1,
+          "min_ms": 808.14,
+          "median_ms": 808.14,
+          "max_ms": 808.14
+        }
+      },
+      "max_damage_in_100ms": {
+        "damage": 74,
+        "span_ms": 60,
+        "hits": [
+          {
+            "t": 15101,
+            "amount": 36
+          },
+          {
+            "t": 15161,
+            "amount": 38
+          }
+        ]
+      },
+      "observe_rpc": {
+        "n": 190,
+        "min_ms": 44.78,
+        "median_ms": 59.66,
+        "max_ms": 96.61
+      },
+      "verdicts": {},
+      "metrics": {
+        "57": {
+          "casts": 5,
+          "damage": 106,
+          "fizzles": 0,
+          "healing": 27,
+          "potion_throws": 0,
+          "self_damage": 0
+        },
+        "58": {
+          "casts": 4,
+          "damage": 65,
+          "fizzles": 0,
+          "healing": 0,
+          "potion_throws": 1,
+          "self_damage": 0
+        }
+      },
+      "replay": "https://arena.uotavern.com/replay/?replay=0ca2c80de63648dca6909121a1e27bb1"
+    }
+  ],
+  "note": "Explosion target events are absent in current server replays; client request gaps must not be called server target gaps. One match per mode: intervals include tactics, mana and opponent interference. Server timings are accepted events, not client requests; no win-rate conclusion."
+}

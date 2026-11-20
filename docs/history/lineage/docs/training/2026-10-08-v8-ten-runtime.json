@@ -1,0 +1,122 @@
+[
+  {
+    "fixture": 1,
+    "match_id": "b9e09bf2328e467da2ab19fa4f8b1c33",
+    "eligible": true,
+    "teacher_eligible": true,
+    "teacher_invalid": [],
+    "observe_median": 34.45356403244659,
+    "observe_p95": 100.86036392021924,
+    "unseen": 0,
+    "unseen_approach": 0,
+    "rejected": 0
+  },
+  {
+    "fixture": 2,
+    "match_id": "33f309ba6422471e882f4a3cb840c8cb",
+    "eligible": true,
+    "teacher_eligible": true,
+    "teacher_invalid": [],
+    "observe_median": 31.425002962350845,
+    "observe_p95": 73.6363329924643,
+    "unseen": 0,
+    "unseen_approach": 0,
+    "rejected": 0
+  },
+  {
+    "fixture": 3,
+    "match_id": "b82bcf57e0f54719b8f3629479b3eea5",
+    "eligible": true,
+    "teacher_eligible": true,
+    "teacher_invalid": [],
+    "observe_median": 35.3364014881663,
+    "observe_p95": 101.93793603684753,
+    "unseen": 0,
+    "unseen_approach": 0,
+    "rejected": 0
+  },
+  {
+    "fixture": 4,
+    "match_id": "baf3b6e670b646eb9ca09b564d1e8dc1",
+    "eligible": true,
+    "teacher_eligible": true,
+    "teacher_invalid": [],
+    "observe_median": 35.60214402386919,
+    "observe_p95": 100.29196902178228,
+    "unseen": 0,
+    "unseen_approach": 0,
+    "rejected": 0
+  },
+  {
+    "fixture": 5,
+    "match_id": "bfd16d688f2342868681008434a9fb4a",
+    "eligible": true,
+    "teacher_eligible": true,
+    "teacher_invalid": [],
+    "observe_median": 35.27842502808198,
+    "observe_p95": 94.41718994639814,
+    "unseen": 0,
+    "unseen_approach": 0,
+    "rejected": 0
+  },
+  {
+    "fixture": 6,
+    "match_id": "086bba1b705c415d8b3ebbe5f4af7a37",
+    "eligible": true,
+    "teacher_eligible": true,
+    "teacher_invalid": [],
+    "observe_median": 35.09423497598618,
+    "observe_p95": 103.20276906713843,
+    "unseen": 0,
+    "unseen_approach": 0,
+    "rejected": 0
+  },
+  {
+    "fixture": 7,
+    "match_id": "145a73b76b7341b5b09af32d03bb4c47",
+    "eligible": true,
+    "teacher_eligible": true,
+    "teacher_invalid": [],
+    "observe_median": 32.73236891254783,
+    "observe_p95": 105.44046794530004,
+    "unseen": 0,
+    "unseen_approach": 0,
+    "rejected": 0
+  },
+  {
+    "fixture": 8,
+    "match_id": "0101d318d6274af2be625d9f7a85a8ff",
+    "eligible": true,
+    "teacher_eligible": true,
+    "teacher_invalid": [],
+    "observe_median": 31.191413989290595,
+    "observe_p95": 92.83613099250942,
+    "unseen": 78,
+    "unseen_approach": 11,
+    "rejected": 1
+  },
+  {
+    "fixture": 9,
+    "match_id": "c1e54d6f84ae4bf09638ccb90fbf1ffe",
+    "eligible": true,
+    "teacher_eligible": true,
+    "teacher_invalid": [],
+    "observe_median": 35.466699046082795,
+    "observe_p95": 113.23686502873898,
+    "unseen": 0,
+    "unseen_approach": 0,
+    "rejected": 1
+  },
+  {
+    "fixture": 10,
+    "match_id": "a6d5832d11c2475da7de50b1478701df",
+    "eligible": true,
+    "teacher_eligible": true,
+    "teacher_invalid": [],
+    "observe_median": 35.587809048593044,
+    "observe_p95": 96.58649505581707,
+    "unseen": 0,
+    "unseen_approach": 0,
+    "rejected": 2
+  }
+]

@@ -1,0 +1,30 @@
+{
+  "seed": 3652000000,
+  "games": 100,
+  "policy_sha": "3d0f7b454607590cb0ff1eca5278ee5a7cac1521ee72e1b5e1c10e040df85b03",
+  "score": 0.73,
+  "wins": 58,
+  "draws": 30,
+  "losses": 12,
+  "gate": {
+    "passed": false,
+    "enough_evidence": true,
+    "valid_templates": true,
+    "valid_episodes": true,
+    "paired_delta": -0.005,
+    "delta_ci95": [
+      -0.105,
+      0.095
+    ],
+    "style_deltas": {
+      "balanced": -0.075,
+      "pressure": 0.075,
+      "burst": 0.075,
+      "defensive": -0.05,
+      "potions": -0.05
+    },
+    "reason": "retain incumbent: insufficient or regressed evidence",
+    "domain": "approximate-pre-aos-simulator",
+    "public_deployment": false
+  }
+}

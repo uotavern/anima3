@@ -1,0 +1,249 @@
+{
+  "status": "complete",
+  "matches": [
+    {
+      "mode": "dump-baseline",
+      "match_id": "6c8ee69d557d4bc4a5e1030d65308b9c",
+      "won": false,
+      "server_target_to_cast": {
+        "EnergyBoltSpell -> FlameStrikeSpell": {
+          "n": 2,
+          "min_ms": 1345,
+          "median_ms": 3802.5,
+          "max_ms": 6260
+        },
+        "FlameStrikeSpell -> GreaterHealSpell": {
+          "n": 1,
+          "min_ms": 5696,
+          "median_ms": 5696,
+          "max_ms": 5696
+        }
+      },
+      "client_target_to_cast": {
+        "n": 5,
+        "min_ms": 1281.57,
+        "median_ms": 1344.9,
+        "max_ms": 6261.49
+      },
+      "client_target_to_cast_by_pair": {
+        "explosion -> energy_bolt": {
+          "n": 2,
+          "min_ms": 1281.57,
+          "median_ms": 1303.94,
+          "max_ms": 1326.31
+        },
+        "energy_bolt -> flamestrike": {
+          "n": 2,
+          "min_ms": 1344.9,
+          "median_ms": 3803.19,
+          "max_ms": 6261.49
+        },
+        "flamestrike -> greater_heal": {
+          "n": 1,
+          "min_ms": 5696.22,
+          "median_ms": 5696.22,
+          "max_ms": 5696.22
+        }
+      },
+      "max_damage_in_100ms": {
+        "damage": 45,
+        "span_ms": 0,
+        "hits": [
+          {
+            "t": 30264,
+            "amount": 45
+          }
+        ]
+      },
+      "observe_rpc": {
+        "n": 116,
+        "min_ms": 211.86,
+        "median_ms": 243.82,
+        "max_ms": 334.94
+      },
+      "verdicts": {
+        "500641": 1
+      },
+      "metrics": {
+        "57": {
+          "casts": 7,
+          "damage": 158,
+          "fizzles": 0,
+          "healing": 27,
+          "potion_throws": 0,
+          "self_damage": 0
+        },
+        "58": {
+          "casts": 9,
+          "damage": 118,
+          "fizzles": 0,
+          "healing": 141,
+          "potion_throws": 2,
+          "self_damage": 0
+        }
+      },
+      "replay": "https://arena.uotavern.com/replay/?replay=6c8ee69d557d4bc4a5e1030d65308b9c"
+    },
+    {
+      "mode": "dump-fast",
+      "match_id": "14dd050eb9dd4059ac4ce559a603784c",
+      "won": true,
+      "server_target_to_cast": {
+        "FlameStrikeSpell -> ExplosionSpell": {
+          "n": 1,
+          "min_ms": 778,
+          "median_ms": 778,
+          "max_ms": 778
+        },
+        "EnergyBoltSpell -> FlameStrikeSpell": {
+          "n": 1,
+          "min_ms": 807,
+          "median_ms": 807,
+          "max_ms": 807
+        }
+      },
+      "client_target_to_cast": {
+        "n": 2,
+        "min_ms": 777.98,
+        "median_ms": 792.81,
+        "max_ms": 807.63
+      },
+      "client_target_to_cast_by_pair": {
+        "flamestrike -> explosion": {
+          "n": 1,
+          "min_ms": 777.98,
+          "median_ms": 777.98,
+          "max_ms": 777.98
+        },
+        "energy_bolt -> flamestrike": {
+          "n": 1,
+          "min_ms": 807.63,
+          "median_ms": 807.63,
+          "max_ms": 807.63
+        }
+      },
+      "max_damage_in_100ms": {
+        "damage": 47,
+        "span_ms": 0,
+        "hits": [
+          {
+            "t": 12233,
+            "amount": 47
+          }
+        ]
+      },
+      "observe_rpc": {
+        "n": 179,
+        "min_ms": 48.27,
+        "median_ms": 62.72,
+        "max_ms": 264.52
+      },
+      "verdicts": {
+        "500641": 3
+      },
+      "metrics": {
+        "57": {
+          "casts": 6,
+          "damage": 109,
+          "fizzles": 0,
+          "healing": 11,
+          "potion_throws": 0,
+          "self_damage": 0
+        },
+        "58": {
+          "casts": 4,
+          "damage": 37,
+          "fizzles": 0,
+          "healing": 0,
+          "potion_throws": 1,
+          "self_damage": 0
+        }
+      },
+      "replay": "https://arena.uotavern.com/replay/?replay=14dd050eb9dd4059ac4ce559a603784c"
+    },
+    {
+      "mode": "dump-held",
+      "match_id": "c09fbeb0f2104d968e2f17897af21842",
+      "won": false,
+      "server_target_to_cast": {
+        "FlameStrikeSpell -> ExplosionSpell": {
+          "n": 2,
+          "min_ms": 800,
+          "median_ms": 4399.0,
+          "max_ms": 7998
+        },
+        "EnergyBoltSpell -> FlameStrikeSpell": {
+          "n": 1,
+          "min_ms": 756,
+          "median_ms": 756,
+          "max_ms": 756
+        }
+      },
+      "client_target_to_cast": {
+        "n": 4,
+        "min_ms": 756.64,
+        "median_ms": 4398.91,
+        "max_ms": 8146.08
+      },
+      "client_target_to_cast_by_pair": {
+        "flamestrike -> explosion": {
+          "n": 2,
+          "min_ms": 799.62,
+          "median_ms": 4398.91,
+          "max_ms": 7998.2
+        },
+        "energy_bolt -> flamestrike": {
+          "n": 1,
+          "min_ms": 756.64,
+          "median_ms": 756.64,
+          "max_ms": 756.64
+        },
+        "explosion -> greater_heal": {
+          "n": 1,
+          "min_ms": 8146.08,
+          "median_ms": 8146.08,
+          "max_ms": 8146.08
+        }
+      },
+      "max_damage_in_100ms": {
+        "damage": 33,
+        "span_ms": 0,
+        "hits": [
+          {
+            "t": 20514,
+            "amount": 33
+          }
+        ]
+      },
+      "observe_rpc": {
+        "n": 447,
+        "min_ms": 50.35,
+        "median_ms": 67.96,
+        "max_ms": 260.77
+      },
+      "verdicts": {
+        "500641": 3
+      },
+      "metrics": {
+        "57": {
+          "casts": 8,
+          "damage": 122,
+          "fizzles": 0,
+          "healing": 95,
+          "potion_throws": 0,
+          "self_damage": 0
+        },
+        "58": {
+          "casts": 11,
+          "damage": 189,
+          "fizzles": 0,
+          "healing": 95,
+          "potion_throws": 3,
+          "self_damage": 0
+        }
+      },
+      "replay": "https://arena.uotavern.com/replay/?replay=c09fbeb0f2104d968e2f17897af21842"
+    }
+  ],
+  "note": "Explosion target events are absent in current server replays; client request gaps must not be called server target gaps. One match per mode: intervals include tactics, mana and opponent interference. Server timings are accepted events, not client requests; no win-rate conclusion."
+}

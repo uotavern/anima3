@@ -1,0 +1,152 @@
+{
+  "status": "complete",
+  "training_updates": 0,
+  "matches": [
+    {
+      "id": "2588110eb84c4bb6b7252899e9fe2a5b",
+      "winner": 58,
+      "replay_sha256": "fe0720d23871ccdc9aa5a7ee4a7082c0a6284d791f56eaba48830e4e0b1b59b7",
+      "explosions": [
+        {
+          "at_ms": 10976,
+          "landing": [
+            2295,
+            1209,
+            1
+          ],
+          "last_frame_age_ms": 92,
+          "last_frame_distance": 1,
+          "damage_in_next_50ms": 35
+        },
+        {
+          "at_ms": 30568,
+          "landing": [
+            2296,
+            1207,
+            1
+          ],
+          "last_frame_age_ms": 122,
+          "last_frame_distance": 3,
+          "damage_in_next_50ms": 0
+        },
+        {
+          "at_ms": 46245,
+          "landing": [
+            2295,
+            1208,
+            1
+          ],
+          "last_frame_age_ms": 115,
+          "last_frame_distance": 3,
+          "damage_in_next_50ms": 0
+        },
+        {
+          "at_ms": 56901,
+          "landing": [
+            2297,
+            1207,
+            1
+          ],
+          "last_frame_age_ms": 117,
+          "last_frame_distance": 2,
+          "damage_in_next_50ms": 0
+        },
+        {
+          "at_ms": 70741,
+          "landing": [
+            2297,
+            1207,
+            1
+          ],
+          "last_frame_age_ms": 81,
+          "last_frame_distance": 1,
+          "damage_in_next_50ms": 38
+        }
+      ],
+      "defense_events": {
+        "potion_evasion": 43
+      },
+      "recovery_actions": {
+        "hold": 304,
+        "heal_potion": 3,
+        "greater_heal": 2,
+        "meditate": 10,
+        "refresh_potion": 2,
+        "agility_potion": 1
+      },
+      "recovery_violations": [],
+      "demonstration_eligible": false,
+      "invalid_reasons": [
+        "potion_defense_outside_policy_schema"
+      ]
+    },
+    {
+      "id": "6806fc69946e466092046cf24228f522",
+      "winner": 58,
+      "replay_sha256": "f1d5d1d7501e594414d9e6771af11c363e030c90827be94c19126ca5c189691e",
+      "explosions": [
+        {
+          "at_ms": 13656,
+          "landing": [
+            628,
+            862,
+            1
+          ],
+          "last_frame_age_ms": 56,
+          "last_frame_distance": 3,
+          "damage_in_next_50ms": 0
+        },
+        {
+          "at_ms": 42520,
+          "landing": [
+            629,
+            858,
+            1
+          ],
+          "last_frame_age_ms": 127,
+          "last_frame_distance": 3,
+          "damage_in_next_50ms": 0
+        },
+        {
+          "at_ms": 53461,
+          "landing": [
+            633,
+            858,
+            1
+          ],
+          "last_frame_age_ms": 200,
+          "last_frame_distance": 2,
+          "damage_in_next_50ms": 0
+        },
+        {
+          "at_ms": 64248,
+          "landing": [
+            638,
+            861,
+            1
+          ],
+          "last_frame_age_ms": 123,
+          "last_frame_distance": 0,
+          "damage_in_next_50ms": 28
+        }
+      ],
+      "defense_events": {
+        "potion_evasion": 34
+      },
+      "recovery_actions": {
+        "meditate": 14,
+        "hold": 369,
+        "retreat": 9,
+        "heal_potion": 4,
+        "greater_heal": 3,
+        "refresh_potion": 1
+      },
+      "recovery_violations": [],
+      "demonstration_eligible": false,
+      "invalid_reasons": [
+        "potion_defense_outside_policy_schema"
+      ]
+    }
+  ],
+  "limits": "Two-game mechanics pilot, no strength estimate. Frame positions are sampled; damage within 50ms is a temporal association, not explicit spell attribution. Recovery audit uses the verified 100 maximum mana template."
+}
