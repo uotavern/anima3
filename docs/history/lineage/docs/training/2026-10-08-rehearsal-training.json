@@ -1,0 +1,165 @@
+{
+  "eval_seed": 3654000000,
+  "models": {
+    "original-parent": {
+      "score": 0.665,
+      "wins": 56,
+      "draws": 21,
+      "losses": 23
+    },
+    "plain-ppo": {
+      "score": 0.575,
+      "wins": 33,
+      "draws": 49,
+      "losses": 18
+    },
+    "warmstart": {
+      "score": 0.625,
+      "wins": 48,
+      "draws": 29,
+      "losses": 23
+    },
+    "candidate": {
+      "score": 0.59,
+      "wins": 34,
+      "draws": 50,
+      "losses": 16
+    }
+  },
+  "vs_original": {
+    "passed": false,
+    "enough_evidence": true,
+    "valid_templates": true,
+    "valid_episodes": true,
+    "paired_delta": -0.075,
+    "delta_ci95": [
+      -0.17,
+      0.02
+    ],
+    "style_deltas": {
+      "balanced": -0.1,
+      "pressure": 0.25,
+      "burst": -0.175,
+      "defensive": -0.125,
+      "potions": -0.225
+    },
+    "reason": "retain incumbent: insufficient or regressed evidence",
+    "domain": "approximate-pre-aos-simulator",
+    "public_deployment": false
+  },
+  "vs_plain_ppo": {
+    "passed": false,
+    "enough_evidence": true,
+    "valid_templates": true,
+    "valid_episodes": true,
+    "paired_delta": 0.015,
+    "delta_ci95": [
+      -0.08,
+      0.11
+    ],
+    "style_deltas": {
+      "balanced": -0.225,
+      "pressure": 0.325,
+      "burst": 0.025,
+      "defensive": 0.075,
+      "potions": -0.125
+    },
+    "reason": "retain incumbent: insufficient or regressed evidence",
+    "domain": "approximate-pre-aos-simulator",
+    "public_deployment": false
+  },
+  "vs_bc": {
+    "passed": false,
+    "enough_evidence": true,
+    "valid_templates": true,
+    "valid_episodes": true,
+    "paired_delta": -0.035,
+    "delta_ci95": [
+      -0.13,
+      0.06
+    ],
+    "style_deltas": {
+      "balanced": -0.25,
+      "pressure": 0.225,
+      "burst": -0.15,
+      "defensive": 0.0,
+      "potions": 0.0
+    },
+    "reason": "retain incumbent: insufficient or regressed evidence",
+    "domain": "approximate-pre-aos-simulator",
+    "public_deployment": false
+  },
+  "registry": {
+    "bc_gate": {
+      "delta_ci95": [
+        0.48,
+        0.665
+      ],
+      "domain": "approximate-pre-aos-simulator",
+      "enough_evidence": true,
+      "paired_delta": 0.575,
+      "passed": true,
+      "public_deployment": false,
+      "reason": "improved",
+      "style_deltas": {
+        "balanced": 0.575,
+        "burst": 0.75,
+        "defensive": 0.5,
+        "potions": 0.5,
+        "pressure": 0.55
+      },
+      "valid_episodes": true,
+      "valid_templates": true
+    },
+    "demonstration_steps": 32768,
+    "ppo_gate": {
+      "delta_ci95": [
+        -0.13,
+        0.06
+      ],
+      "domain": "approximate-pre-aos-simulator",
+      "enough_evidence": true,
+      "paired_delta": -0.035,
+      "passed": false,
+      "public_deployment": false,
+      "reason": "retain incumbent: insufficient or regressed evidence",
+      "style_deltas": {
+        "balanced": -0.25,
+        "burst": -0.15,
+        "defensive": 0.0,
+        "potions": 0.0,
+        "pressure": 0.225
+      },
+      "valid_episodes": true,
+      "valid_templates": true
+    },
+    "public_deployment": false,
+    "real_server_strength_established": false,
+    "selected_checkpoint": "/Users/dkkang/dev/uo/arena-worktrees/anima3-training-league/.logs/curriculum-rehearsal-20261008/warmstart",
+    "selected_sha": "772c0fc6f5cacae8e0bd8cde8faf0c51e1fd1094fc76580e08ff982ee29d6232",
+    "selection_gate": {
+      "delta_ci95": [
+        -0.13,
+        0.06
+      ],
+      "domain": "approximate-pre-aos-simulator",
+      "enough_evidence": true,
+      "paired_delta": -0.035,
+      "passed": false,
+      "public_deployment": false,
+      "reason": "retain incumbent: insufficient or regressed evidence",
+      "style_deltas": {
+        "balanced": -0.25,
+        "burst": -0.15,
+        "defensive": 0.0,
+        "potions": 0.0,
+        "pressure": 0.225
+      },
+      "valid_episodes": true,
+      "valid_templates": true
+    },
+    "selection_scope": "experimental-training-only",
+    "status": "complete",
+    "training_steps": 65536
+  }
+}

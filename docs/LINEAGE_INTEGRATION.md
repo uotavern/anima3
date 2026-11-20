@@ -1317,6 +1317,146 @@ Deferred:
   baseline: the 95% interval of the Brier difference spans zero. A port needs
   its own authorization and a mocked client.
 
+## Unit 9 Historical experiment record reconciliation
+
+Based on unit 8 (`e8451a4`), this unit adds records and an index, and no code:
+
+- `docs/history/lineage/`: byte-exact copies of the lineage's experiment records,
+  each at its source path below that root.
+- `docs/history/index.json`: their provenance and a reconciliation of 27 experiments.
+- `docs/history/README.md`: the readable index and status vocabulary.
+- `tests/test_history_records.py`: stdlib checks of both, offline.
+
+No training, evaluation, selection, promotion, server or network access is involved. No
+module under `anima3/` changes.
+
+### Source provenance
+
+| Source | Imported | Recorded but not imported |
+| --- | --- | --- |
+| `feat/training-league` at `819f4f4` | 76 files: all of `docs/experiments/` except one, all of `docs/training/`, `NEURAL_DUEL.ko.md`, `TEN_DUEL_EXPERIMENT.ko.md`, `SELF_PLAY_ROADMAP.ko.md`, and the READMEs and manifests of the four `models/` checkpoints | The 12 checkpoint blobs (6.2 MB, schema v1); the Pluto binary analysis (6 files); two Jev agent operating guides; `deploy/arena/champion.json` |
+| `feat/arena-100-duels` at `baaaaef` | `docs/experiments/2026-10-02-hundred-live-duels.md`, which adds the remaining-17-fixture section and the scripted-probe distinction. The `819f4f4` version is its byte prefix (8,601 bytes, SHA-256 recorded). | — |
+| Historical worktree `anima3-training-league/.logs` (untracked) | — | 13 `registry.json` hashes. Four equal the registry digests quoted by the imported records. |
+| Parent workspace `uotavern/uo` (private), `ecade9d` and `33e04d9` | — | The Reference BC audit summary, the compatibility smoke, the two narratives and the deployment map: commit, path, SHA-256 and the values the index relies on |
+| Arena host `/opt/uoarena` | — | Replays, episodes, receipts and server checkpoints, by location only |
+
+The other historical worktrees hold no commit outside these two refs. Their committed
+records are ancestors of `819f4f4`. The 77 files total 702,345 bytes. For each file the
+index records:
+
+- source ref, commit and path;
+- the commit that introduced it, with its author time, and the commit that last changed it;
+- the number of revisions;
+- byte count, SHA-256 and Git blob ID.
+
+Records are imported as committed, including the arena host address that the public
+branch already contains. Records that were revised later are imported at their final
+version: append-only ledgers, and the Reference BC live plan, whose `status` changed from
+`prepared_not_launched` to `launched` in `ecfe9f3`.
+
+### Boundaries
+
+- **Chronology.** The 27 experiments are ordered by the UTC author time of the commit that
+  first recorded each one, from the ten-match Jev pilot (2026-09-29) to the potion-defence
+  pilot (2026-10-11). Experiments overlapped in time, so this is recording order.
+  - Every file is the primary record of exactly one experiment.
+  - Shared ledgers (`2026-10-07-effective-training.md`, `league-v2.md`,
+    `NEURAL_DUEL.ko.md`, `2026-10-11-tactical-options.md`) are also listed as context
+    of later experiments.
+- **Failures stay in.** Each experiment states its hypothesis, configuration, outcome and
+  one result: `passed_gate` 1, `failed_gate` 10, `simulator_only` 4, `negative` 3,
+  `diagnostic` 8, `invalidated` 1.
+  - `gate_records` lists every gate decision object in the imported JSON: 48 decisions,
+    36 of them failed. A test re-derives that list from the files.
+  - 17 candidates are `rejected` and two are `invalidated`.
+  - Candidates whose record never wrote a SHA-256 are kept with `sha256: null`, not
+    given an invented identity.
+- **Selection is not deployment.**
+  - `selection` and `deployment` are separate fields.
+  - `registry_selected` means an experimental registry named the checkpoint. That is
+    either a run-local simulator registry or the live experimental registry.
+  - `public_deployment` requires `deployment_evidence` naming an indexed record of kind
+    `deployment_evidence`. There is none, so all 27 experiments and their candidates are
+    `not_deployed`.
+- **Verified finding: no neural policy was publicly deployed.**
+  - Every `public_deployment` field in the imported JSON is false.
+  - The registry is documented as experimental, and each checkpoint README disclaims
+    public replacement.
+  - The parent audit and compatibility smoke of 2026-11-17 record no public deployment.
+  - The parent deployment map of the same day lists no arena worker or learner service.
+  - Limits: stored flags and files on disk do not show which bytes a running process
+    loaded. The `/opt/uoarena` snapshots that the lineage calls "deployed" ran unranked
+    training matches between training accounts.
+  - ServUO patches were deployed to the arena shard in E08, E11 and E20. They are listed
+    as `server_changes`: game server changes, not policies.
+- **Completed evidence attached.** The only passing live result is E24: Reference BC
+  `af3cb4ad…8175` against `0c6ca921…f56d`, +0.165 [+0.045, +0.285], potions −0.05.
+  - It links to the parent's independent re-audit of all 200 receipts and to the
+    two-game compatibility smoke.
+  - The re-audit's selected SHA and registry SHA-256 equal the imported record's. The
+    smoke reports the historical registry unchanged.
+  - Neither result is copied into a historical record.
+
+### Offline acceptance
+
+`tests/test_history_records.py` uses only the standard library and pytest. It has 17
+cases. They check that:
+
+- every indexed file exists with its recorded byte count, SHA-256 and Git blob ID;
+- the import root holds exactly the indexed files and no binaries;
+- the `baaaaef` record extends the `819f4f4` version byte for byte;
+- the experiments are in chronological order, and each `recorded_at_utc` follows from
+  its files;
+- every file is the primary record of exactly one experiment;
+- all fields use the documented vocabulary;
+- every candidate SHA-256 occurs in that experiment's records;
+- the gate list equals the gates re-derived from the JSON files (48, of which 36
+  failed), and there are 17 rejected candidates;
+- no experiment or candidate claims public deployment without linked evidence. A
+  negative test feeds four forged claims to the same check, and each is refused.
+- no imported record contains `public_deployment: true`;
+- the E24 registry selection agrees with the parent audit and the smoke;
+- the four local registry hashes equal the digests quoted inside the imported records;
+- the 12 recorded checkpoint blobs equal the descriptors in the imported manifests.
+
+Source commits are tested as full hashes against the recorded lineage. When the lineage
+commits are present in the clone, one more case checks each file's blob at its source
+commit, the ancestry of its introducing commit and the excluded documents' blobs. CI's
+shallow checkout skips that case. Locally it passes.
+
+These mutations each fail a test:
+
+- swapping two experiments;
+- dropping the failed gate records;
+- dropping a rejected candidate;
+- marking the selected candidate as publicly deployed;
+- editing `public_deployment` inside a record.
+
+| Environment | Result | Change |
+| --- | --- | --- |
+| Without torch (`--extra dev --extra jeff`) | **540 passing, 4 skipped** | 523 prior plus 17 history cases. The git case runs locally. |
+| With `--extra neural` | **653 passing** | 636 prior plus 17 history cases |
+
+CI adds `tests/test_history_records.py` to the scoped Ruff gate. No dependency,
+lockfile, workflow job or module under `anima3/` changes.
+
+Deferred:
+
+- The 12 checkpoint blobs. Their manifests and READMEs are imported; the blobs stay on
+  `origin/feat/training-league` with their hashes in the index. They are schema-v1
+  policies that the current loader refuses.
+- Untracked run data in the historical worktree (about 635 MB with checkpoints and
+  episodes) and all remote run data. Neither has a source commit, and the remote data
+  is outside the offline rule.
+- The parent workspace evidence. Its repository is private and this one is public, so
+  only hashes and the values used are recorded.
+- The third-party Pluto analysis, which needs its own redistribution review, and the Jev
+  agent guides and champion configuration. None of them is an experiment result.
+- The final table of the 100-match run. The committed protocol ends at the remaining-17
+  launch. The run's totals (100 matches, 94 updates, simulator 0.385 to 0.06) appear
+  only in `2026-10-06-historical-evaluation.json`. The per-match collection is on the
+  arena host.
+
 ## Remaining separately verified units
 
 | Order | Unit and likely files | Dependencies and acceptance |
@@ -1328,17 +1468,16 @@ Deferred:
 | 6 (integrated) | Live receipts, evaluation and bounded resume: `neural/live.py` | Units 2–5; prove count/duplicate/invalid-fixture handling, immutable arm policy identities and account locking before any separately authorized live fixture. |
 | 7 (integrated) | Evaluation statistics, selection gate and verified PPO: `neural/evaluation.py`, `neural/splits.py`, `neural/train.py` | Units 5–6; isolate training from evaluation, require an explicit held-out set, fixed budget floors, an explicit discount clock (`discount_time_unit` has no default; the source live update used 1.0, elapsed seconds), seat-paired blocks, single-use evidence and per-opponent regression rejection. No training, evaluation or promotion is run. |
 | 7b | Simulator, simulator BC and league self-play: `sim.py`, `setup_drill`, `league.py` | Units 7–8; seeded simulator evaluation through the unit-7 gate, simulator rollouts never live PPO episodes, optimizer/RNG resume idempotence. Live demonstrations and BC on them moved to unit 8. Simulator gain is not live gain. |
-| 8 (this unit) | Tactical teacher, probes, live demonstrations and BC: `neural/teacher.py`, `neural/melee.py`, `neural/demonstrations.py`, `neural/imitation.py` | Units 4, 6 and 7. Teacher and probe arms are never neural; demonstrations stay out of PPO records with verified provenance from training collections only; frozen-policy behaviour unchanged. The optional Jev shadow analysis is deferred (remote model service). |
-| 9 | Historical experiment record reconciliation | Preserve chronology and failed candidates; attach completed evidence without interpreting registry selection as public deployment. |
+| 8 (integrated) | Tactical teacher, probes, live demonstrations and BC: `neural/teacher.py`, `neural/melee.py`, `neural/demonstrations.py`, `neural/imitation.py` | Units 4, 6 and 7. Teacher and probe arms are never neural; demonstrations stay out of PPO records with verified provenance from training collections only; frozen-policy behaviour unchanged. The optional Jev shadow analysis is deferred (remote model service). |
+| 9 (integrated) | Historical experiment record reconciliation: `docs/history/` | Preserve chronology and failed candidates; attach completed evidence without interpreting registry selection as public deployment. |
 
 These are dependency boundaries, not permission to launch training or replace
 workers. Large originating commits should be split by the table's behavior and
 its tests, not cherry-picked wholesale simply because their title matches.
 
 `feat/arena-100-duels` also has the extra commit `baaaaef` (remaining 17 fixtures
-and scripted-probe distinction) absent from the training tip. Preserve it in the
-historical-record unit instead of assuming `training-league` subsumes every
-worktree. The independently audited selected Reference BC result and current
+and scripted-probe distinction) absent from the training tip. Unit 9 preserves it in
+`docs/history/` instead of assuming `training-league` subsumes every worktree. The independently audited selected Reference BC result and current
 compatibility smoke are recorded in the parent workspace's
 `docs/model-evidence.md` and `docs/model-readiness.md`.
 

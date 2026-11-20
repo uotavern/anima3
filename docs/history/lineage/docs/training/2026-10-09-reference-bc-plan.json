@@ -1,0 +1,29 @@
+{
+  "purpose": "Controlled fixed-budget BC versus reference-regularized BC on new data",
+  "dataset": "/opt/uoarena/anima3-demonstrations-7b97aba/.logs/candidate-teacher-collection-50-20261009",
+  "require_complete_matches": 50,
+  "train_matches": 40,
+  "validation_matches": 10,
+  "collection_policy_sha": "5e03b62457dec56b80ec8e87c700cae29433a498103ad3f273b7d3fe45cfe0cc",
+  "initial_and_reference_sha": "0c6ca921e8bfd19fbaab3fa353d11819b2ba523cd1a810c2c4782447b7a5f56d",
+  "epochs": 8,
+  "seed": 20261020,
+  "optimizer": "Adam",
+  "learning_rate": 0.0001,
+  "balance_actions": true,
+  "arms": [
+    {
+      "name": "bc",
+      "reference_kl_coef": 0.0
+    },
+    {
+      "name": "reference-bc",
+      "reference_kl_coef": 0.5
+    }
+  ],
+  "variable": "Only reference KL coefficient; identical initial checkpoint, data, epochs, seed and action weighting",
+  "analysis": "Report held-out imitation likelihood, accuracy and action distributions for both arms. These do not establish live strength.",
+  "live_selection": "The reference-bc hypothesis is the prespecified candidate for fresh live evaluation. Do not choose an arm by the historical 200/400 results or pool historical results.",
+  "failure_behavior": "Stop if dataset incomplete, receipts invalid or expected collection policy differs; no partial-data fit.",
+  "public_deployment": false
+}

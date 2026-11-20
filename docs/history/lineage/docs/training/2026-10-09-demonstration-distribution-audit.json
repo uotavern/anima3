@@ -1,0 +1,1122 @@
+{
+  "parent": {
+    "train": {
+      "episodes": 18,
+      "free_choices": 5159,
+      "cross_entropy": 2.227974774634036,
+      "accuracy": 0.42857142857142855,
+      "per_action": {
+        "weaken": {
+          "labels": 18,
+          "accuracy": 0.2222222222222222
+        },
+        "clumsy": {
+          "labels": 18,
+          "accuracy": 0.05555555555555555
+        },
+        "burst_bolt": {
+          "labels": 8,
+          "accuracy": 0.0
+        },
+        "agility_potion": {
+          "labels": 22,
+          "accuracy": 0.5454545454545454
+        },
+        "hold": {
+          "labels": 2281,
+          "accuracy": 0.36036825953529156
+        },
+        "explosion": {
+          "labels": 14,
+          "accuracy": 0.35714285714285715
+        },
+        "heal_potion": {
+          "labels": 76,
+          "accuracy": 0.4605263157894737
+        },
+        "energy_bolt": {
+          "labels": 25,
+          "accuracy": 0.16
+        },
+        "refresh_potion": {
+          "labels": 67,
+          "accuracy": 0.373134328358209
+        },
+        "magic_arrow": {
+          "labels": 242,
+          "accuracy": 0.3347107438016529
+        },
+        "explosion_potion": {
+          "labels": 15,
+          "accuracy": 0.7333333333333333
+        },
+        "greater_heal": {
+          "labels": 57,
+          "accuracy": 0.5263157894736842
+        },
+        "retreat": {
+          "labels": 938,
+          "accuracy": 0.6673773987206824
+        },
+        "heal": {
+          "labels": 128,
+          "accuracy": 0.3125
+        },
+        "meditate": {
+          "labels": 132,
+          "accuracy": 0.4621212121212121
+        },
+        "approach": {
+          "labels": 832,
+          "accuracy": 0.2800480769230769
+        },
+        "stun": {
+          "labels": 31,
+          "accuracy": 0.967741935483871
+        },
+        "harm": {
+          "labels": 222,
+          "accuracy": 0.8558558558558559
+        },
+        "poison": {
+          "labels": 32,
+          "accuracy": 0.0
+        },
+        "punch": {
+          "labels": 1,
+          "accuracy": 1.0
+        }
+      },
+      "action_distribution": {
+        "hold": {
+          "labels": 2281,
+          "label_share": 0.4421399496026362,
+          "mean_probability": 0.19859268850751394,
+          "argmax_share": 0.1822058538476449,
+          "legal_share": 1.0
+        },
+        "approach": {
+          "labels": 832,
+          "label_share": 0.16127156425663888,
+          "mean_probability": 0.07046711674824037,
+          "argmax_share": 0.05563093622795115,
+          "legal_share": 0.7670091102926924
+        },
+        "retreat": {
+          "labels": 938,
+          "label_share": 0.18181818181818182,
+          "mean_probability": 0.11804543951594675,
+          "argmax_share": 0.14479550300445823,
+          "legal_share": 0.7747625508819539
+        },
+        "strafe_left": {
+          "labels": 0,
+          "label_share": 0.0,
+          "mean_probability": 0.0010278857837820823,
+          "argmax_share": 0.0,
+          "legal_share": 0.9352587710796666
+        },
+        "strafe_right": {
+          "labels": 0,
+          "label_share": 0.0,
+          "mean_probability": 0.0010271646711620494,
+          "argmax_share": 0.0,
+          "legal_share": 0.9352587710796666
+        },
+        "weaken": {
+          "labels": 18,
+          "label_share": 0.003489048265167668,
+          "mean_probability": 0.0031470584788596398,
+          "argmax_share": 0.0007753440589261484,
+          "legal_share": 0.2899786780383795
+        },
+        "clumsy": {
+          "labels": 18,
+          "label_share": 0.003489048265167668,
+          "mean_probability": 0.0018607142853816867,
+          "argmax_share": 0.0011630160883892228,
+          "legal_share": 0.2899786780383795
+        },
+        "magic_arrow": {
+          "labels": 242,
+          "label_share": 0.046908315565031986,
+          "mean_probability": 0.024743286206698453,
+          "argmax_share": 0.0188020934289591,
+          "legal_share": 0.2899786780383795
+        },
+        "harm": {
+          "labels": 222,
+          "label_share": 0.04303159527040124,
+          "mean_probability": 0.03878849322116856,
+          "argmax_share": 0.039930219034696644,
+          "legal_share": 0.1546811397557666
+        },
+        "explosion": {
+          "labels": 14,
+          "label_share": 0.0027137042062415195,
+          "mean_probability": 0.004619645409899529,
+          "argmax_share": 0.004458228338825354,
+          "legal_share": 0.08858305873231247
+        },
+        "energy_bolt": {
+          "labels": 25,
+          "label_share": 0.004845900368288428,
+          "mean_probability": 0.006135916374550501,
+          "argmax_share": 0.004845900368288428,
+          "legal_share": 0.08858305873231247
+        },
+        "flamestrike": {
+          "labels": 0,
+          "label_share": 0.0,
+          "mean_probability": 7.348840246785245e-06,
+          "argmax_share": 0.0,
+          "legal_share": 0.06396588486140725
+        },
+        "greater_heal": {
+          "labels": 57,
+          "label_share": 0.011048652839697616,
+          "mean_probability": 0.005905160355362149,
+          "argmax_share": 0.006590424500872262,
+          "legal_share": 0.06338437681721264
+        },
+        "heal": {
+          "labels": 128,
+          "label_share": 0.02481100988563675,
+          "mean_probability": 0.008839396828792876,
+          "argmax_share": 0.0077534405892614846,
+          "legal_share": 0.18143050978871875
+        },
+        "cure": {
+          "labels": 0,
+          "label_share": 0.0,
+          "mean_probability": 0.0,
+          "argmax_share": 0.0,
+          "legal_share": 0.0
+        },
+        "poison": {
+          "labels": 32,
+          "label_share": 0.0062027524714091875,
+          "mean_probability": 0.00010488982921568805,
+          "argmax_share": 0.0,
+          "legal_share": 0.12444272145764683
+        },
+        "paralyze": {
+          "labels": 0,
+          "label_share": 0.0,
+          "mean_probability": 6.4915124829283e-05,
+          "argmax_share": 0.0,
+          "legal_share": 0.07443302965691026
+        },
+        "meditate": {
+          "labels": 132,
+          "label_share": 0.0255863539445629,
+          "mean_probability": 0.14471462694787,
+          "argmax_share": 0.14867222329908897,
+          "legal_share": 0.3973638301996511
+        },
+        "heal_potion": {
+          "labels": 76,
+          "label_share": 0.014731537119596821,
+          "mean_probability": 0.010732653321669575,
+          "argmax_share": 0.010660980810234541,
+          "legal_share": 0.14266330684241132
+        },
+        "cure_potion": {
+          "labels": 0,
+          "label_share": 0.0,
+          "mean_probability": 0.0,
+          "argmax_share": 0.0,
+          "legal_share": 0.0
+        },
+        "explosion_potion": {
+          "labels": 15,
+          "label_share": 0.002907540220973057,
+          "mean_probability": 0.30064425072085754,
+          "argmax_share": 0.3283582089552239,
+          "legal_share": 0.4043419267299864
+        },
+        "burst_bolt": {
+          "labels": 8,
+          "label_share": 0.0015506881178522969,
+          "mean_probability": 0.00341084783956467,
+          "argmax_share": 0.002907540220973057,
+          "legal_share": 0.018608257414227565
+        },
+        "burst_flame": {
+          "labels": 0,
+          "label_share": 0.0,
+          "mean_probability": 1.324438923357731e-06,
+          "argmax_share": 0.0,
+          "legal_share": 0.016476061252180655
+        },
+        "punch": {
+          "labels": 1,
+          "label_share": 0.0001938360147315371,
+          "mean_probability": 0.0002514980365522615,
+          "argmax_share": 0.0001938360147315371,
+          "legal_share": 0.003489048265167668
+        },
+        "stun": {
+          "labels": 31,
+          "label_share": 0.006008916456677651,
+          "mean_probability": 0.005952387582826626,
+          "argmax_share": 0.006396588486140725,
+          "legal_share": 0.009691800736576855
+        },
+        "refresh_potion": {
+          "labels": 67,
+          "label_share": 0.012987012987012988,
+          "mean_probability": 0.013702926609404208,
+          "argmax_share": 0.011630160883892227,
+          "legal_share": 0.07598371777476255
+        },
+        "agility_potion": {
+          "labels": 22,
+          "label_share": 0.0042643923240938165,
+          "mean_probability": 0.037212363772226954,
+          "argmax_share": 0.02422950184144214,
+          "legal_share": 0.09905020352781546
+        }
+      },
+      "unobserved_label_probability": 0.0021286388589435577,
+      "real_server_strength_established": false
+    },
+    "validation": {
+      "episodes": 10,
+      "free_choices": 1476,
+      "cross_entropy": 1.3617757635852348,
+      "accuracy": 0.6199186991869918,
+      "per_action": {
+        "weaken": {
+          "labels": 10,
+          "accuracy": 0.2
+        },
+        "clumsy": {
+          "labels": 10,
+          "accuracy": 0.0
+        },
+        "explosion": {
+          "labels": 15,
+          "accuracy": 0.3333333333333333
+        },
+        "agility_potion": {
+          "labels": 12,
+          "accuracy": 0.6666666666666666
+        },
+        "stun": {
+          "labels": 21,
+          "accuracy": 0.9523809523809523
+        },
+        "hold": {
+          "labels": 531,
+          "accuracy": 0.7382297551789078
+        },
+        "harm": {
+          "labels": 117,
+          "accuracy": 0.8632478632478633
+        },
+        "refresh_potion": {
+          "labels": 42,
+          "accuracy": 0.35714285714285715
+        },
+        "heal_potion": {
+          "labels": 41,
+          "accuracy": 0.5121951219512195
+        },
+        "greater_heal": {
+          "labels": 33,
+          "accuracy": 0.6363636363636364
+        },
+        "retreat": {
+          "labels": 197,
+          "accuracy": 0.5532994923857868
+        },
+        "explosion_potion": {
+          "labels": 17,
+          "accuracy": 0.5882352941176471
+        },
+        "meditate": {
+          "labels": 47,
+          "accuracy": 0.7021276595744681
+        },
+        "magic_arrow": {
+          "labels": 76,
+          "accuracy": 0.7236842105263158
+        },
+        "heal": {
+          "labels": 42,
+          "accuracy": 0.2857142857142857
+        },
+        "approach": {
+          "labels": 218,
+          "accuracy": 0.463302752293578
+        },
+        "burst_bolt": {
+          "labels": 3,
+          "accuracy": 0.0
+        },
+        "energy_bolt": {
+          "labels": 30,
+          "accuracy": 0.3333333333333333
+        },
+        "poison": {
+          "labels": 14,
+          "accuracy": 0.0
+        }
+      },
+      "action_distribution": {
+        "hold": {
+          "labels": 531,
+          "label_share": 0.3597560975609756,
+          "mean_probability": 0.32021898439363955,
+          "argmax_share": 0.30962059620596205,
+          "legal_share": 1.0
+        },
+        "approach": {
+          "labels": 218,
+          "label_share": 0.14769647696476965,
+          "mean_probability": 0.08961009021637856,
+          "argmax_share": 0.08943089430894309,
+          "legal_share": 0.5853658536585366
+        },
+        "retreat": {
+          "labels": 197,
+          "label_share": 0.1334688346883469,
+          "mean_probability": 0.09489973225723149,
+          "argmax_share": 0.0948509485094851,
+          "legal_share": 0.7547425474254743
+        },
+        "strafe_left": {
+          "labels": 0,
+          "label_share": 0.0,
+          "mean_probability": 0.000728637283641679,
+          "argmax_share": 0.0,
+          "legal_share": 0.8611111111111112
+        },
+        "strafe_right": {
+          "labels": 0,
+          "label_share": 0.0,
+          "mean_probability": 0.000730113499755167,
+          "argmax_share": 0.0,
+          "legal_share": 0.8611111111111112
+        },
+        "weaken": {
+          "labels": 10,
+          "label_share": 0.006775067750677507,
+          "mean_probability": 0.009299756436093813,
+          "argmax_share": 0.0013550135501355014,
+          "legal_share": 0.4383468834688347
+        },
+        "clumsy": {
+          "labels": 10,
+          "label_share": 0.006775067750677507,
+          "mean_probability": 0.003061537605989583,
+          "argmax_share": 0.0013550135501355014,
+          "legal_share": 0.4383468834688347
+        },
+        "magic_arrow": {
+          "labels": 76,
+          "label_share": 0.051490514905149054,
+          "mean_probability": 0.05471337605675184,
+          "argmax_share": 0.052845528455284556,
+          "legal_share": 0.4383468834688347
+        },
+        "harm": {
+          "labels": 117,
+          "label_share": 0.07926829268292683,
+          "mean_probability": 0.07783947557510296,
+          "argmax_share": 0.07588075880758807,
+          "legal_share": 0.2926829268292683
+        },
+        "explosion": {
+          "labels": 15,
+          "label_share": 0.01016260162601626,
+          "mean_probability": 0.014764887391764145,
+          "argmax_share": 0.016260162601626018,
+          "legal_share": 0.20528455284552846
+        },
+        "energy_bolt": {
+          "labels": 30,
+          "label_share": 0.02032520325203252,
+          "mean_probability": 0.016320238280421447,
+          "argmax_share": 0.017615176151761516,
+          "legal_share": 0.20528455284552846
+        },
+        "flamestrike": {
+          "labels": 0,
+          "label_share": 0.0,
+          "mean_probability": 7.530670789093143e-06,
+          "argmax_share": 0.0,
+          "legal_share": 0.17276422764227642
+        },
+        "greater_heal": {
+          "labels": 33,
+          "label_share": 0.022357723577235773,
+          "mean_probability": 0.015182636920517535,
+          "argmax_share": 0.014227642276422764,
+          "legal_share": 0.16124661246612465
+        },
+        "heal": {
+          "labels": 42,
+          "label_share": 0.028455284552845527,
+          "mean_probability": 0.011397107889158195,
+          "argmax_share": 0.008130081300813009,
+          "legal_share": 0.30420054200542007
+        },
+        "cure": {
+          "labels": 0,
+          "label_share": 0.0,
+          "mean_probability": 0.0,
+          "argmax_share": 0.0,
+          "legal_share": 0.0
+        },
+        "poison": {
+          "labels": 14,
+          "label_share": 0.009485094850948509,
+          "mean_probability": 0.0001205462053095168,
+          "argmax_share": 0.0,
+          "legal_share": 0.25
+        },
+        "paralyze": {
+          "labels": 0,
+          "label_share": 0.0,
+          "mean_probability": 7.072336348116014e-05,
+          "argmax_share": 0.0,
+          "legal_share": 0.14159891598915988
+        },
+        "meditate": {
+          "labels": 47,
+          "label_share": 0.03184281842818428,
+          "mean_probability": 0.09825453526956439,
+          "argmax_share": 0.11314363143631437,
+          "legal_share": 0.40989159891598914
+        },
+        "heal_potion": {
+          "labels": 41,
+          "label_share": 0.027777777777777776,
+          "mean_probability": 0.014221533301123182,
+          "argmax_share": 0.014227642276422764,
+          "legal_share": 0.258130081300813
+        },
+        "cure_potion": {
+          "labels": 0,
+          "label_share": 0.0,
+          "mean_probability": 0.0,
+          "argmax_share": 0.0,
+          "legal_share": 0.0
+        },
+        "explosion_potion": {
+          "labels": 17,
+          "label_share": 0.011517615176151762,
+          "mean_probability": 0.10161273999108936,
+          "argmax_share": 0.11246612466124661,
+          "legal_share": 0.19308943089430894
+        },
+        "burst_bolt": {
+          "labels": 3,
+          "label_share": 0.0020325203252032522,
+          "mean_probability": 0.011758994582118775,
+          "argmax_share": 0.014905149051490514,
+          "legal_share": 0.046747967479674794
+        },
+        "burst_flame": {
+          "labels": 0,
+          "label_share": 0.0,
+          "mean_probability": 3.5671978881253523e-06,
+          "argmax_share": 0.0,
+          "legal_share": 0.041327913279132794
+        },
+        "punch": {
+          "labels": 0,
+          "label_share": 0.0,
+          "mean_probability": 0.00015599862307481534,
+          "argmax_share": 0.0,
+          "legal_share": 0.006775067750677507
+        },
+        "stun": {
+          "labels": 21,
+          "label_share": 0.014227642276422764,
+          "mean_probability": 0.012888777955245291,
+          "argmax_share": 0.014905149051490514,
+          "legal_share": 0.02100271002710027
+        },
+        "refresh_potion": {
+          "labels": 42,
+          "label_share": 0.028455284552845527,
+          "mean_probability": 0.03326761622647954,
+          "argmax_share": 0.02981029810298103,
+          "legal_share": 0.15514905149051492
+        },
+        "agility_potion": {
+          "labels": 12,
+          "label_share": 0.008130081300813009,
+          "mean_probability": 0.01887086171112905,
+          "argmax_share": 0.018970189701897018,
+          "legal_share": 0.06910569105691057
+        }
+      },
+      "unobserved_label_probability": 0.00169657063863004,
+      "real_server_strength_established": false
+    }
+  },
+  "candidate": {
+    "train": {
+      "episodes": 18,
+      "free_choices": 5159,
+      "cross_entropy": 0.6989800648297663,
+      "accuracy": 0.6910253925179298,
+      "per_action": {
+        "weaken": {
+          "labels": 18,
+          "accuracy": 0.2222222222222222
+        },
+        "clumsy": {
+          "labels": 18,
+          "accuracy": 0.8888888888888888
+        },
+        "burst_bolt": {
+          "labels": 8,
+          "accuracy": 0.5
+        },
+        "agility_potion": {
+          "labels": 22,
+          "accuracy": 0.6818181818181818
+        },
+        "hold": {
+          "labels": 2281,
+          "accuracy": 0.5484436650591845
+        },
+        "explosion": {
+          "labels": 14,
+          "accuracy": 0.14285714285714285
+        },
+        "heal_potion": {
+          "labels": 76,
+          "accuracy": 0.8157894736842105
+        },
+        "energy_bolt": {
+          "labels": 25,
+          "accuracy": 0.28
+        },
+        "refresh_potion": {
+          "labels": 67,
+          "accuracy": 0.582089552238806
+        },
+        "magic_arrow": {
+          "labels": 242,
+          "accuracy": 0.4297520661157025
+        },
+        "explosion_potion": {
+          "labels": 15,
+          "accuracy": 0.4
+        },
+        "greater_heal": {
+          "labels": 57,
+          "accuracy": 0.8245614035087719
+        },
+        "retreat": {
+          "labels": 938,
+          "accuracy": 0.8507462686567164
+        },
+        "heal": {
+          "labels": 128,
+          "accuracy": 0.75
+        },
+        "meditate": {
+          "labels": 132,
+          "accuracy": 0.8106060606060606
+        },
+        "approach": {
+          "labels": 832,
+          "accuracy": 0.921875
+        },
+        "stun": {
+          "labels": 31,
+          "accuracy": 0.9354838709677419
+        },
+        "harm": {
+          "labels": 222,
+          "accuracy": 0.9459459459459459
+        },
+        "poison": {
+          "labels": 32,
+          "accuracy": 0.0
+        },
+        "punch": {
+          "labels": 1,
+          "accuracy": 1.0
+        }
+      },
+      "action_distribution": {
+        "hold": {
+          "labels": 2281,
+          "label_share": 0.4421399496026362,
+          "mean_probability": 0.2890604319652951,
+          "argmax_share": 0.2616786198875751,
+          "legal_share": 1.0
+        },
+        "approach": {
+          "labels": 832,
+          "label_share": 0.16127156425663888,
+          "mean_probability": 0.16356253318386582,
+          "argmax_share": 0.1692188408606319,
+          "legal_share": 0.7670091102926924
+        },
+        "retreat": {
+          "labels": 938,
+          "label_share": 0.18181818181818182,
+          "mean_probability": 0.1660991816196438,
+          "argmax_share": 0.18104283775925567,
+          "legal_share": 0.7747625508819539
+        },
+        "strafe_left": {
+          "labels": 0,
+          "label_share": 0.0,
+          "mean_probability": 0.005108273086366764,
+          "argmax_share": 0.0027137042062415195,
+          "legal_share": 0.9352587710796666
+        },
+        "strafe_right": {
+          "labels": 0,
+          "label_share": 0.0,
+          "mean_probability": 0.005081479971754557,
+          "argmax_share": 0.0,
+          "legal_share": 0.9352587710796666
+        },
+        "weaken": {
+          "labels": 18,
+          "label_share": 0.003489048265167668,
+          "mean_probability": 0.006654877569455335,
+          "argmax_share": 0.003295212250436131,
+          "legal_share": 0.2899786780383795
+        },
+        "clumsy": {
+          "labels": 18,
+          "label_share": 0.003489048265167668,
+          "mean_probability": 0.005115271799648858,
+          "argmax_share": 0.0062027524714091875,
+          "legal_share": 0.2899786780383795
+        },
+        "magic_arrow": {
+          "labels": 242,
+          "label_share": 0.046908315565031986,
+          "mean_probability": 0.02211328692796153,
+          "argmax_share": 0.02093428959100601,
+          "legal_share": 0.2899786780383795
+        },
+        "harm": {
+          "labels": 222,
+          "label_share": 0.04303159527040124,
+          "mean_probability": 0.039838944660391715,
+          "argmax_share": 0.04303159527040124,
+          "legal_share": 0.1546811397557666
+        },
+        "explosion": {
+          "labels": 14,
+          "label_share": 0.0027137042062415195,
+          "mean_probability": 0.004293019117827455,
+          "argmax_share": 0.0038767202946307423,
+          "legal_share": 0.08858305873231247
+        },
+        "energy_bolt": {
+          "labels": 25,
+          "label_share": 0.004845900368288428,
+          "mean_probability": 0.004612515609784397,
+          "argmax_share": 0.004070556309362279,
+          "legal_share": 0.08858305873231247
+        },
+        "flamestrike": {
+          "labels": 0,
+          "label_share": 0.0,
+          "mean_probability": 4.8046487677168e-05,
+          "argmax_share": 0.0,
+          "legal_share": 0.06396588486140725
+        },
+        "greater_heal": {
+          "labels": 57,
+          "label_share": 0.011048652839697616,
+          "mean_probability": 0.01167569952612335,
+          "argmax_share": 0.01337468501647606,
+          "legal_share": 0.06338437681721264
+        },
+        "heal": {
+          "labels": 128,
+          "label_share": 0.02481100988563675,
+          "mean_probability": 0.02557989423460912,
+          "argmax_share": 0.03178910641597209,
+          "legal_share": 0.18143050978871875
+        },
+        "cure": {
+          "labels": 0,
+          "label_share": 0.0,
+          "mean_probability": 0.0,
+          "argmax_share": 0.0,
+          "legal_share": 0.0
+        },
+        "poison": {
+          "labels": 32,
+          "label_share": 0.0062027524714091875,
+          "mean_probability": 0.00033972366971156637,
+          "argmax_share": 0.0,
+          "legal_share": 0.12444272145764683
+        },
+        "paralyze": {
+          "labels": 0,
+          "label_share": 0.0,
+          "mean_probability": 0.00014987870531972644,
+          "argmax_share": 0.0,
+          "legal_share": 0.07443302965691026
+        },
+        "meditate": {
+          "labels": 132,
+          "label_share": 0.0255863539445629,
+          "mean_probability": 0.042277926491574636,
+          "argmax_share": 0.02694320604768366,
+          "legal_share": 0.3973638301996511
+        },
+        "heal_potion": {
+          "labels": 76,
+          "label_share": 0.014731537119596821,
+          "mean_probability": 0.028352504957215873,
+          "argmax_share": 0.02888156619499903,
+          "legal_share": 0.14266330684241132
+        },
+        "cure_potion": {
+          "labels": 0,
+          "label_share": 0.0,
+          "mean_probability": 0.0,
+          "argmax_share": 0.0,
+          "legal_share": 0.0
+        },
+        "explosion_potion": {
+          "labels": 15,
+          "label_share": 0.002907540220973057,
+          "mean_probability": 0.12574797693836703,
+          "argmax_share": 0.12599340957549912,
+          "legal_share": 0.4043419267299864
+        },
+        "burst_bolt": {
+          "labels": 8,
+          "label_share": 0.0015506881178522969,
+          "mean_probability": 0.0020248868784541922,
+          "argmax_share": 0.0019383601473153711,
+          "legal_share": 0.018608257414227565
+        },
+        "burst_flame": {
+          "labels": 0,
+          "label_share": 0.0,
+          "mean_probability": 1.6216519636424573e-05,
+          "argmax_share": 0.0,
+          "legal_share": 0.016476061252180655
+        },
+        "punch": {
+          "labels": 1,
+          "label_share": 0.0001938360147315371,
+          "mean_probability": 0.00023939126443745765,
+          "argmax_share": 0.0001938360147315371,
+          "legal_share": 0.003489048265167668
+        },
+        "stun": {
+          "labels": 31,
+          "label_share": 0.006008916456677651,
+          "mean_probability": 0.0056852690877922185,
+          "argmax_share": 0.006396588486140725,
+          "legal_share": 0.009691800736576855
+        },
+        "refresh_potion": {
+          "labels": 67,
+          "label_share": 0.012987012987012988,
+          "mean_probability": 0.013195171546628848,
+          "argmax_share": 0.012405504942818375,
+          "legal_share": 0.07598371777476255
+        },
+        "agility_potion": {
+          "labels": 22,
+          "label_share": 0.0042643923240938165,
+          "mean_probability": 0.033127599396124655,
+          "argmax_share": 0.056018608257414226,
+          "legal_share": 0.09905020352781546
+        }
+      },
+      "unobserved_label_probability": 0.01040389477075464,
+      "real_server_strength_established": false
+    },
+    "validation": {
+      "episodes": 10,
+      "free_choices": 1476,
+      "cross_entropy": 0.719468470895032,
+      "accuracy": 0.774390243902439,
+      "per_action": {
+        "weaken": {
+          "labels": 10,
+          "accuracy": 0.2
+        },
+        "clumsy": {
+          "labels": 10,
+          "accuracy": 0.9
+        },
+        "explosion": {
+          "labels": 15,
+          "accuracy": 0.3333333333333333
+        },
+        "agility_potion": {
+          "labels": 12,
+          "accuracy": 0.75
+        },
+        "stun": {
+          "labels": 21,
+          "accuracy": 0.8095238095238095
+        },
+        "hold": {
+          "labels": 531,
+          "accuracy": 0.8097928436911488
+        },
+        "harm": {
+          "labels": 117,
+          "accuracy": 0.9487179487179487
+        },
+        "refresh_potion": {
+          "labels": 42,
+          "accuracy": 0.5714285714285714
+        },
+        "heal_potion": {
+          "labels": 41,
+          "accuracy": 0.8048780487804879
+        },
+        "greater_heal": {
+          "labels": 33,
+          "accuracy": 0.9393939393939394
+        },
+        "retreat": {
+          "labels": 197,
+          "accuracy": 0.8629441624365483
+        },
+        "explosion_potion": {
+          "labels": 17,
+          "accuracy": 0.29411764705882354
+        },
+        "meditate": {
+          "labels": 47,
+          "accuracy": 0.6808510638297872
+        },
+        "magic_arrow": {
+          "labels": 76,
+          "accuracy": 0.5657894736842105
+        },
+        "heal": {
+          "labels": 42,
+          "accuracy": 0.6190476190476191
+        },
+        "approach": {
+          "labels": 218,
+          "accuracy": 0.8027522935779816
+        },
+        "burst_bolt": {
+          "labels": 3,
+          "accuracy": 0.3333333333333333
+        },
+        "energy_bolt": {
+          "labels": 30,
+          "accuracy": 0.6666666666666666
+        },
+        "poison": {
+          "labels": 14,
+          "accuracy": 0.0
+        }
+      },
+      "action_distribution": {
+        "hold": {
+          "labels": 531,
+          "label_share": 0.3597560975609756,
+          "mean_probability": 0.33140694870946,
+          "argmax_share": 0.3340108401084011,
+          "legal_share": 1.0
+        },
+        "approach": {
+          "labels": 218,
+          "label_share": 0.14769647696476965,
+          "mean_probability": 0.13585208020731937,
+          "argmax_share": 0.13211382113821138,
+          "legal_share": 0.5853658536585366
+        },
+        "retreat": {
+          "labels": 197,
+          "label_share": 0.1334688346883469,
+          "mean_probability": 0.1408314588379041,
+          "argmax_share": 0.14227642276422764,
+          "legal_share": 0.7547425474254743
+        },
+        "strafe_left": {
+          "labels": 0,
+          "label_share": 0.0,
+          "mean_probability": 0.0061434936348802064,
+          "argmax_share": 0.0,
+          "legal_share": 0.8611111111111112
+        },
+        "strafe_right": {
+          "labels": 0,
+          "label_share": 0.0,
+          "mean_probability": 0.006162262018246562,
+          "argmax_share": 0.007452574525745257,
+          "legal_share": 0.8611111111111112
+        },
+        "weaken": {
+          "labels": 10,
+          "label_share": 0.006775067750677507,
+          "mean_probability": 0.012288007787756853,
+          "argmax_share": 0.0033875338753387536,
+          "legal_share": 0.4383468834688347
+        },
+        "clumsy": {
+          "labels": 10,
+          "label_share": 0.006775067750677507,
+          "mean_probability": 0.010242162400342937,
+          "argmax_share": 0.012195121951219513,
+          "legal_share": 0.4383468834688347
+        },
+        "magic_arrow": {
+          "labels": 76,
+          "label_share": 0.051490514905149054,
+          "mean_probability": 0.036029578098404375,
+          "argmax_share": 0.036585365853658534,
+          "legal_share": 0.4383468834688347
+        },
+        "harm": {
+          "labels": 117,
+          "label_share": 0.07926829268292683,
+          "mean_probability": 0.07912841603757809,
+          "argmax_share": 0.08265582655826559,
+          "legal_share": 0.2926829268292683
+        },
+        "explosion": {
+          "labels": 15,
+          "label_share": 0.01016260162601626,
+          "mean_probability": 0.016172461009236225,
+          "argmax_share": 0.012195121951219513,
+          "legal_share": 0.20528455284552846
+        },
+        "energy_bolt": {
+          "labels": 30,
+          "label_share": 0.02032520325203252,
+          "mean_probability": 0.02132218580361046,
+          "argmax_share": 0.026422764227642278,
+          "legal_share": 0.20528455284552846
+        },
+        "flamestrike": {
+          "labels": 0,
+          "label_share": 0.0,
+          "mean_probability": 4.565326790334396e-05,
+          "argmax_share": 0.0,
+          "legal_share": 0.17276422764227642
+        },
+        "greater_heal": {
+          "labels": 33,
+          "label_share": 0.022357723577235773,
+          "mean_probability": 0.022764242904496475,
+          "argmax_share": 0.025067750677506776,
+          "legal_share": 0.16124661246612465
+        },
+        "heal": {
+          "labels": 42,
+          "label_share": 0.028455284552845527,
+          "mean_probability": 0.026622633122526516,
+          "argmax_share": 0.02710027100271003,
+          "legal_share": 0.30420054200542007
+        },
+        "cure": {
+          "labels": 0,
+          "label_share": 0.0,
+          "mean_probability": 0.0,
+          "argmax_share": 0.0,
+          "legal_share": 0.0
+        },
+        "poison": {
+          "labels": 14,
+          "label_share": 0.009485094850948509,
+          "mean_probability": 0.00024376995827428104,
+          "argmax_share": 0.0,
+          "legal_share": 0.25
+        },
+        "paralyze": {
+          "labels": 0,
+          "label_share": 0.0,
+          "mean_probability": 0.00011416334083307526,
+          "argmax_share": 0.0,
+          "legal_share": 0.14159891598915988
+        },
+        "meditate": {
+          "labels": 47,
+          "label_share": 0.03184281842818428,
+          "mean_probability": 0.028925962733001267,
+          "argmax_share": 0.025745257452574527,
+          "legal_share": 0.40989159891598914
+        },
+        "heal_potion": {
+          "labels": 41,
+          "label_share": 0.027777777777777776,
+          "mean_probability": 0.032433868676290625,
+          "argmax_share": 0.032520325203252036,
+          "legal_share": 0.258130081300813
+        },
+        "cure_potion": {
+          "labels": 0,
+          "label_share": 0.0,
+          "mean_probability": 0.0,
+          "argmax_share": 0.0,
+          "legal_share": 0.0
+        },
+        "explosion_potion": {
+          "labels": 17,
+          "label_share": 0.011517615176151762,
+          "mean_probability": 0.03647983379650038,
+          "argmax_share": 0.04065040650406504,
+          "legal_share": 0.19308943089430894
+        },
+        "burst_bolt": {
+          "labels": 3,
+          "label_share": 0.0020325203252032522,
+          "mean_probability": 0.007128247123689272,
+          "argmax_share": 0.008130081300813009,
+          "legal_share": 0.046747967479674794
+        },
+        "burst_flame": {
+          "labels": 0,
+          "label_share": 0.0,
+          "mean_probability": 2.291627048958952e-05,
+          "argmax_share": 0.0,
+          "legal_share": 0.041327913279132794
+        },
+        "punch": {
+          "labels": 0,
+          "label_share": 0.0,
+          "mean_probability": 0.00011444795986457526,
+          "argmax_share": 0.0,
+          "legal_share": 0.006775067750677507
+        },
+        "stun": {
+          "labels": 21,
+          "label_share": 0.014227642276422764,
+          "mean_probability": 0.012100791623219621,
+          "argmax_share": 0.012195121951219513,
+          "legal_share": 0.02100271002710027
+        },
+        "refresh_potion": {
+          "labels": 42,
+          "label_share": 0.028455284552845527,
+          "mean_probability": 0.0287907963042889,
+          "argmax_share": 0.029132791327913278,
+          "legal_share": 0.15514905149051492
+        },
+        "agility_potion": {
+          "labels": 12,
+          "label_share": 0.008130081300813009,
+          "mean_probability": 0.008633619492610432,
+          "argmax_share": 0.01016260162601626,
+          "legal_share": 0.06910569105691057
+        }
+      },
+      "unobserved_label_probability": 0.012602936492217352,
+      "real_server_strength_established": false
+    }
+  }
+}

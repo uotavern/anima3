@@ -1,0 +1,16 @@
+{
+  "purpose": "Independent fixed-policy replication after inconclusive 200-game evaluation",
+  "total_games": 400,
+  "games_per_model_per_style": 40,
+  "seed": 20261013,
+  "parent_sha": "0c6ca921e8bfd19fbaab3fa353d11819b2ba523cd1a810c2c4782447b7a5f56d",
+  "candidate_sha": "5e03b62457dec56b80ec8e87c700cae29433a498103ad3f273b7d3fe45cfe0cc",
+  "source": "7b97aba",
+  "bridge": "25378fa",
+  "training_updates": 0,
+  "decision": "Use replication alone; paired bootstrap95 lower bound >0; every style delta >=-.1; valid episodes and templates; no early stopping for favorable results",
+  "prior_evaluation": "Excluded from gradients and primary replication result; report separately",
+  "server_rng": "Uncontrolled; pairing controls style and challenger order only",
+  "public_deployment": false,
+  "output": "/opt/uoarena/anima3-demonstrations-7b97aba/.logs/recovered-bc-replication-400"
+}

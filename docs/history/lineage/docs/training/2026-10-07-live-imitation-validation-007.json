@@ -1,0 +1,149 @@
+{
+  "parent": {
+    "episodes": 1,
+    "free_choices": 120,
+    "cross_entropy": 2.0796105057001113,
+    "accuracy": 0.4666666666666667,
+    "per_action": {
+      "approach": {
+        "labels": 35,
+        "accuracy": 0.05714285714285714
+      },
+      "weaken": {
+        "labels": 1,
+        "accuracy": 1.0
+      },
+      "clumsy": {
+        "labels": 1,
+        "accuracy": 0.0
+      },
+      "magic_arrow": {
+        "labels": 42,
+        "accuracy": 1.0
+      },
+      "explosion": {
+        "labels": 4,
+        "accuracy": 0.0
+      },
+      "heal_potion": {
+        "labels": 1,
+        "accuracy": 1.0
+      },
+      "energy_bolt": {
+        "labels": 3,
+        "accuracy": 0.3333333333333333
+      },
+      "greater_heal": {
+        "labels": 2,
+        "accuracy": 0.0
+      },
+      "meditate": {
+        "labels": 23,
+        "accuracy": 0.391304347826087
+      },
+      "heal": {
+        "labels": 8,
+        "accuracy": 0.0
+      }
+    },
+    "real_server_strength_established": false
+  },
+  "unweighted": {
+    "episodes": 1,
+    "free_choices": 120,
+    "cross_entropy": 2.776384929815928,
+    "accuracy": 0.55,
+    "per_action": {
+      "approach": {
+        "labels": 35,
+        "accuracy": 0.05714285714285714
+      },
+      "weaken": {
+        "labels": 1,
+        "accuracy": 1.0
+      },
+      "clumsy": {
+        "labels": 1,
+        "accuracy": 1.0
+      },
+      "magic_arrow": {
+        "labels": 42,
+        "accuracy": 1.0
+      },
+      "explosion": {
+        "labels": 4,
+        "accuracy": 0.0
+      },
+      "heal_potion": {
+        "labels": 1,
+        "accuracy": 0.0
+      },
+      "energy_bolt": {
+        "labels": 3,
+        "accuracy": 0.3333333333333333
+      },
+      "greater_heal": {
+        "labels": 2,
+        "accuracy": 0.0
+      },
+      "meditate": {
+        "labels": 23,
+        "accuracy": 0.8260869565217391
+      },
+      "heal": {
+        "labels": 8,
+        "accuracy": 0.0
+      }
+    },
+    "real_server_strength_established": false
+  },
+  "balanced": {
+    "episodes": 1,
+    "free_choices": 120,
+    "cross_entropy": 2.3979194859663644,
+    "accuracy": 0.5583333333333333,
+    "per_action": {
+      "approach": {
+        "labels": 35,
+        "accuracy": 0.05714285714285714
+      },
+      "weaken": {
+        "labels": 1,
+        "accuracy": 1.0
+      },
+      "clumsy": {
+        "labels": 1,
+        "accuracy": 1.0
+      },
+      "magic_arrow": {
+        "labels": 42,
+        "accuracy": 0.9761904761904762
+      },
+      "explosion": {
+        "labels": 4,
+        "accuracy": 0.0
+      },
+      "heal_potion": {
+        "labels": 1,
+        "accuracy": 0.0
+      },
+      "energy_bolt": {
+        "labels": 3,
+        "accuracy": 0.3333333333333333
+      },
+      "greater_heal": {
+        "labels": 2,
+        "accuracy": 0.5
+      },
+      "meditate": {
+        "labels": 23,
+        "accuracy": 0.8695652173913043
+      },
+      "heal": {
+        "labels": 8,
+        "accuracy": 0.0
+      }
+    },
+    "real_server_strength_established": false
+  }
+}

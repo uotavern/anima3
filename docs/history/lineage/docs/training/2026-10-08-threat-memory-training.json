@@ -1,0 +1,103 @@
+{
+  "source": "b170aba",
+  "registry": {
+    "bc_gate": {
+      "delta_ci95": [
+        0.555,
+        0.71
+      ],
+      "domain": "approximate-pre-aos-simulator",
+      "enough_evidence": true,
+      "paired_delta": 0.635,
+      "passed": true,
+      "public_deployment": false,
+      "reason": "improved",
+      "style_deltas": {
+        "balanced": 0.675,
+        "burst": 0.725,
+        "defensive": 0.575,
+        "potions": 0.6,
+        "pressure": 0.6
+      },
+      "valid_episodes": true,
+      "valid_templates": true
+    },
+    "demonstration_steps": 32768,
+    "ppo_gate": {
+      "delta_ci95": [
+        -0.2,
+        -0.01
+      ],
+      "domain": "approximate-pre-aos-simulator",
+      "enough_evidence": true,
+      "paired_delta": -0.105,
+      "passed": false,
+      "public_deployment": false,
+      "reason": "retain incumbent: insufficient or regressed evidence",
+      "style_deltas": {
+        "balanced": -0.225,
+        "burst": -0.075,
+        "defensive": -0.025,
+        "potions": -0.075,
+        "pressure": -0.125
+      },
+      "valid_episodes": true,
+      "valid_templates": true
+    },
+    "public_deployment": false,
+    "real_server_strength_established": false,
+    "selected_checkpoint": "/Users/dkkang/dev/uo/arena-worktrees/anima3-training-league/.logs/curriculum-threat-memory-20261008/warmstart",
+    "selected_sha": "772c0fc6f5cacae8e0bd8cde8faf0c51e1fd1094fc76580e08ff982ee29d6232",
+    "selection_gate": {
+      "delta_ci95": [
+        -0.2,
+        -0.01
+      ],
+      "domain": "approximate-pre-aos-simulator",
+      "enough_evidence": true,
+      "paired_delta": -0.105,
+      "passed": false,
+      "public_deployment": false,
+      "reason": "retain incumbent: insufficient or regressed evidence",
+      "style_deltas": {
+        "balanced": -0.225,
+        "burst": -0.075,
+        "defensive": -0.025,
+        "potions": -0.075,
+        "pressure": -0.125
+      },
+      "valid_episodes": true,
+      "valid_templates": true
+    },
+    "selection_scope": "experimental-training-only",
+    "status": "complete",
+    "training_steps": 65536
+  },
+  "scores": {
+    "initial": 0.045,
+    "original-parent": 0.655,
+    "warmstart": 0.68,
+    "candidate": 0.575
+  },
+  "original_to_new_bc": {
+    "passed": false,
+    "enough_evidence": true,
+    "valid_templates": true,
+    "valid_episodes": true,
+    "paired_delta": 0.025,
+    "delta_ci95": [
+      -0.085,
+      0.135
+    ],
+    "style_deltas": {
+      "balanced": 0.125,
+      "pressure": -0.1,
+      "burst": 0.175,
+      "defensive": -0.1,
+      "potions": 0.025
+    },
+    "reason": "retain incumbent: insufficient or regressed evidence",
+    "domain": "approximate-pre-aos-simulator",
+    "public_deployment": false
+  }
+}

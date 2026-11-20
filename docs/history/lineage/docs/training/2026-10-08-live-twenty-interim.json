@@ -1,0 +1,427 @@
+{
+  "scope": "first20of40; interim, no promotion",
+  "matches": [
+    {
+      "checkpoint": "/opt/uoarena/anima3-training-skill-clock-20261007/warmstart",
+      "eligible": true,
+      "invalid_reasons": [],
+      "match_id": "b9e09bf2328e467da2ab19fa4f8b1c33",
+      "policy_sha": "0c6ca921e8bfd19fbaab3fa353d11819b2ba523cd1a810c2c4782447b7a5f56d",
+      "replay": "https://arena.uotavern.com/replay/?replay=b9e09bf2328e467da2ab19fa4f8b1c33",
+      "score": 0.0,
+      "seed": 0,
+      "side": 0,
+      "stage": "evaluation-incumbent",
+      "style": "balanced",
+      "template_verified": true
+    },
+    {
+      "checkpoint": "/opt/uoarena/anima3-training-v8-20261007/candidate-bc",
+      "eligible": true,
+      "invalid_reasons": [],
+      "match_id": "33f309ba6422471e882f4a3cb840c8cb",
+      "policy_sha": "5e56ab6879b253dc7b6f4b6482e06b43fb4dc3a8b5788e756a8e2424f1d7f8d0",
+      "replay": "https://arena.uotavern.com/replay/?replay=33f309ba6422471e882f4a3cb840c8cb",
+      "score": 0.0,
+      "seed": 0,
+      "side": 0,
+      "stage": "evaluation-candidate",
+      "style": "balanced",
+      "template_verified": true
+    },
+    {
+      "checkpoint": "/opt/uoarena/anima3-training-v8-20261007/candidate-bc",
+      "eligible": true,
+      "invalid_reasons": [],
+      "match_id": "b82bcf57e0f54719b8f3629479b3eea5",
+      "policy_sha": "5e56ab6879b253dc7b6f4b6482e06b43fb4dc3a8b5788e756a8e2424f1d7f8d0",
+      "replay": "https://arena.uotavern.com/replay/?replay=b82bcf57e0f54719b8f3629479b3eea5",
+      "score": 1.0,
+      "seed": 0,
+      "side": 1,
+      "stage": "evaluation-candidate",
+      "style": "balanced",
+      "template_verified": true
+    },
+    {
+      "checkpoint": "/opt/uoarena/anima3-training-skill-clock-20261007/warmstart",
+      "eligible": true,
+      "invalid_reasons": [],
+      "match_id": "baf3b6e670b646eb9ca09b564d1e8dc1",
+      "policy_sha": "0c6ca921e8bfd19fbaab3fa353d11819b2ba523cd1a810c2c4782447b7a5f56d",
+      "replay": "https://arena.uotavern.com/replay/?replay=baf3b6e670b646eb9ca09b564d1e8dc1",
+      "score": 1.0,
+      "seed": 0,
+      "side": 1,
+      "stage": "evaluation-incumbent",
+      "style": "balanced",
+      "template_verified": true
+    },
+    {
+      "checkpoint": "/opt/uoarena/anima3-training-skill-clock-20261007/warmstart",
+      "eligible": true,
+      "invalid_reasons": [],
+      "match_id": "bfd16d688f2342868681008434a9fb4a",
+      "policy_sha": "0c6ca921e8bfd19fbaab3fa353d11819b2ba523cd1a810c2c4782447b7a5f56d",
+      "replay": "https://arena.uotavern.com/replay/?replay=bfd16d688f2342868681008434a9fb4a",
+      "score": 1.0,
+      "seed": 1,
+      "side": 0,
+      "stage": "evaluation-incumbent",
+      "style": "balanced",
+      "template_verified": true
+    },
+    {
+      "checkpoint": "/opt/uoarena/anima3-training-v8-20261007/candidate-bc",
+      "eligible": true,
+      "invalid_reasons": [],
+      "match_id": "086bba1b705c415d8b3ebbe5f4af7a37",
+      "policy_sha": "5e56ab6879b253dc7b6f4b6482e06b43fb4dc3a8b5788e756a8e2424f1d7f8d0",
+      "replay": "https://arena.uotavern.com/replay/?replay=086bba1b705c415d8b3ebbe5f4af7a37",
+      "score": 1.0,
+      "seed": 1,
+      "side": 0,
+      "stage": "evaluation-candidate",
+      "style": "balanced",
+      "template_verified": true
+    },
+    {
+      "checkpoint": "/opt/uoarena/anima3-training-v8-20261007/candidate-bc",
+      "eligible": true,
+      "invalid_reasons": [],
+      "match_id": "145a73b76b7341b5b09af32d03bb4c47",
+      "policy_sha": "5e56ab6879b253dc7b6f4b6482e06b43fb4dc3a8b5788e756a8e2424f1d7f8d0",
+      "replay": "https://arena.uotavern.com/replay/?replay=145a73b76b7341b5b09af32d03bb4c47",
+      "score": 0.0,
+      "seed": 1,
+      "side": 1,
+      "stage": "evaluation-candidate",
+      "style": "balanced",
+      "template_verified": true
+    },
+    {
+      "checkpoint": "/opt/uoarena/anima3-training-skill-clock-20261007/warmstart",
+      "eligible": true,
+      "invalid_reasons": [],
+      "match_id": "0101d318d6274af2be625d9f7a85a8ff",
+      "policy_sha": "0c6ca921e8bfd19fbaab3fa353d11819b2ba523cd1a810c2c4782447b7a5f56d",
+      "replay": "https://arena.uotavern.com/replay/?replay=0101d318d6274af2be625d9f7a85a8ff",
+      "score": 1.0,
+      "seed": 1,
+      "side": 1,
+      "stage": "evaluation-incumbent",
+      "style": "balanced",
+      "template_verified": true
+    },
+    {
+      "checkpoint": "/opt/uoarena/anima3-training-skill-clock-20261007/warmstart",
+      "eligible": true,
+      "invalid_reasons": [],
+      "match_id": "c1e54d6f84ae4bf09638ccb90fbf1ffe",
+      "policy_sha": "0c6ca921e8bfd19fbaab3fa353d11819b2ba523cd1a810c2c4782447b7a5f56d",
+      "replay": "https://arena.uotavern.com/replay/?replay=c1e54d6f84ae4bf09638ccb90fbf1ffe",
+      "score": 0.0,
+      "seed": 2,
+      "side": 0,
+      "stage": "evaluation-incumbent",
+      "style": "pressure",
+      "template_verified": true
+    },
+    {
+      "checkpoint": "/opt/uoarena/anima3-training-v8-20261007/candidate-bc",
+      "eligible": true,
+      "invalid_reasons": [],
+      "match_id": "a6d5832d11c2475da7de50b1478701df",
+      "policy_sha": "5e56ab6879b253dc7b6f4b6482e06b43fb4dc3a8b5788e756a8e2424f1d7f8d0",
+      "replay": "https://arena.uotavern.com/replay/?replay=a6d5832d11c2475da7de50b1478701df",
+      "score": 1.0,
+      "seed": 2,
+      "side": 0,
+      "stage": "evaluation-candidate",
+      "style": "pressure",
+      "template_verified": true
+    },
+    {
+      "checkpoint": "/opt/uoarena/anima3-training-v8-20261007/candidate-bc",
+      "eligible": true,
+      "invalid_reasons": [],
+      "match_id": "129afe299c3d427eb57afbcebaf64e6d",
+      "policy_sha": "5e56ab6879b253dc7b6f4b6482e06b43fb4dc3a8b5788e756a8e2424f1d7f8d0",
+      "replay": "https://arena.uotavern.com/replay/?replay=129afe299c3d427eb57afbcebaf64e6d",
+      "score": 1.0,
+      "seed": 2,
+      "side": 1,
+      "stage": "evaluation-candidate",
+      "style": "pressure",
+      "template_verified": true
+    },
+    {
+      "checkpoint": "/opt/uoarena/anima3-training-skill-clock-20261007/warmstart",
+      "eligible": true,
+      "invalid_reasons": [],
+      "match_id": "99d6eface68d42438fadfe120e02cf5c",
+      "policy_sha": "0c6ca921e8bfd19fbaab3fa353d11819b2ba523cd1a810c2c4782447b7a5f56d",
+      "replay": "https://arena.uotavern.com/replay/?replay=99d6eface68d42438fadfe120e02cf5c",
+      "score": 0.0,
+      "seed": 2,
+      "side": 1,
+      "stage": "evaluation-incumbent",
+      "style": "pressure",
+      "template_verified": true
+    },
+    {
+      "checkpoint": "/opt/uoarena/anima3-training-skill-clock-20261007/warmstart",
+      "eligible": true,
+      "invalid_reasons": [],
+      "match_id": "da5d3f3d9c124c7e87c52c3bc9eb4888",
+      "policy_sha": "0c6ca921e8bfd19fbaab3fa353d11819b2ba523cd1a810c2c4782447b7a5f56d",
+      "replay": "https://arena.uotavern.com/replay/?replay=da5d3f3d9c124c7e87c52c3bc9eb4888",
+      "score": 1.0,
+      "seed": 3,
+      "side": 0,
+      "stage": "evaluation-incumbent",
+      "style": "pressure",
+      "template_verified": true
+    },
+    {
+      "checkpoint": "/opt/uoarena/anima3-training-v8-20261007/candidate-bc",
+      "eligible": true,
+      "invalid_reasons": [],
+      "match_id": "90ae7e64358b44c392505d97a7108cee",
+      "policy_sha": "5e56ab6879b253dc7b6f4b6482e06b43fb4dc3a8b5788e756a8e2424f1d7f8d0",
+      "replay": "https://arena.uotavern.com/replay/?replay=90ae7e64358b44c392505d97a7108cee",
+      "score": 1.0,
+      "seed": 3,
+      "side": 0,
+      "stage": "evaluation-candidate",
+      "style": "pressure",
+      "template_verified": true
+    },
+    {
+      "checkpoint": "/opt/uoarena/anima3-training-v8-20261007/candidate-bc",
+      "eligible": true,
+      "invalid_reasons": [],
+      "match_id": "3c80db4c58a04cdebb82d20322b0b3cc",
+      "policy_sha": "5e56ab6879b253dc7b6f4b6482e06b43fb4dc3a8b5788e756a8e2424f1d7f8d0",
+      "replay": "https://arena.uotavern.com/replay/?replay=3c80db4c58a04cdebb82d20322b0b3cc",
+      "score": 0.0,
+      "seed": 3,
+      "side": 1,
+      "stage": "evaluation-candidate",
+      "style": "pressure",
+      "template_verified": true
+    },
+    {
+      "checkpoint": "/opt/uoarena/anima3-training-skill-clock-20261007/warmstart",
+      "eligible": true,
+      "invalid_reasons": [],
+      "match_id": "000931deacc3481dae54af0ce7d7dbfc",
+      "policy_sha": "0c6ca921e8bfd19fbaab3fa353d11819b2ba523cd1a810c2c4782447b7a5f56d",
+      "replay": "https://arena.uotavern.com/replay/?replay=000931deacc3481dae54af0ce7d7dbfc",
+      "score": 1.0,
+      "seed": 3,
+      "side": 1,
+      "stage": "evaluation-incumbent",
+      "style": "pressure",
+      "template_verified": true
+    },
+    {
+      "checkpoint": "/opt/uoarena/anima3-training-skill-clock-20261007/warmstart",
+      "eligible": true,
+      "invalid_reasons": [],
+      "match_id": "96f56f9e038440068ac944e96aa66ff7",
+      "policy_sha": "0c6ca921e8bfd19fbaab3fa353d11819b2ba523cd1a810c2c4782447b7a5f56d",
+      "replay": "https://arena.uotavern.com/replay/?replay=96f56f9e038440068ac944e96aa66ff7",
+      "score": 0.0,
+      "seed": 4,
+      "side": 0,
+      "stage": "evaluation-incumbent",
+      "style": "burst",
+      "template_verified": true
+    },
+    {
+      "checkpoint": "/opt/uoarena/anima3-training-v8-20261007/candidate-bc",
+      "eligible": true,
+      "invalid_reasons": [],
+      "match_id": "fb63d73013b9447db6151bc7f271a2b7",
+      "policy_sha": "5e56ab6879b253dc7b6f4b6482e06b43fb4dc3a8b5788e756a8e2424f1d7f8d0",
+      "replay": "https://arena.uotavern.com/replay/?replay=fb63d73013b9447db6151bc7f271a2b7",
+      "score": 0.0,
+      "seed": 4,
+      "side": 0,
+      "stage": "evaluation-candidate",
+      "style": "burst",
+      "template_verified": true
+    },
+    {
+      "checkpoint": "/opt/uoarena/anima3-training-v8-20261007/candidate-bc",
+      "eligible": true,
+      "invalid_reasons": [],
+      "match_id": "4ea91a46b1cf48e0a3e3181cccfecceb",
+      "policy_sha": "5e56ab6879b253dc7b6f4b6482e06b43fb4dc3a8b5788e756a8e2424f1d7f8d0",
+      "replay": "https://arena.uotavern.com/replay/?replay=4ea91a46b1cf48e0a3e3181cccfecceb",
+      "score": 1.0,
+      "seed": 4,
+      "side": 1,
+      "stage": "evaluation-candidate",
+      "style": "burst",
+      "template_verified": true
+    },
+    {
+      "checkpoint": "/opt/uoarena/anima3-training-skill-clock-20261007/warmstart",
+      "eligible": true,
+      "invalid_reasons": [],
+      "match_id": "411050a189354dcb9d33c49770dc840a",
+      "policy_sha": "0c6ca921e8bfd19fbaab3fa353d11819b2ba523cd1a810c2c4782447b7a5f56d",
+      "replay": "https://arena.uotavern.com/replay/?replay=411050a189354dcb9d33c49770dc840a",
+      "score": 1.0,
+      "seed": 4,
+      "side": 1,
+      "stage": "evaluation-incumbent",
+      "style": "burst",
+      "template_verified": true
+    }
+  ],
+  "teachers": [
+    {
+      "fixture": 1,
+      "match_id": "b9e09bf2328e467da2ab19fa4f8b1c33",
+      "eligible": true,
+      "invalid_reasons": [],
+      "steps": 712
+    },
+    {
+      "fixture": 2,
+      "match_id": "33f309ba6422471e882f4a3cb840c8cb",
+      "eligible": true,
+      "invalid_reasons": [],
+      "steps": 28
+    },
+    {
+      "fixture": 3,
+      "match_id": "b82bcf57e0f54719b8f3629479b3eea5",
+      "eligible": true,
+      "invalid_reasons": [],
+      "steps": 783
+    },
+    {
+      "fixture": 4,
+      "match_id": "baf3b6e670b646eb9ca09b564d1e8dc1",
+      "eligible": true,
+      "invalid_reasons": [],
+      "steps": 791
+    },
+    {
+      "fixture": 5,
+      "match_id": "bfd16d688f2342868681008434a9fb4a",
+      "eligible": true,
+      "invalid_reasons": [],
+      "steps": 795
+    },
+    {
+      "fixture": 6,
+      "match_id": "086bba1b705c415d8b3ebbe5f4af7a37",
+      "eligible": true,
+      "invalid_reasons": [],
+      "steps": 114
+    },
+    {
+      "fixture": 7,
+      "match_id": "145a73b76b7341b5b09af32d03bb4c47",
+      "eligible": true,
+      "invalid_reasons": [],
+      "steps": 83
+    },
+    {
+      "fixture": 8,
+      "match_id": "0101d318d6274af2be625d9f7a85a8ff",
+      "eligible": true,
+      "invalid_reasons": [],
+      "steps": 930
+    },
+    {
+      "fixture": 9,
+      "match_id": "c1e54d6f84ae4bf09638ccb90fbf1ffe",
+      "eligible": true,
+      "invalid_reasons": [],
+      "steps": 121
+    },
+    {
+      "fixture": 10,
+      "match_id": "a6d5832d11c2475da7de50b1478701df",
+      "eligible": true,
+      "invalid_reasons": [],
+      "steps": 718
+    },
+    {
+      "fixture": 11,
+      "match_id": "129afe299c3d427eb57afbcebaf64e6d",
+      "eligible": true,
+      "invalid_reasons": [],
+      "steps": 653
+    },
+    {
+      "fixture": 12,
+      "match_id": "99d6eface68d42438fadfe120e02cf5c",
+      "eligible": true,
+      "invalid_reasons": [],
+      "steps": 745
+    },
+    {
+      "fixture": 13,
+      "match_id": "da5d3f3d9c124c7e87c52c3bc9eb4888",
+      "eligible": true,
+      "invalid_reasons": [],
+      "steps": 753
+    },
+    {
+      "fixture": 14,
+      "match_id": "90ae7e64358b44c392505d97a7108cee",
+      "eligible": true,
+      "invalid_reasons": [],
+      "steps": 721
+    },
+    {
+      "fixture": 15,
+      "match_id": "3c80db4c58a04cdebb82d20322b0b3cc",
+      "eligible": true,
+      "invalid_reasons": [],
+      "steps": 794
+    },
+    {
+      "fixture": 16,
+      "match_id": "000931deacc3481dae54af0ce7d7dbfc",
+      "eligible": true,
+      "invalid_reasons": [],
+      "steps": 791
+    },
+    {
+      "fixture": 17,
+      "match_id": "96f56f9e038440068ac944e96aa66ff7",
+      "eligible": true,
+      "invalid_reasons": [],
+      "steps": 27
+    },
+    {
+      "fixture": 18,
+      "match_id": "fb63d73013b9447db6151bc7f271a2b7",
+      "eligible": true,
+      "invalid_reasons": [],
+      "steps": 27
+    },
+    {
+      "fixture": 19,
+      "match_id": "4ea91a46b1cf48e0a3e3181cccfecceb",
+      "eligible": true,
+      "invalid_reasons": [],
+      "steps": 114
+    },
+    {
+      "fixture": 20,
+      "match_id": "411050a189354dcb9d33c49770dc840a",
+      "eligible": true,
+      "invalid_reasons": [],
+      "steps": 167
+    }
+  ]
+}

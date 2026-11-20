@@ -1,0 +1,29 @@
+{
+  "domain": "approximate-pre-aos-simulator",
+  "historical_real_matches": 100,
+  "historical_updates": 94,
+  "same_code_sha256": {
+    "sim": "3d8a05e6d425151b7105bbbced04355df11d5a0e5c60b535c04cb423149483d5",
+    "train": "256b3b0b69b834364ec9a7ef1fcf078f8a6e5a90ceda281e153f84832ba278c4"
+  },
+  "eval_seed": 3501000000,
+  "sampling": "categorical",
+  "max_episode_steps": 1200,
+  "real_server_strength_established": false,
+  "before": {
+    "policy_sha": "4fd33a5764243f8ce417e5da03a2aca36c8a05f9bb4ac22e691f7769ae49c61c",
+    "games": 200,
+    "wins": 77,
+    "losses": 122,
+    "draws": 1,
+    "win_rate": 0.385
+  },
+  "after": {
+    "policy_sha": "ee89aab57826b02a9d7e2d1b992995a6a68dd63a776ff8fc16d31c9122225b32",
+    "games": 200,
+    "wins": 12,
+    "losses": 188,
+    "draws": 0,
+    "win_rate": 0.06
+  }
+}

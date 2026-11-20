@@ -1,0 +1,806 @@
+{
+  "summary": {
+    "status": "complete",
+    "completed_matches": 28,
+    "budget": 28,
+    "eligible_learner_episodes": 26,
+    "stages": {
+      "train-1": {
+        "games": 8,
+        "score": 0.125,
+        "wins": 1,
+        "draws": 0,
+        "losses": 7,
+        "eligible": 7,
+        "eligible_score": 0.14285714285714285,
+        "verified_templates": 7
+      },
+      "evaluation-incumbent": {
+        "games": 10,
+        "score": 0.0,
+        "wins": 0,
+        "draws": 0,
+        "losses": 10,
+        "eligible": 9,
+        "eligible_score": 0.0,
+        "verified_templates": 10
+      },
+      "evaluation-candidate": {
+        "games": 10,
+        "score": 0.05,
+        "wins": 0,
+        "draws": 1,
+        "losses": 9,
+        "eligible": 10,
+        "eligible_score": 0.05,
+        "verified_templates": 10
+      }
+    },
+    "policy_actions": {
+      "retreat": 116,
+      "hold": 7901,
+      "approach": 95,
+      "weaken": 46,
+      "burst_bolt": 9,
+      "clumsy": 65,
+      "agility_potion": 23,
+      "harm": 228,
+      "energy_bolt": 62,
+      "punch": 4,
+      "refresh_potion": 37,
+      "stun": 19,
+      "greater_heal": 110,
+      "heal_potion": 55,
+      "explosion_potion": 21,
+      "heal": 23,
+      "meditate": 858,
+      "explosion": 72,
+      "magic_arrow": 96,
+      "strafe_left": 7,
+      "flamestrike": 1,
+      "poison": 2,
+      "strafe_right": 2,
+      "paralyze": 1,
+      "cure_potion": 5,
+      "cure": 8
+    },
+    "wire_requests": {
+      "Walk": 216,
+      "CastSpell": 722,
+      "TargetObject": 599,
+      "Use": 145,
+      "Attack": 23,
+      "StunRequest": 19,
+      "UseSkill": 858,
+      "TargetGround": 3,
+      "TargetCancel": 1
+    },
+    "confirmed_stuns": 19,
+    "failed_stun_attempts": 8,
+    "insufficient_stamina_messages": 3,
+    "option_outcomes": {
+      "command completed": 1208,
+      "spell target and mana acknowledged": 570,
+      "concentration disturbed": 133,
+      "potion target acknowledged": 22,
+      "player died": 11,
+      "frozen": 4,
+      "movement blocked before send": 1,
+      "spell expenditure unconfirmed": 3
+    },
+    "observation_age_p95_ms": 272.9521800065413,
+    "rpc_median_ms_by_stage": {
+      "train-1": {
+        "observe": 175.9775299578905,
+        "act:duel_state": 0.946442480199039,
+        "pump": 63.251871964894235,
+        "act:status_request": 0.2588215284049511,
+        "act:Walk": 0.31513103749603033,
+        "act:CastSpell": 0.2825664705596864,
+        "act:TargetObject": 0.29621098656207323,
+        "act:Use": 0.32553105847910047,
+        "act:Attack": 0.338851532433182,
+        "act:StunRequest": 0.2545500174164772,
+        "act:UseSkill": 0.27126597706228495
+      },
+      "evaluation-incumbent": {
+        "observe": 64.10848104860634,
+        "act:duel_state": 0.9420029819011688,
+        "pump": 21.204029966611415,
+        "act:status_request": 0.2849400043487549,
+        "act:CastSpell": 0.32170198392122984,
+        "act:Use": 0.3018720308318734,
+        "act:TargetObject": 0.3187259426340461,
+        "act:UseSkill": 0.3232304588891566,
+        "act:Walk": 0.33147650538012385,
+        "act:TargetGround": 0.3035609843209386,
+        "act:TargetCancel": 0.3060511080548167,
+        "act:StunRequest": 0.2744399243965745,
+        "act:Attack": 0.16633508494123816
+      },
+      "evaluation-candidate": {
+        "observe": 64.77233744226396,
+        "act:duel_state": 0.9392974898219109,
+        "pump": 21.186335012316704,
+        "act:status_request": 0.2472309861332178,
+        "act:CastSpell": 0.3009310457855463,
+        "act:Use": 0.30255597084760666,
+        "act:TargetObject": 0.3132759593427181,
+        "act:Walk": 0.32055098563432693,
+        "act:UseSkill": 0.32417598413303494,
+        "act:Attack": 0.1786800567060709,
+        "act:StunRequest": 0.27274107560515404
+      }
+    },
+    "gate": {
+      "delta_ci95": [
+        0.0,
+        0.15
+      ],
+      "domain": "servuo",
+      "enough_evidence": false,
+      "paired_delta": 0.05,
+      "passed": false,
+      "public_deployment": false,
+      "reason": "retain incumbent: insufficient or regressed evidence",
+      "style_deltas": {
+        "balanced": 0.0,
+        "burst": 0.25,
+        "defensive": 0.0,
+        "potions": 0.0,
+        "pressure": 0.0
+      },
+      "valid_episodes": false,
+      "valid_templates": true
+    },
+    "updates": 1,
+    "public_deployment": false,
+    "real_server_strength_established": false
+  },
+  "registry": {
+    "candidate": "/opt/uoarena/anima3-training-league-20261006/.logs/live-pilot/candidate-001",
+    "gate": {
+      "delta_ci95": [
+        0.0,
+        0.15
+      ],
+      "domain": "servuo",
+      "enough_evidence": false,
+      "paired_delta": 0.05,
+      "passed": false,
+      "public_deployment": false,
+      "reason": "retain incumbent: insufficient or regressed evidence",
+      "style_deltas": {
+        "balanced": 0.0,
+        "burst": 0.25,
+        "defensive": 0.0,
+        "potions": 0.0,
+        "pressure": 0.0
+      },
+      "valid_episodes": false,
+      "valid_templates": true
+    },
+    "incumbent": "/opt/uoarena/anima3-training-league-20261006/warmstart",
+    "pairing": "style and challenger order; server RNG uncontrolled",
+    "public_deployment": false,
+    "real_server_strength_established": false,
+    "rollback_checkpoint": "/opt/uoarena/anima3-training-league-20261006/warmstart",
+    "selected_checkpoint": "/opt/uoarena/anima3-training-league-20261006/warmstart",
+    "selected_sha": "e5915b8ddc9ecf1b5373fef4c9b60d11022584b3363faceac7aed918be67e903"
+  },
+  "batch_update": {
+    "accepted_episodes": 8,
+    "automatic_promotion": false,
+    "collections": [
+      "/opt/uoarena/anima3-training-league-20261006/.logs/live-pilot/fixture-001",
+      "/opt/uoarena/anima3-training-league-20261006/.logs/live-pilot/fixture-002",
+      "/opt/uoarena/anima3-training-league-20261006/.logs/live-pilot/fixture-003",
+      "/opt/uoarena/anima3-training-league-20261006/.logs/live-pilot/fixture-004",
+      "/opt/uoarena/anima3-training-league-20261006/.logs/live-pilot/fixture-005",
+      "/opt/uoarena/anima3-training-league-20261006/.logs/live-pilot/fixture-006",
+      "/opt/uoarena/anima3-training-league-20261006/.logs/live-pilot/fixture-007",
+      "/opt/uoarena/anima3-training-league-20261006/.logs/live-pilot/fixture-008"
+    ],
+    "rejected": [
+      {
+        "file": "/opt/uoarena/anima3-training-league-20261006/.logs/live-pilot/fixture-004/ab9c559443a7406da981e8fedd289a0f/episode-57.json",
+        "reasons": [
+          "wrong_starting_template"
+        ]
+      },
+      {
+        "file": "/opt/uoarena/anima3-training-league-20261006/.logs/live-pilot/fixture-004/ab9c559443a7406da981e8fedd289a0f/episode-58.json",
+        "reasons": [
+          "wrong_starting_template"
+        ]
+      }
+    ],
+    "update": {
+      "automatic_promotion": false,
+      "episodes": 8,
+      "metrics": {
+        "approximate_kl": 0.0009795700789654398,
+        "clip_fraction": 0.008241758305722704,
+        "entropy": 1.0355194825610834,
+        "grad_norm": 1.4034003896550982,
+        "kl_early_stop": false,
+        "optimized_steps": 3820,
+        "policy_loss": -0.01002873797583711,
+        "policy_optimized_steps": 1092,
+        "rollout_steps": 955,
+        "value_loss": 0.12326389883123143
+      },
+      "parent_policy_sha": "e5915b8ddc9ecf1b5373fef4c9b60d11022584b3363faceac7aed918be67e903",
+      "policy_sha": "ec9b2a7ce9f62256bb0701aca8bb031572255b8146104d4f8738925314a6b2e9"
+    }
+  },
+  "audit": {
+    "unique_matches": 28,
+    "evaluation_executor_shas": {
+      "train-1": [
+        "bd7058a756427fd6dc448afc9a48c2fc1b2b3c12be729da2246c838d1f01324a"
+      ],
+      "evaluation-incumbent": [
+        "6ac508e9bc3d051ef19a81b5ff82ca37a1842270d808f1ebab0146119871cee2"
+      ],
+      "evaluation-candidate": [
+        "6ac508e9bc3d051ef19a81b5ff82ca37a1842270d808f1ebab0146119871cee2"
+      ]
+    },
+    "stage_policy_shas": {
+      "train-1": [
+        "e5915b8ddc9ecf1b5373fef4c9b60d11022584b3363faceac7aed918be67e903"
+      ],
+      "evaluation-incumbent": [
+        "e5915b8ddc9ecf1b5373fef4c9b60d11022584b3363faceac7aed918be67e903"
+      ],
+      "evaluation-candidate": [
+        "ec9b2a7ce9f62256bb0701aca8bb031572255b8146104d4f8738925314a6b2e9"
+      ]
+    },
+    "all_evaluation_templates_verified": true,
+    "excluded_evaluation_fixtures": [
+      25
+    ]
+  },
+  "server_reset": [
+    {
+      "fixture": 5,
+      "match": "fb073b69adc343ed87bf1e8e35cfa2df",
+      "lobby_stats": [
+        [
+          100,
+          25,
+          100
+        ],
+        [
+          100,
+          25,
+          100
+        ]
+      ],
+      "countdown_maxima": [
+        [
+          100,
+          100,
+          25
+        ],
+        [
+          100,
+          100,
+          25
+        ]
+      ]
+    },
+    {
+      "fixture": 6,
+      "match": "d0bd068621ca4df590cd87decda27f7b",
+      "lobby_stats": [
+        [
+          100,
+          45,
+          100
+        ],
+        [
+          89,
+          25,
+          100
+        ]
+      ],
+      "countdown_maxima": [
+        [
+          100,
+          100,
+          25
+        ],
+        [
+          100,
+          100,
+          25
+        ]
+      ]
+    },
+    {
+      "fixture": 7,
+      "match": "6ed92e0becf545f3a755399a0c39ad27",
+      "lobby_stats": [
+        [
+          100,
+          45,
+          100
+        ],
+        [
+          89,
+          25,
+          100
+        ]
+      ],
+      "countdown_maxima": [
+        [
+          100,
+          100,
+          25
+        ],
+        [
+          100,
+          100,
+          25
+        ]
+      ]
+    },
+    {
+      "fixture": 8,
+      "match": "414a65be4ef748629a04933dc1e17643",
+      "lobby_stats": [
+        [
+          100,
+          45,
+          100
+        ],
+        [
+          89,
+          34,
+          100
+        ]
+      ],
+      "countdown_maxima": [
+        [
+          100,
+          100,
+          25
+        ],
+        [
+          100,
+          100,
+          25
+        ]
+      ]
+    }
+  ],
+  "matches": [
+    {
+      "fixture": 1,
+      "checkpoint": "/opt/uoarena/anima3-training-league-20261006/warmstart",
+      "eligible": true,
+      "invalid_reasons": [],
+      "match_id": "ae1629d409a541149ab223c6414203aa",
+      "policy_sha": "e5915b8ddc9ecf1b5373fef4c9b60d11022584b3363faceac7aed918be67e903",
+      "replay": "https://arena.uotavern.com/replay/?replay=ae1629d409a541149ab223c6414203aa",
+      "score": 0.0,
+      "seed": 0,
+      "side": 0,
+      "stage": "train-1",
+      "style": "balanced",
+      "template_verified": true
+    },
+    {
+      "fixture": 2,
+      "checkpoint": "/opt/uoarena/anima3-training-league-20261006/warmstart",
+      "eligible": true,
+      "invalid_reasons": [],
+      "match_id": "ba23a8e07ea34c4794244877ffdf40b1",
+      "policy_sha": "e5915b8ddc9ecf1b5373fef4c9b60d11022584b3363faceac7aed918be67e903",
+      "replay": "https://arena.uotavern.com/replay/?replay=ba23a8e07ea34c4794244877ffdf40b1",
+      "score": 0.0,
+      "seed": 0,
+      "side": 1,
+      "stage": "train-1",
+      "style": "pressure",
+      "template_verified": true
+    },
+    {
+      "fixture": 3,
+      "checkpoint": "/opt/uoarena/anima3-training-league-20261006/warmstart",
+      "eligible": true,
+      "invalid_reasons": [],
+      "match_id": "3fd924be9f0d41b1b5d7e706375bd31c",
+      "policy_sha": "e5915b8ddc9ecf1b5373fef4c9b60d11022584b3363faceac7aed918be67e903",
+      "replay": "https://arena.uotavern.com/replay/?replay=3fd924be9f0d41b1b5d7e706375bd31c",
+      "score": 0.0,
+      "seed": 1,
+      "side": 0,
+      "stage": "train-1",
+      "style": "burst",
+      "template_verified": true
+    },
+    {
+      "fixture": 4,
+      "checkpoint": "/opt/uoarena/anima3-training-league-20261006/warmstart",
+      "eligible": false,
+      "invalid_reasons": [
+        "wrong_starting_template"
+      ],
+      "match_id": "ab9c559443a7406da981e8fedd289a0f",
+      "policy_sha": "e5915b8ddc9ecf1b5373fef4c9b60d11022584b3363faceac7aed918be67e903",
+      "replay": "https://arena.uotavern.com/replay/?replay=ab9c559443a7406da981e8fedd289a0f",
+      "score": 0.0,
+      "seed": 1,
+      "side": 1,
+      "stage": "train-1",
+      "style": "historical",
+      "template_verified": false
+    },
+    {
+      "fixture": 5,
+      "checkpoint": "/opt/uoarena/anima3-training-league-20261006/warmstart",
+      "eligible": true,
+      "invalid_reasons": [],
+      "match_id": "fb073b69adc343ed87bf1e8e35cfa2df",
+      "policy_sha": "e5915b8ddc9ecf1b5373fef4c9b60d11022584b3363faceac7aed918be67e903",
+      "replay": "https://arena.uotavern.com/replay/?replay=fb073b69adc343ed87bf1e8e35cfa2df",
+      "score": 0.0,
+      "seed": 2,
+      "side": 0,
+      "stage": "train-1",
+      "style": "potions",
+      "template_verified": true
+    },
+    {
+      "fixture": 6,
+      "checkpoint": "/opt/uoarena/anima3-training-league-20261006/warmstart",
+      "eligible": true,
+      "invalid_reasons": [],
+      "match_id": "d0bd068621ca4df590cd87decda27f7b",
+      "policy_sha": "e5915b8ddc9ecf1b5373fef4c9b60d11022584b3363faceac7aed918be67e903",
+      "replay": "https://arena.uotavern.com/replay/?replay=d0bd068621ca4df590cd87decda27f7b",
+      "score": 0.0,
+      "seed": 2,
+      "side": 1,
+      "stage": "train-1",
+      "style": "balanced",
+      "template_verified": true
+    },
+    {
+      "fixture": 7,
+      "checkpoint": "/opt/uoarena/anima3-training-league-20261006/warmstart",
+      "eligible": true,
+      "invalid_reasons": [],
+      "match_id": "6ed92e0becf545f3a755399a0c39ad27",
+      "policy_sha": "e5915b8ddc9ecf1b5373fef4c9b60d11022584b3363faceac7aed918be67e903",
+      "replay": "https://arena.uotavern.com/replay/?replay=6ed92e0becf545f3a755399a0c39ad27",
+      "score": 0.0,
+      "seed": 3,
+      "side": 0,
+      "stage": "train-1",
+      "style": "pressure",
+      "template_verified": true
+    },
+    {
+      "fixture": 8,
+      "checkpoint": "/opt/uoarena/anima3-training-league-20261006/warmstart",
+      "eligible": true,
+      "invalid_reasons": [],
+      "match_id": "414a65be4ef748629a04933dc1e17643",
+      "policy_sha": "e5915b8ddc9ecf1b5373fef4c9b60d11022584b3363faceac7aed918be67e903",
+      "replay": "https://arena.uotavern.com/replay/?replay=414a65be4ef748629a04933dc1e17643",
+      "score": 1.0,
+      "seed": 3,
+      "side": 1,
+      "stage": "train-1",
+      "style": "historical",
+      "template_verified": true
+    },
+    {
+      "fixture": 9,
+      "checkpoint": "/opt/uoarena/anima3-training-league-20261006/warmstart",
+      "eligible": true,
+      "invalid_reasons": [],
+      "match_id": "f1c5585ef98b4feb92029e42e3c6b3f3",
+      "policy_sha": "e5915b8ddc9ecf1b5373fef4c9b60d11022584b3363faceac7aed918be67e903",
+      "replay": "https://arena.uotavern.com/replay/?replay=f1c5585ef98b4feb92029e42e3c6b3f3",
+      "score": 0.0,
+      "seed": 0,
+      "side": 0,
+      "stage": "evaluation-incumbent",
+      "style": "balanced",
+      "template_verified": true
+    },
+    {
+      "fixture": 10,
+      "checkpoint": "/opt/uoarena/anima3-training-league-20261006/.logs/live-pilot/candidate-001",
+      "eligible": true,
+      "invalid_reasons": [],
+      "match_id": "1aa6c02109f742319c203f5f75506b61",
+      "policy_sha": "ec9b2a7ce9f62256bb0701aca8bb031572255b8146104d4f8738925314a6b2e9",
+      "replay": "https://arena.uotavern.com/replay/?replay=1aa6c02109f742319c203f5f75506b61",
+      "score": 0.0,
+      "seed": 0,
+      "side": 0,
+      "stage": "evaluation-candidate",
+      "style": "balanced",
+      "template_verified": true
+    },
+    {
+      "fixture": 11,
+      "checkpoint": "/opt/uoarena/anima3-training-league-20261006/.logs/live-pilot/candidate-001",
+      "eligible": true,
+      "invalid_reasons": [],
+      "match_id": "2354ab93cca14ce2aa8f3ca1d21ddc1f",
+      "policy_sha": "ec9b2a7ce9f62256bb0701aca8bb031572255b8146104d4f8738925314a6b2e9",
+      "replay": "https://arena.uotavern.com/replay/?replay=2354ab93cca14ce2aa8f3ca1d21ddc1f",
+      "score": 0.0,
+      "seed": 0,
+      "side": 1,
+      "stage": "evaluation-candidate",
+      "style": "balanced",
+      "template_verified": true
+    },
+    {
+      "fixture": 12,
+      "checkpoint": "/opt/uoarena/anima3-training-league-20261006/warmstart",
+      "eligible": true,
+      "invalid_reasons": [],
+      "match_id": "66a443363bae4d5990a79967771a6428",
+      "policy_sha": "e5915b8ddc9ecf1b5373fef4c9b60d11022584b3363faceac7aed918be67e903",
+      "replay": "https://arena.uotavern.com/replay/?replay=66a443363bae4d5990a79967771a6428",
+      "score": 0.0,
+      "seed": 0,
+      "side": 1,
+      "stage": "evaluation-incumbent",
+      "style": "balanced",
+      "template_verified": true
+    },
+    {
+      "fixture": 13,
+      "checkpoint": "/opt/uoarena/anima3-training-league-20261006/warmstart",
+      "eligible": true,
+      "invalid_reasons": [],
+      "match_id": "ea2aadfdb2554eaaa7ace9b109efc862",
+      "policy_sha": "e5915b8ddc9ecf1b5373fef4c9b60d11022584b3363faceac7aed918be67e903",
+      "replay": "https://arena.uotavern.com/replay/?replay=ea2aadfdb2554eaaa7ace9b109efc862",
+      "score": 0.0,
+      "seed": 1,
+      "side": 0,
+      "stage": "evaluation-incumbent",
+      "style": "pressure",
+      "template_verified": true
+    },
+    {
+      "fixture": 14,
+      "checkpoint": "/opt/uoarena/anima3-training-league-20261006/.logs/live-pilot/candidate-001",
+      "eligible": true,
+      "invalid_reasons": [],
+      "match_id": "34692c9c775846a08a61288608d9b66b",
+      "policy_sha": "ec9b2a7ce9f62256bb0701aca8bb031572255b8146104d4f8738925314a6b2e9",
+      "replay": "https://arena.uotavern.com/replay/?replay=34692c9c775846a08a61288608d9b66b",
+      "score": 0.0,
+      "seed": 1,
+      "side": 0,
+      "stage": "evaluation-candidate",
+      "style": "pressure",
+      "template_verified": true
+    },
+    {
+      "fixture": 15,
+      "checkpoint": "/opt/uoarena/anima3-training-league-20261006/.logs/live-pilot/candidate-001",
+      "eligible": true,
+      "invalid_reasons": [],
+      "match_id": "022dced0c4414207ad1ef061c415c771",
+      "policy_sha": "ec9b2a7ce9f62256bb0701aca8bb031572255b8146104d4f8738925314a6b2e9",
+      "replay": "https://arena.uotavern.com/replay/?replay=022dced0c4414207ad1ef061c415c771",
+      "score": 0.0,
+      "seed": 1,
+      "side": 1,
+      "stage": "evaluation-candidate",
+      "style": "pressure",
+      "template_verified": true
+    },
+    {
+      "fixture": 16,
+      "checkpoint": "/opt/uoarena/anima3-training-league-20261006/warmstart",
+      "eligible": true,
+      "invalid_reasons": [],
+      "match_id": "40eb82d4701b41b9b394c85009110c9d",
+      "policy_sha": "e5915b8ddc9ecf1b5373fef4c9b60d11022584b3363faceac7aed918be67e903",
+      "replay": "https://arena.uotavern.com/replay/?replay=40eb82d4701b41b9b394c85009110c9d",
+      "score": 0.0,
+      "seed": 1,
+      "side": 1,
+      "stage": "evaluation-incumbent",
+      "style": "pressure",
+      "template_verified": true
+    },
+    {
+      "fixture": 17,
+      "checkpoint": "/opt/uoarena/anima3-training-league-20261006/warmstart",
+      "eligible": true,
+      "invalid_reasons": [],
+      "match_id": "3ab8dd249db143519e4dd910655ebf45",
+      "policy_sha": "e5915b8ddc9ecf1b5373fef4c9b60d11022584b3363faceac7aed918be67e903",
+      "replay": "https://arena.uotavern.com/replay/?replay=3ab8dd249db143519e4dd910655ebf45",
+      "score": 0.0,
+      "seed": 2,
+      "side": 0,
+      "stage": "evaluation-incumbent",
+      "style": "burst",
+      "template_verified": true
+    },
+    {
+      "fixture": 18,
+      "checkpoint": "/opt/uoarena/anima3-training-league-20261006/.logs/live-pilot/candidate-001",
+      "eligible": true,
+      "invalid_reasons": [],
+      "match_id": "619f357e4e144692b4bcd6ee9e2c13df",
+      "policy_sha": "ec9b2a7ce9f62256bb0701aca8bb031572255b8146104d4f8738925314a6b2e9",
+      "replay": "https://arena.uotavern.com/replay/?replay=619f357e4e144692b4bcd6ee9e2c13df",
+      "score": 0.0,
+      "seed": 2,
+      "side": 0,
+      "stage": "evaluation-candidate",
+      "style": "burst",
+      "template_verified": true
+    },
+    {
+      "fixture": 19,
+      "checkpoint": "/opt/uoarena/anima3-training-league-20261006/.logs/live-pilot/candidate-001",
+      "eligible": true,
+      "invalid_reasons": [],
+      "match_id": "0a2e24a2c48f4895a5e774cc4e76b533",
+      "policy_sha": "ec9b2a7ce9f62256bb0701aca8bb031572255b8146104d4f8738925314a6b2e9",
+      "replay": "https://arena.uotavern.com/replay/?replay=0a2e24a2c48f4895a5e774cc4e76b533",
+      "score": 0.5,
+      "seed": 2,
+      "side": 1,
+      "stage": "evaluation-candidate",
+      "style": "burst",
+      "template_verified": true
+    },
+    {
+      "fixture": 20,
+      "checkpoint": "/opt/uoarena/anima3-training-league-20261006/warmstart",
+      "eligible": true,
+      "invalid_reasons": [],
+      "match_id": "6f7b7e5271324ce88ba6462c07507b41",
+      "policy_sha": "e5915b8ddc9ecf1b5373fef4c9b60d11022584b3363faceac7aed918be67e903",
+      "replay": "https://arena.uotavern.com/replay/?replay=6f7b7e5271324ce88ba6462c07507b41",
+      "score": 0.0,
+      "seed": 2,
+      "side": 1,
+      "stage": "evaluation-incumbent",
+      "style": "burst",
+      "template_verified": true
+    },
+    {
+      "fixture": 21,
+      "checkpoint": "/opt/uoarena/anima3-training-league-20261006/warmstart",
+      "eligible": true,
+      "invalid_reasons": [],
+      "match_id": "06430e515f8b4130875a419281bf30aa",
+      "policy_sha": "e5915b8ddc9ecf1b5373fef4c9b60d11022584b3363faceac7aed918be67e903",
+      "replay": "https://arena.uotavern.com/replay/?replay=06430e515f8b4130875a419281bf30aa",
+      "score": 0.0,
+      "seed": 3,
+      "side": 0,
+      "stage": "evaluation-incumbent",
+      "style": "defensive",
+      "template_verified": true
+    },
+    {
+      "fixture": 22,
+      "checkpoint": "/opt/uoarena/anima3-training-league-20261006/.logs/live-pilot/candidate-001",
+      "eligible": true,
+      "invalid_reasons": [],
+      "match_id": "88b24647c481469aa254a720f14f26e5",
+      "policy_sha": "ec9b2a7ce9f62256bb0701aca8bb031572255b8146104d4f8738925314a6b2e9",
+      "replay": "https://arena.uotavern.com/replay/?replay=88b24647c481469aa254a720f14f26e5",
+      "score": 0.0,
+      "seed": 3,
+      "side": 0,
+      "stage": "evaluation-candidate",
+      "style": "defensive",
+      "template_verified": true
+    },
+    {
+      "fixture": 23,
+      "checkpoint": "/opt/uoarena/anima3-training-league-20261006/.logs/live-pilot/candidate-001",
+      "eligible": true,
+      "invalid_reasons": [],
+      "match_id": "ec073620eb414f2ba77ceb036a9f0a70",
+      "policy_sha": "ec9b2a7ce9f62256bb0701aca8bb031572255b8146104d4f8738925314a6b2e9",
+      "replay": "https://arena.uotavern.com/replay/?replay=ec073620eb414f2ba77ceb036a9f0a70",
+      "score": 0.0,
+      "seed": 3,
+      "side": 1,
+      "stage": "evaluation-candidate",
+      "style": "defensive",
+      "template_verified": true
+    },
+    {
+      "fixture": 24,
+      "checkpoint": "/opt/uoarena/anima3-training-league-20261006/warmstart",
+      "eligible": true,
+      "invalid_reasons": [],
+      "match_id": "5fa770cd1a364a01b00e4884bdc9c260",
+      "policy_sha": "e5915b8ddc9ecf1b5373fef4c9b60d11022584b3363faceac7aed918be67e903",
+      "replay": "https://arena.uotavern.com/replay/?replay=5fa770cd1a364a01b00e4884bdc9c260",
+      "score": 0.0,
+      "seed": 3,
+      "side": 1,
+      "stage": "evaluation-incumbent",
+      "style": "defensive",
+      "template_verified": true
+    },
+    {
+      "fixture": 25,
+      "checkpoint": "/opt/uoarena/anima3-training-league-20261006/warmstart",
+      "eligible": false,
+      "invalid_reasons": [
+        "lost_authoritative_state_no_received_bytes"
+      ],
+      "match_id": "2c779c2c14714e089646ed7d9860fe65",
+      "policy_sha": "e5915b8ddc9ecf1b5373fef4c9b60d11022584b3363faceac7aed918be67e903",
+      "replay": "https://arena.uotavern.com/replay/?replay=2c779c2c14714e089646ed7d9860fe65",
+      "score": 0.0,
+      "seed": 4,
+      "side": 0,
+      "stage": "evaluation-incumbent",
+      "style": "potions",
+      "template_verified": true
+    },
+    {
+      "fixture": 26,
+      "checkpoint": "/opt/uoarena/anima3-training-league-20261006/.logs/live-pilot/candidate-001",
+      "eligible": true,
+      "invalid_reasons": [],
+      "match_id": "24684d7cd70e492aab9eb2e55b1b0cb1",
+      "policy_sha": "ec9b2a7ce9f62256bb0701aca8bb031572255b8146104d4f8738925314a6b2e9",
+      "replay": "https://arena.uotavern.com/replay/?replay=24684d7cd70e492aab9eb2e55b1b0cb1",
+      "score": 0.0,
+      "seed": 4,
+      "side": 0,
+      "stage": "evaluation-candidate",
+      "style": "potions",
+      "template_verified": true
+    },
+    {
+      "fixture": 27,
+      "checkpoint": "/opt/uoarena/anima3-training-league-20261006/.logs/live-pilot/candidate-001",
+      "eligible": true,
+      "invalid_reasons": [],
+      "match_id": "e9f705befaac47d8856c3fd4bda0f662",
+      "policy_sha": "ec9b2a7ce9f62256bb0701aca8bb031572255b8146104d4f8738925314a6b2e9",
+      "replay": "https://arena.uotavern.com/replay/?replay=e9f705befaac47d8856c3fd4bda0f662",
+      "score": 0.0,
+      "seed": 4,
+      "side": 1,
+      "stage": "evaluation-candidate",
+      "style": "potions",
+      "template_verified": true
+    },
+    {
+      "fixture": 28,
+      "checkpoint": "/opt/uoarena/anima3-training-league-20261006/warmstart",
+      "eligible": true,
+      "invalid_reasons": [],
+      "match_id": "f4c4ab83af0d4ea09b7970077fd56a03",
+      "policy_sha": "e5915b8ddc9ecf1b5373fef4c9b60d11022584b3363faceac7aed918be67e903",
+      "replay": "https://arena.uotavern.com/replay/?replay=f4c4ab83af0d4ea09b7970077fd56a03",
+      "score": 0.0,
+      "seed": 4,
+      "side": 1,
+      "stage": "evaluation-incumbent",
+      "style": "potions",
+      "template_verified": true
+    }
+  ]
+}

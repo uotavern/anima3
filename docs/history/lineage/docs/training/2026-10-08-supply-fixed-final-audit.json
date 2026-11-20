@@ -1,0 +1,25 @@
+{
+  "status": "terminated_after_started_final_fixture",
+  "completed_collections": 27,
+  "actual_matches": 28,
+  "final_match_id": "21c00c4e82964f4d9794f38e82d677d1",
+  "final_match_receipt_verified": true,
+  "final_match_learning_eligible": false,
+  "reason": "learner lost authoritative state; no complete actor trajectory",
+  "public_deployment": false,
+  "selected_checkpoint": "original incumbent",
+  "models": {
+    "incumbent": {
+      "wins": 7,
+      "draws": 1,
+      "losses": 1,
+      "invalid": 1
+    },
+    "candidate": {
+      "wins": 4,
+      "draws": 1,
+      "losses": 4,
+      "invalid": 1
+    }
+  }
+}

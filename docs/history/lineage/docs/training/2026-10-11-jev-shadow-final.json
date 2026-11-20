@@ -1,0 +1,114 @@
+{
+  "requests": 420,
+  "successful_requests": 420,
+  "errors": {},
+  "scenes_scored": 300,
+  "source_matches": 40,
+  "positive_health_drop_labels": 42,
+  "jev": {
+    "brier": 0.12819333333333333,
+    "accuracy": 0.86,
+    "predicted_positive": 0
+  },
+  "rule_baseline": {
+    "brier": 0.23666666666666666,
+    "accuracy": 0.7633333333333333,
+    "predicted_positive": 65
+  },
+  "always_no_drop": {
+    "brier": 0.14,
+    "accuracy": 0.86,
+    "predicted_positive": 0
+  },
+  "leave_one_match_out_prevalence": {
+    "brier": 0.12269812641500613,
+    "accuracy": 0.86,
+    "predicted_positive": 0
+  },
+  "jev_minus_prevalence_brier_ci95_match_bootstrap": [
+    -0.009014345661448965,
+    0.017964523538069817
+  ],
+  "choice_consistency": {
+    "reverse": {
+      "pairs": 60,
+      "choice_agreement": 0.75
+    },
+    "repeat": {
+      "pairs": 60,
+      "choice_agreement": 0.8666666666666667
+    }
+  },
+  "tactic_counts": {
+    "maintain": 176,
+    "pressure": 14,
+    "recover": 21,
+    "disengage": 61,
+    "interrupt": 28
+  },
+  "latency_ms": {
+    "p50": 239.94958400726318,
+    "p95": 284.2804589890875,
+    "over_1500ms": 0
+  },
+  "input_tokens": 768581,
+  "limitations": [
+    "Observational net-health prediction; does not measure value of unexecuted tactics.",
+    "Scenes come from previous training matches, not new held-out live performance.",
+    "Five-second outcome requirement excludes late terminal states and can introduce survivorship bias.",
+    "Baseline prevalence uses other matches only; bootstrap is descriptive with shared fitted prevalence.",
+    "Burst-evidence answers lack independent labels; not scored as validated judgments."
+  ],
+  "live_control": false,
+  "weights_updated": false,
+  "plan": {
+    "seed": 20261011,
+    "scenes": 300,
+    "source_matches": 40,
+    "max_requests": 420,
+    "model": "jev-1.13.0",
+    "questions": {
+      "tactic": {
+        "type": "choice",
+        "instructions": "Choose a tactical priority for the next few seconds of a pre-AOS UO duel. Use observed evidence only. Do not infer private mana. Healing is forbidden in showdown. Return maintain if no change is justified.",
+        "criteria": {
+          "pressure": "Sustain offensive pressure while retaining a recovery reserve.",
+          "interrupt": "Prioritize disrupting a publicly observed enemy cast when feasible.",
+          "recover": "Prioritize legal recovery or resource conservation; healing is forbidden in showdown.",
+          "disengage": "Create distance to reduce immediate incoming danger.",
+          "maintain": "Keep current behavior because evidence for switching is insufficient."
+        }
+      },
+      "health_drop": {
+        "type": "noul",
+        "instructions": "Will self health fraction be at least 0.20 lower five seconds from now than it is now, under continuation of existing behavior? Healing may offset damage. Predict using only the observations supplied."
+      },
+      "burst_evidence": {
+        "type": "noul",
+        "instructions": "Do the recent public spell observations support a hypothesis of an enemy delayed Explosion followed by another attack spell? Unknown or old observations are insufficient evidence."
+      }
+    },
+    "source_sha256": "a1f42a5eb91d5513a4a9698c7517c716f1fd0bf9c418e0b0d50075a3d435fe9f",
+    "prediction_target": "Net health fraction drop >= .20 at first observation in [5,6] seconds",
+    "baseline": "Observed incoming Explosion OR recent two-second damage >=15",
+    "limitations": [
+      "Correlated scenes; observational prediction, not causal tactic value.",
+      "Teacher-side observations; not candidate on-policy states.",
+      "No training or live control."
+    ],
+    "gate": "Require positive held-out match-level predictive value before training; no live promotion from this probe."
+  },
+  "audit": {
+    "causal_inputs_reconstructed": 300,
+    "training_match_allowlist_verified": true,
+    "tests_passed": 4
+  },
+  "decision": "Do not train or deploy from this probe: no demonstrated incremental predictive value and substantial tactic instability. Next study should use labeled public behavioral patterns, not broad tactical advice or numeric forecasting.",
+  "artifacts": {
+    "scenes.json": "29cefd8e058579c903f059122adff0a004fc19b6dccd631d93d4a4a874b6c1ac",
+    "plan.json": "c022283b931d3328629e5e452da862acc7512d49afb0cc1868a6e5fed8ff9389",
+    "report.json": "051e9723aeb11f4d8721720428c4657c03d47f2ae8c2e5a608b92ff42e63f70e",
+    "source-demonstrations.json": "a1f42a5eb91d5513a4a9698c7517c716f1fd0bf9c418e0b0d50075a3d435fe9f",
+    "responses.jsonl": "356113a59b936810a76ec730f35bbd79759480176cca614a0d2a3963bf878074"
+  }
+}

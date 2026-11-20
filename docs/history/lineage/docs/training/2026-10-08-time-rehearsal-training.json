@@ -1,0 +1,227 @@
+{
+  "eval_seed": 3656000000,
+  "models": {
+    "original-parent": {
+      "score": 0.76,
+      "wins": 65,
+      "draws": 22,
+      "losses": 13
+    },
+    "candidate": {
+      "score": 0.765,
+      "wins": 63,
+      "draws": 27,
+      "losses": 10
+    },
+    "warmstart": {
+      "score": 0.69,
+      "wins": 58,
+      "draws": 22,
+      "losses": 20
+    },
+    "per-step-ppo": {
+      "score": 0.57,
+      "wins": 31,
+      "draws": 52,
+      "losses": 17
+    },
+    "initial": {
+      "score": 0.04,
+      "wins": 3,
+      "draws": 2,
+      "losses": 95
+    },
+    "time-ppo": {
+      "score": 0.69,
+      "wins": 64,
+      "draws": 10,
+      "losses": 26
+    },
+    "per-step-rehearsal": {
+      "score": 0.65,
+      "wins": 39,
+      "draws": 52,
+      "losses": 9
+    }
+  },
+  "comparisons": {
+    "original-parent": {
+      "passed": false,
+      "enough_evidence": true,
+      "valid_templates": true,
+      "valid_episodes": true,
+      "paired_delta": 0.005,
+      "delta_ci95": [
+        -0.09,
+        0.105
+      ],
+      "style_deltas": {
+        "balanced": 0.05,
+        "pressure": -0.2,
+        "burst": -0.075,
+        "defensive": 0.05,
+        "potions": 0.2
+      },
+      "reason": "retain incumbent: insufficient or regressed evidence",
+      "domain": "approximate-pre-aos-simulator",
+      "public_deployment": false
+    },
+    "warmstart": {
+      "passed": false,
+      "enough_evidence": true,
+      "valid_templates": true,
+      "valid_episodes": true,
+      "paired_delta": 0.075,
+      "delta_ci95": [
+        -0.025,
+        0.17
+      ],
+      "style_deltas": {
+        "balanced": 0.15,
+        "pressure": 0.075,
+        "burst": 0.025,
+        "defensive": -0.075,
+        "potions": 0.2
+      },
+      "reason": "retain incumbent: insufficient or regressed evidence",
+      "domain": "approximate-pre-aos-simulator",
+      "public_deployment": false
+    },
+    "per-step-ppo": {
+      "passed": true,
+      "enough_evidence": true,
+      "valid_templates": true,
+      "valid_episodes": true,
+      "paired_delta": 0.195,
+      "delta_ci95": [
+        0.095,
+        0.285
+      ],
+      "style_deltas": {
+        "balanced": 0.3,
+        "pressure": -0.025,
+        "burst": 0.175,
+        "defensive": 0.325,
+        "potions": 0.2
+      },
+      "reason": "improved",
+      "domain": "approximate-pre-aos-simulator",
+      "public_deployment": false
+    },
+    "time-ppo": {
+      "passed": false,
+      "enough_evidence": true,
+      "valid_templates": true,
+      "valid_episodes": true,
+      "paired_delta": 0.075,
+      "delta_ci95": [
+        -0.035,
+        0.185
+      ],
+      "style_deltas": {
+        "balanced": -0.025,
+        "pressure": 0.1,
+        "burst": -0.025,
+        "defensive": 0.275,
+        "potions": 0.05
+      },
+      "reason": "retain incumbent: insufficient or regressed evidence",
+      "domain": "approximate-pre-aos-simulator",
+      "public_deployment": false
+    },
+    "per-step-rehearsal": {
+      "passed": true,
+      "enough_evidence": true,
+      "valid_templates": true,
+      "valid_episodes": true,
+      "paired_delta": 0.115,
+      "delta_ci95": [
+        0.035,
+        0.19
+      ],
+      "style_deltas": {
+        "balanced": 0.275,
+        "pressure": -0.05,
+        "burst": 0.125,
+        "defensive": 0.1,
+        "potions": 0.125
+      },
+      "reason": "improved",
+      "domain": "approximate-pre-aos-simulator",
+      "public_deployment": false
+    }
+  },
+  "registry": {
+    "bc_gate": {
+      "delta_ci95": [
+        0.56,
+        0.735
+      ],
+      "domain": "approximate-pre-aos-simulator",
+      "enough_evidence": true,
+      "paired_delta": 0.65,
+      "passed": true,
+      "public_deployment": false,
+      "reason": "improved",
+      "style_deltas": {
+        "balanced": 0.6,
+        "burst": 0.7,
+        "defensive": 0.875,
+        "potions": 0.6,
+        "pressure": 0.475
+      },
+      "valid_episodes": true,
+      "valid_templates": true
+    },
+    "demonstration_steps": 32768,
+    "ppo_gate": {
+      "delta_ci95": [
+        -0.025,
+        0.17
+      ],
+      "domain": "approximate-pre-aos-simulator",
+      "enough_evidence": true,
+      "paired_delta": 0.075,
+      "passed": false,
+      "public_deployment": false,
+      "reason": "retain incumbent: insufficient or regressed evidence",
+      "style_deltas": {
+        "balanced": 0.15,
+        "burst": 0.025,
+        "defensive": -0.075,
+        "potions": 0.2,
+        "pressure": 0.075
+      },
+      "valid_episodes": true,
+      "valid_templates": true
+    },
+    "public_deployment": false,
+    "real_server_strength_established": false,
+    "selected_checkpoint": "/Users/dkkang/dev/uo/arena-worktrees/anima3-training-league/.logs/curriculum-time-rehearsal-20261008/warmstart",
+    "selected_sha": "772c0fc6f5cacae8e0bd8cde8faf0c51e1fd1094fc76580e08ff982ee29d6232",
+    "selection_gate": {
+      "delta_ci95": [
+        -0.025,
+        0.17
+      ],
+      "domain": "approximate-pre-aos-simulator",
+      "enough_evidence": true,
+      "paired_delta": 0.075,
+      "passed": false,
+      "public_deployment": false,
+      "reason": "retain incumbent: insufficient or regressed evidence",
+      "style_deltas": {
+        "balanced": 0.15,
+        "burst": 0.025,
+        "defensive": -0.075,
+        "potions": 0.2,
+        "pressure": 0.075
+      },
+      "valid_episodes": true,
+      "valid_templates": true
+    },
+    "selection_scope": "experimental-training-only",
+    "status": "complete",
+    "training_steps": 65536
+  }
+}
