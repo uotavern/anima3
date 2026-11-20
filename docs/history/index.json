@@ -11,6 +11,7 @@
     "extra_commits": [
       {
         "ref": "feat/arena-100-duels",
+        "public_ref": "archive/arena-100-duels-baaaaef",
         "commit": "baaaaefba63e004eb61290d55cef04e1c236faf5",
         "parent": "01607832a1e696eab0b2e00046407f673b4f01f9",
         "files": [
@@ -1837,6 +1838,14 @@
       ],
       "candidates": [
         {
+          "label": "run BC warmstart",
+          "sha256": "772c0fc6f5cacae8e0bd8cde8faf0c51e1fd1094fc76580e08ff982ee29d6232",
+          "selection": "registry_selected",
+          "deployment": "not_deployed",
+          "deployment_evidence": null,
+          "note": "run-local simulator registry; same seed reproduced the E15 BC"
+        },
+        {
           "label": "rehearsal PPO",
           "sha256": null,
           "selection": "rejected",
@@ -1872,6 +1881,14 @@
       ],
       "candidates": [
         {
+          "label": "run BC warmstart",
+          "sha256": "772c0fc6f5cacae8e0bd8cde8faf0c51e1fd1094fc76580e08ff982ee29d6232",
+          "selection": "registry_selected",
+          "deployment": "not_deployed",
+          "deployment_evidence": null,
+          "note": "run-local simulator registry; same seed reproduced the E15 BC"
+        },
+        {
           "label": "elapsed-time PPO",
           "sha256": null,
           "selection": "rejected",
@@ -1905,6 +1922,14 @@
         "docs/history/lineage/docs/training/2026-10-07-effective-training.md"
       ],
       "candidates": [
+        {
+          "label": "run BC warmstart",
+          "sha256": "772c0fc6f5cacae8e0bd8cde8faf0c51e1fd1094fc76580e08ff982ee29d6232",
+          "selection": "registry_selected",
+          "deployment": "not_deployed",
+          "deployment_evidence": null,
+          "note": "run-local simulator registry; same seed reproduced the E15 BC"
+        },
         {
           "label": "time+rehearsal PPO",
           "sha256": null,
@@ -2708,16 +2733,6 @@
       "sha256": "9cc6a970f4f005ffed0ffc5b41ae2d55b7c7665344b5866bfc0a64c2fe1ce082",
       "git_blob": "9b9631b04698dbe44224ac585901be087c3c6a32",
       "asserts": {
-        "observed_at": "2026-11-17T12:07:09.665059+00:00",
-        "observed_units": [
-          "anima3-lab-shard.service",
-          "arena-replay-assets.service",
-          "arena-replay-social.service",
-          "arena-replay-thumbnails.service",
-          "arena-shard.service",
-          "caddy.service",
-          "uoarena-backup.service"
-        ],
         "arena_worker_or_learner_unit_observed": false
       }
     }
@@ -2833,70 +2848,70 @@
     },
     {
       "kind": "local_registry",
-      "location": "anima3-training-league/.logs/curriculum-incumbent-continue-20261008-retry/registry.json",
+      "location": "feat/training-league worktree, untracked .logs/curriculum-incumbent-continue-20261008-retry/registry.json",
       "bytes": 1959,
       "sha256": "05ebd6a174f7026cbf1581f4aafe183db5afaaf956e044f5f546b57302345d4a",
       "reason": "Untracked run output in the historical training worktree (no source commit); its run directories also hold checkpoints and episodes (about 635 MB). Recorded by hash only."
     },
     {
       "kind": "local_registry",
-      "location": "anima3-training-league/.logs/curriculum-league-20261006/registry.json",
+      "location": "feat/training-league worktree, untracked .logs/curriculum-league-20261006/registry.json",
       "bytes": 1318,
       "sha256": "a0d34321fe6a6a6a8ad00de493d8ef574dc47060247f1dfdee9cc904415ca914",
       "reason": "Untracked run output in the historical training worktree (no source commit); its run directories also hold checkpoints and episodes (about 635 MB). Recorded by hash only."
     },
     {
       "kind": "local_registry",
-      "location": "anima3-training-league/.logs/curriculum-league-20261006-v2/registry.json",
+      "location": "feat/training-league worktree, untracked .logs/curriculum-league-20261006-v2/registry.json",
       "bytes": 1733,
       "sha256": "609e2a779983be683c15ef1a35f805666962fc026a977e09ae69474911af8d13",
       "reason": "Untracked run output in the historical training worktree (no source commit); its run directories also hold checkpoints and episodes (about 635 MB). Recorded by hash only."
     },
     {
       "kind": "local_registry",
-      "location": "anima3-training-league/.logs/curriculum-league-20261006-v3/registry.json",
+      "location": "feat/training-league worktree, untracked .logs/curriculum-league-20261006-v3/registry.json",
       "bytes": 1721,
       "sha256": "9cbac2aa7a2fc69f2c4fa6f85d9310f2a2dafcc655a18f94ed6b4bc1d27b1ed5",
       "reason": "Untracked run output in the historical training worktree (no source commit); its run directories also hold checkpoints and episodes (about 635 MB). Recorded by hash only."
     },
     {
       "kind": "local_registry",
-      "location": "anima3-training-league/.logs/curriculum-league-20261007-skill-clock/registry.json",
+      "location": "feat/training-league worktree, untracked .logs/curriculum-league-20261007-skill-clock/registry.json",
       "bytes": 1911,
       "sha256": "498d7c81ea6f9705df6fe50bba579950c406aa69ee3667516614b316e2f41718",
       "reason": "Untracked run output in the historical training worktree (no source commit); its run directories also hold checkpoints and episodes (about 635 MB). Recorded by hash only."
     },
     {
       "kind": "local_registry",
-      "location": "anima3-training-league/.logs/curriculum-rehearsal-20261008/registry.json",
+      "location": "feat/training-league worktree, untracked .logs/curriculum-rehearsal-20261008/registry.json",
       "bytes": 1892,
       "sha256": "f3723baf8f7d27ce17c6182ee401ad91e3c68c02b2d41663f77bf974c5a7c677",
       "reason": "Untracked run output in the historical training worktree (no source commit); its run directories also hold checkpoints and episodes (about 635 MB). Recorded by hash only."
     },
     {
       "kind": "local_registry",
-      "location": "anima3-training-league/.logs/curriculum-threat-memory-20261008/registry.json",
+      "location": "feat/training-league worktree, untracked .logs/curriculum-threat-memory-20261008/registry.json",
       "bytes": 1916,
       "sha256": "eb0ef35d04132706f8ed57c7e0abe5bd3feae6ea08aef6aedfcd1153f01e5bec",
       "reason": "Untracked run output in the historical training worktree (no source commit); its run directories also hold checkpoints and episodes (about 635 MB). Recorded by hash only."
     },
     {
       "kind": "local_registry",
-      "location": "anima3-training-league/.logs/curriculum-time-discount-20261008/registry.json",
+      "location": "feat/training-league worktree, untracked .logs/curriculum-time-discount-20261008/registry.json",
       "bytes": 1901,
       "sha256": "4b6d779fa6109e535e74c5c525548b5167e9ee082d11eeec5f95c0766813f4b2",
       "reason": "Untracked run output in the historical training worktree (no source commit); its run directories also hold checkpoints and episodes (about 635 MB). Recorded by hash only."
     },
     {
       "kind": "local_registry",
-      "location": "anima3-training-league/.logs/curriculum-time-rehearsal-20261008/registry.json",
+      "location": "feat/training-league worktree, untracked .logs/curriculum-time-rehearsal-20261008/registry.json",
       "bytes": 1900,
       "sha256": "5cd8667e17d9e10feeba96c0d7dce8a12e1643d997ad5c530e8a0073392a9500",
       "reason": "Untracked run output in the historical training worktree (no source commit); its run directories also hold checkpoints and episodes (about 635 MB). Recorded by hash only."
     },
     {
       "kind": "local_registry",
-      "location": "anima3-training-league/.logs/recovered-bc-final-audit/registry.json",
+      "location": "feat/training-league worktree, untracked .logs/recovered-bc-final-audit/registry.json",
       "bytes": 1045,
       "sha256": "fda86e819087fb11cf06f681b084288529ee95797406b07326da9db050c237a3",
       "reason": "Untracked run output in the historical training worktree (no source commit); its run directories also hold checkpoints and episodes (about 635 MB). Recorded by hash only.",
@@ -2907,7 +2922,7 @@
     },
     {
       "kind": "local_registry",
-      "location": "anima3-training-league/.logs/recovered-bc-replication-final-audit/registry.json",
+      "location": "feat/training-league worktree, untracked .logs/recovered-bc-replication-final-audit/registry.json",
       "bytes": 1052,
       "sha256": "5246b9b84298397c89d1cbfc0f83e37d350cc1d9243729b15547a97c4d5b41be",
       "reason": "Untracked run output in the historical training worktree (no source commit); its run directories also hold checkpoints and episodes (about 635 MB). Recorded by hash only.",
@@ -2918,7 +2933,7 @@
     },
     {
       "kind": "local_registry",
-      "location": "anima3-training-league/.logs/reference-live-final-audit/registry.json",
+      "location": "feat/training-league worktree, untracked .logs/reference-live-final-audit/registry.json",
       "bytes": 1001,
       "sha256": "e41538c1cae54b0b3ffaed3260f33fc8d137625a4c589fc5c50cfc833a070892",
       "reason": "Untracked run output in the historical training worktree (no source commit); its run directories also hold checkpoints and episodes (about 635 MB). Recorded by hash only.",
@@ -2929,7 +2944,7 @@
     },
     {
       "kind": "local_registry",
-      "location": "anima3-training-league/.logs/v8-bc-final-audit/registry.json",
+      "location": "feat/training-league worktree, untracked .logs/v8-bc-final-audit/registry.json",
       "bytes": 1033,
       "sha256": "64a1b14cb4b8158b476d5d2844a36a353ff2a664650e8e0096a30113c05533f2",
       "reason": "Untracked run output in the historical training worktree (no source commit); its run directories also hold checkpoints and episodes (about 635 MB). Recorded by hash only.",
@@ -3011,6 +3026,374 @@
       "reason": "Scripted champion configuration (mage, baseline-v1, standard playbook); deployment configuration, not an experiment record."
     },
     {
+      "kind": "lineage_document",
+      "location": "819f4f426bfaf72e1a132abff9354480250f1444:README.md",
+      "bytes": 43270,
+      "sha256": "91b952da9028bc084be94ddfe5d48e81dd8c6747be9ee84104789b92f1ce79b7",
+      "git_blob": "55d1a1b55c89c0ad09a608347e004f2c13927ef6",
+      "reason": "Project README of the training branch; its neural section summarises the imported records and NEURAL_DUEL.ko.md."
+    },
+    {
+      "kind": "lineage_document",
+      "location": "819f4f426bfaf72e1a132abff9354480250f1444:deploy/arena-replay-assets.service",
+      "bytes": 481,
+      "sha256": "ecbbcd38a30a0cb358e0da1d309af4193e6beffc3c03d6684c87ace84140c910",
+      "git_blob": "4397ac0da137dac0f5965e887d6d0042043c09ed",
+      "reason": "Server unit and configuration files, including the legacy hosted worker and learner (--promote) units; deployment configuration, not experiment records."
+    },
+    {
+      "kind": "lineage_document",
+      "location": "819f4f426bfaf72e1a132abff9354480250f1444:deploy/arena/Arena.cfg",
+      "bytes": 146,
+      "sha256": "341e769cf6b2d0a403978879828abc42a622b4bff5638b2d277b945f7ffcdea5",
+      "git_blob": "2c7a46a65db64bb581d2cd1a1cc2c1d0abe83205",
+      "reason": "Server unit and configuration files, including the legacy hosted worker and learner (--promote) units; deployment configuration, not experiment records."
+    },
+    {
+      "kind": "lineage_document",
+      "location": "819f4f426bfaf72e1a132abff9354480250f1444:deploy/arena/Caddyfile",
+      "bytes": 639,
+      "sha256": "d8f346432de3c6bed0932f532771bd80d35b8a31de5a26ffc91fa4a3a9c91446",
+      "git_blob": "712698fe2eadd9aa4f2f578c5010cd5c057d1afd",
+      "reason": "Server unit and configuration files, including the legacy hosted worker and learner (--promote) units; deployment configuration, not experiment records."
+    },
+    {
+      "kind": "lineage_document",
+      "location": "819f4f426bfaf72e1a132abff9354480250f1444:deploy/arena/Duel.cfg",
+      "bytes": 167,
+      "sha256": "1b06a14d7afc536781202aa61fef558cead9808ed11c15bd9bd44a6a31904347",
+      "git_blob": "cdfd2c181a8d4d954b763763912393e6185236ea",
+      "reason": "Server unit and configuration files, including the legacy hosted worker and learner (--promote) units; deployment configuration, not experiment records."
+    },
+    {
+      "kind": "lineage_document",
+      "location": "819f4f426bfaf72e1a132abff9354480250f1444:deploy/arena/Server.cfg",
+      "bytes": 94,
+      "sha256": "d0cfef32bcb20beab09141477f816c3ee886fc56e6c640eaae0a40127207f386",
+      "git_blob": "f9751028b11c179e9bae3313135b8704e4beea40",
+      "reason": "Server unit and configuration files, including the legacy hosted worker and learner (--promote) units; deployment configuration, not experiment records."
+    },
+    {
+      "kind": "lineage_document",
+      "location": "819f4f426bfaf72e1a132abff9354480250f1444:deploy/arena/arena-learner.service",
+      "bytes": 551,
+      "sha256": "f56d5a0e4243f903bb0cd655cc980efbf3c6b6eac6433b90406670d6adb3e7bd",
+      "git_blob": "1a8801d1f60c69c3009620c4f58fb817d55987a5",
+      "reason": "Server unit and configuration files, including the legacy hosted worker and learner (--promote) units; deployment configuration, not experiment records."
+    },
+    {
+      "kind": "lineage_document",
+      "location": "819f4f426bfaf72e1a132abff9354480250f1444:deploy/arena/arena-shard.service",
+      "bytes": 383,
+      "sha256": "6f3a7e1486acecfd3c5a9cc1a3058dd35ea5bd138b576b58301f95fcde1cb9c3",
+      "git_blob": "cb4282e034b3cfbb4177c0df11a790bebf0745a8",
+      "reason": "Server unit and configuration files, including the legacy hosted worker and learner (--promote) units; deployment configuration, not experiment records."
+    },
+    {
+      "kind": "lineage_document",
+      "location": "819f4f426bfaf72e1a132abff9354480250f1444:deploy/arena/arena-worker@.service",
+      "bytes": 866,
+      "sha256": "8387833992514e4f3e5eba1a6b37aaa9cb7cde2ff1f83fb7b1358a7af0566c41",
+      "git_blob": "4426d80f5eb24b509aefbbac426b19e3d3a98747",
+      "reason": "Server unit and configuration files, including the legacy hosted worker and learner (--promote) units; deployment configuration, not experiment records."
+    },
+    {
+      "kind": "lineage_document",
+      "location": "819f4f426bfaf72e1a132abff9354480250f1444:deploy/arena/worker.env.example",
+      "bytes": 519,
+      "sha256": "a48ca489bc06bddf2eb6d7946a7f74eb785a44d9939726ab535df6ad8665c8ec",
+      "git_blob": "ac33bef9550d60c0d7b12abc2857d32a63e25c1d",
+      "reason": "Server unit and configuration files, including the legacy hosted worker and learner (--promote) units; deployment configuration, not experiment records."
+    },
+    {
+      "kind": "lineage_document",
+      "location": "819f4f426bfaf72e1a132abff9354480250f1444:deploy/replay.caddy",
+      "bytes": 425,
+      "sha256": "b7de638265d8c312f44a23b94e5c20b4ccc19b6fa75d274493ac9f4b3f6286f7",
+      "git_blob": "9c21d5617feded22b9f4095a38a0215fc61f9b41",
+      "reason": "Server unit and configuration files, including the legacy hosted worker and learner (--promote) units; deployment configuration, not experiment records."
+    },
+    {
+      "kind": "lineage_document",
+      "location": "819f4f426bfaf72e1a132abff9354480250f1444:docs/ARENA.md",
+      "bytes": 4224,
+      "sha256": "b81d5d6ac1d1c4837ee8887c65dcb6ee1ce5afd8d76921245b15b883bdf8d669",
+      "git_blob": "4d0f8ac343e8343b2a1067dd18dd567f45584d83",
+      "reason": "Arena operating or player documentation, not an experiment result."
+    },
+    {
+      "kind": "lineage_document",
+      "location": "819f4f426bfaf72e1a132abff9354480250f1444:docs/ARENA_BUILDERS.md",
+      "bytes": 4359,
+      "sha256": "df0efe523790b414f0c2282dd9809ae302c9e6db9abd0f5184388a7d0a30657a",
+      "git_blob": "af55120c5e00a832375b6343d8ed317a5c193fae",
+      "reason": "Arena operating or player documentation, not an experiment result."
+    },
+    {
+      "kind": "lineage_document",
+      "location": "819f4f426bfaf72e1a132abff9354480250f1444:docs/ARENA_HOSTED_LEGACY.md",
+      "bytes": 7816,
+      "sha256": "a8fbb34251afd584900de167c0d1049086a4b4e4609338057f115a3d0e6d826d",
+      "git_blob": "8114e3cb065029abd7772e3f491f90c3effed432",
+      "reason": "Archived hosted-AI architecture (private test fixture). Operations."
+    },
+    {
+      "kind": "lineage_document",
+      "location": "819f4f426bfaf72e1a132abff9354480250f1444:docs/ARENA_LINODE.md",
+      "bytes": 10579,
+      "sha256": "9ab48013699e88b5d7260f61caa7e72028b59804567eb1e8f897678395ad37ca",
+      "git_blob": "41c24155334913fa129ec6039a0e0089cf407e44",
+      "reason": "Hosted-arena operations and live verification. Records the public mage/warrior and training worker services and the learner on baseline-v1; cited in deployment_findings."
+    },
+    {
+      "kind": "lineage_document",
+      "location": "819f4f426bfaf72e1a132abff9354480250f1444:docs/ARENA_PEER_HANDOFF.md",
+      "bytes": 13463,
+      "sha256": "ab40daf3432ba2da471c23b1b28994918bfa794943092e6e77598ce91c5339e1",
+      "git_blob": "44afc98e41f59626494220be7eec88577a06ea80",
+      "reason": "Peer-arena operations handoff; says the learner and hosted worker units are stopped and disabled. Operations, not an experiment result."
+    },
+    {
+      "kind": "lineage_document",
+      "location": "819f4f426bfaf72e1a132abff9354480250f1444:docs/ARENA_PLAY.ko.md",
+      "bytes": 8946,
+      "sha256": "e17a1057bdb5e421d92f2edb43a3138d3c9c89ab22dba3676221297dc8334f97",
+      "git_blob": "a94dca72fdaeffacbd385a5e1be95a3af7cf0e8b",
+      "reason": "Arena operating or player documentation, not an experiment result."
+    },
+    {
+      "kind": "lineage_document",
+      "location": "819f4f426bfaf72e1a132abff9354480250f1444:docs/ARENA_REPLAY.md",
+      "bytes": 12080,
+      "sha256": "c3aabbae8249bdda605aa39c7161c145013cc45fff4bf8f46396cf1a285438da",
+      "git_blob": "50b496609dd17e1e9466904c5bc9aa610c9e63c4",
+      "reason": "Arena operating or player documentation, not an experiment result."
+    },
+    {
+      "kind": "lineage_document",
+      "location": "819f4f426bfaf72e1a132abff9354480250f1444:docs/ARENA_VALIDATION.md",
+      "bytes": 8935,
+      "sha256": "ad91083f2d1631b8a61575658b69867f904dd8b1bb5f05c14b51063699f3c2ac",
+      "git_blob": "9ed444b4db8511da3f2c7f9fa2ecac881bb4c410",
+      "reason": "Hosted-arena acceptance log. Records the non-neural public mage and warrior workers and the playbook learner, which had no real promotion; cited in deployment_findings."
+    },
+    {
+      "kind": "lineage_document",
+      "location": "819f4f426bfaf72e1a132abff9354480250f1444:examples/arena_policy.py",
+      "bytes": 662,
+      "sha256": "67ea51f60dea8965dfdba02617c84cafab4853cd7d4440f439c4eb70ef515370",
+      "git_blob": "45903e5d58fb6d8c1c9be5c1d8d0a305d8637258",
+      "reason": "Example code, not a record."
+    },
+    {
+      "kind": "lineage_document",
+      "location": "819f4f426bfaf72e1a132abff9354480250f1444:pyproject.toml",
+      "bytes": 717,
+      "sha256": "8c5257f8d187fce8febb0e1f3d9568b65362a53f78f38212e2435c08cbe263a4",
+      "git_blob": "e142ef830accda511657434c46b8bb25c96adfa4",
+      "reason": "Dependency metadata, handled by units 5-8."
+    },
+    {
+      "kind": "lineage_document",
+      "location": "819f4f426bfaf72e1a132abff9354480250f1444:scripts/arena_deployment_check.py",
+      "bytes": 2831,
+      "sha256": "9db81e6e9702031b8ebc9e804aee8e6ae332290b2d8420811c2183a3222ed00a",
+      "git_blob": "bf6b8f62817ea1eea9dd3c90b4603a3651d25422",
+      "reason": "Runner, smoke and summary code. Belongs to the code units (training league and simulator in row 7b), not to the records."
+    },
+    {
+      "kind": "lineage_document",
+      "location": "819f4f426bfaf72e1a132abff9354480250f1444:scripts/arena_fault_smoke.py",
+      "bytes": 3269,
+      "sha256": "80727a823906b94c713a77873a19bae0172bab4a828f86b663162166ba724e7a",
+      "git_blob": "740dd4e81569c48e6db69ba2c9674cf2e7fcb168",
+      "reason": "Runner, smoke and summary code. Belongs to the code units (training league and simulator in row 7b), not to the records."
+    },
+    {
+      "kind": "lineage_document",
+      "location": "819f4f426bfaf72e1a132abff9354480250f1444:scripts/arena_live_smoke.py",
+      "bytes": 4917,
+      "sha256": "5e82d9d1ca236aba65c56ec56c571fcde4dbc8fa7c165913be2dfcfd27e10c1e",
+      "git_blob": "f2ad39edaaf3762b2aa56976e962349a7dc612ef",
+      "reason": "Runner, smoke and summary code. Belongs to the code units (training league and simulator in row 7b), not to the records."
+    },
+    {
+      "kind": "lineage_document",
+      "location": "819f4f426bfaf72e1a132abff9354480250f1444:scripts/arena_peer_smoke.py",
+      "bytes": 3451,
+      "sha256": "621a1160a8013b4415d702835fbc9c429a0ddcef5aeffc9df47bfb8e9b5e757d",
+      "git_blob": "6e28e6c86254aec1fa00bf4c5ab1894c258aff2c",
+      "reason": "Runner, smoke and summary code. Belongs to the code units (training league and simulator in row 7b), not to the records."
+    },
+    {
+      "kind": "lineage_document",
+      "location": "819f4f426bfaf72e1a132abff9354480250f1444:scripts/arena_potions_smoke.py",
+      "bytes": 4870,
+      "sha256": "83f5008f7eb6e7f70d2df86d4e96581adf5b764cadfa21e5ac86b3665fa965a6",
+      "git_blob": "d5803ea6c00ac71d4a36037ac50eb1b1650398bd",
+      "reason": "Runner, smoke and summary code. Belongs to the code units (training league and simulator in row 7b), not to the records."
+    },
+    {
+      "kind": "lineage_document",
+      "location": "819f4f426bfaf72e1a132abff9354480250f1444:scripts/arena_rules_smoke.py",
+      "bytes": 4292,
+      "sha256": "5658ca68e1b8db1ccc13201e9b4586cbd49bbad9c1386c6508ff1cdc1ef63e9f",
+      "git_blob": "13ff049a22fa3dd211d5124add70cede24549e36",
+      "reason": "Runner, smoke and summary code. Belongs to the code units (training league and simulator in row 7b), not to the records."
+    },
+    {
+      "kind": "lineage_document",
+      "location": "819f4f426bfaf72e1a132abff9354480250f1444:scripts/arena_selfplay_smoke.py",
+      "bytes": 2274,
+      "sha256": "9b341487c7f828018da6b22b0806da668b19362e92db444237cb544a0ffdb763",
+      "git_blob": "d2b4cbbbc4da3288c20933aeb513f54e6b3f2975",
+      "reason": "Runner, smoke and summary code. Belongs to the code units (training league and simulator in row 7b), not to the records."
+    },
+    {
+      "kind": "lineage_document",
+      "location": "819f4f426bfaf72e1a132abff9354480250f1444:scripts/arena_showdown_smoke.py",
+      "bytes": 4790,
+      "sha256": "515908c5bc0d9e297254126753930225e9a5f4d3fd6817ebf9c7c6ade231846d",
+      "git_blob": "2c7042f8135be1b61746ee9c4f2a9fea820c1560",
+      "reason": "Runner, smoke and summary code. Belongs to the code units (training league and simulator in row 7b), not to the records."
+    },
+    {
+      "kind": "lineage_document",
+      "location": "819f4f426bfaf72e1a132abff9354480250f1444:scripts/arena_skill_selection_smoke.py",
+      "bytes": 3362,
+      "sha256": "2a8676acaa02dd382d31428759a0c3154ca2e8d08f34bd3b23d7c9d77bfe647b",
+      "git_blob": "280993cbb6b5e012bffc148c21f6deb66d2b31a6",
+      "reason": "Runner, smoke and summary code. Belongs to the code units (training league and simulator in row 7b), not to the records."
+    },
+    {
+      "kind": "lineage_document",
+      "location": "819f4f426bfaf72e1a132abff9354480250f1444:scripts/arena_training_smoke.py",
+      "bytes": 5617,
+      "sha256": "4a8506fd2c80f6bcb2bb521c1909f06afd088c6a51239d893b153790e5f3176c",
+      "git_blob": "d7382f82489820b32fb1901847f9e745d7baa9fe",
+      "reason": "Runner, smoke and summary code. Belongs to the code units (training league and simulator in row 7b), not to the records."
+    },
+    {
+      "kind": "lineage_document",
+      "location": "819f4f426bfaf72e1a132abff9354480250f1444:scripts/clone_live_demonstrations.py",
+      "bytes": 4047,
+      "sha256": "0cedbb8cbfd65722ea67addc63cdf81940975ed05568e2d6f03d9d62dde3ab5d",
+      "git_blob": "6609cf1351d9521b28ecd17385d42e045828a5a9",
+      "reason": "Runner, smoke and summary code. Belongs to the code units (training league and simulator in row 7b), not to the records."
+    },
+    {
+      "kind": "lineage_document",
+      "location": "819f4f426bfaf72e1a132abff9354480250f1444:scripts/fit_collected_demonstrations.py",
+      "bytes": 4211,
+      "sha256": "ec8a9d0e6e36137520863ec7da05a73f3df16fd52536820c85e0cce3c36c11ba",
+      "git_blob": "baf43dd9ce9c477c632ae70556a730e5b93cc932",
+      "reason": "Runner, smoke and summary code. Belongs to the code units (training league and simulator in row 7b), not to the records."
+    },
+    {
+      "kind": "lineage_document",
+      "location": "819f4f426bfaf72e1a132abff9354480250f1444:scripts/jev_shadow_probe.py",
+      "bytes": 9842,
+      "sha256": "8e222c8a5c142a75f17672413b7bf24ab502706b753e98687e80a946a132b5fb",
+      "git_blob": "f9ae43230862422f6bcbcefa71866a7944a25092",
+      "reason": "Runner, smoke and summary code. Belongs to the code units (training league and simulator in row 7b), not to the records."
+    },
+    {
+      "kind": "lineage_document",
+      "location": "819f4f426bfaf72e1a132abff9354480250f1444:scripts/report_jev_shadow.py",
+      "bytes": 4431,
+      "sha256": "c2e8ef908fe62025a8f2a60a25d13a7470a8be3427f380c89d7e789b0cbdbcbf",
+      "git_blob": "4fff68d8386ddaed9ed092a1f5c7d23515c7c559",
+      "reason": "Runner, smoke and summary code. Belongs to the code units (training league and simulator in row 7b), not to the records."
+    },
+    {
+      "kind": "lineage_document",
+      "location": "819f4f426bfaf72e1a132abff9354480250f1444:scripts/report_potion_defense.py",
+      "bytes": 3674,
+      "sha256": "0311aab5da3164622b34139007e52f0386bdc1e1aedc694bfd293525cc057629",
+      "git_blob": "0e0e4af884c3a15c21db3692a30e69d3ca296a6b",
+      "reason": "Runner, smoke and summary code. Belongs to the code units (training league and simulator in row 7b), not to the records."
+    },
+    {
+      "kind": "lineage_document",
+      "location": "819f4f426bfaf72e1a132abff9354480250f1444:scripts/review_sparring.py",
+      "bytes": 1891,
+      "sha256": "ec8a58ba5dcb76baaccc7b1ec4044b51e5fa26cb2361dfca6ac00118e84d8835",
+      "git_blob": "5fdd46bd19345d93af2050a150dc3ac4f85daf8f",
+      "reason": "Runner, smoke and summary code. Belongs to the code units (training league and simulator in row 7b), not to the records."
+    },
+    {
+      "kind": "lineage_document",
+      "location": "819f4f426bfaf72e1a132abff9354480250f1444:scripts/run_arena_local.py",
+      "bytes": 3578,
+      "sha256": "f398bdeda4cdda74ead53621e9499a674a7835cb062ec681ace600c2d3220c7b",
+      "git_blob": "7a4e09b711ff29dd8b3cb0dbbf3cb7c7813f12e0",
+      "reason": "Runner, smoke and summary code. Belongs to the code units (training league and simulator in row 7b), not to the records."
+    },
+    {
+      "kind": "lineage_document",
+      "location": "819f4f426bfaf72e1a132abff9354480250f1444:scripts/run_hundred_live_duels.py",
+      "bytes": 7319,
+      "sha256": "07d762cd87b0e7b8e47b7741c5269df3e719743385be7cddee96bc3214e389e3",
+      "git_blob": "4158eabc98e50818522136f3b312a3b04d0df227",
+      "reason": "Runner, smoke and summary code. Belongs to the code units (training league and simulator in row 7b), not to the records."
+    },
+    {
+      "kind": "lineage_document",
+      "location": "819f4f426bfaf72e1a132abff9354480250f1444:scripts/run_melee_probe.py",
+      "bytes": 2829,
+      "sha256": "0b746df82a967c93c1909194fd42f7d585c6198aa4c9c4e5a5cf54cae4ceddd8",
+      "git_blob": "ef3d26fb4f9543d4281d8972ec54cfc3b51be908",
+      "reason": "Runner, smoke and summary code. Belongs to the code units (training league and simulator in row 7b), not to the records."
+    },
+    {
+      "kind": "lineage_document",
+      "location": "819f4f426bfaf72e1a132abff9354480250f1444:scripts/run_tactical_pilot.py",
+      "bytes": 1444,
+      "sha256": "aef8b8aee5349373cf31a55b6f78894203c418775f6852d2ab575b026cd841c8",
+      "git_blob": "d3395f63ee8338afe45ebfd1c7118cab327b435f",
+      "reason": "Runner, smoke and summary code. Belongs to the code units (training league and simulator in row 7b), not to the records."
+    },
+    {
+      "kind": "lineage_document",
+      "location": "819f4f426bfaf72e1a132abff9354480250f1444:scripts/run_training_league.py",
+      "bytes": 16314,
+      "sha256": "ec74ea7ab05f53103c46bfb4bc84c211619548ba8f3678369c66a8576621fbc2",
+      "git_blob": "6be2f853fe7219674de51aea13aaf79c40936625",
+      "reason": "Runner, smoke and summary code. Belongs to the code units (training league and simulator in row 7b), not to the records."
+    },
+    {
+      "kind": "lineage_document",
+      "location": "819f4f426bfaf72e1a132abff9354480250f1444:scripts/summarize_cast_dump.py",
+      "bytes": 4296,
+      "sha256": "30c4a00bc49e511c87c6c2c1f260ef3a91a2a3600ac9e587e436fc5f9880b613",
+      "git_blob": "f185e86b632018fbfe1727b427b5e0d0b992e69d",
+      "reason": "Runner, smoke and summary code. Belongs to the code units (training league and simulator in row 7b), not to the records."
+    },
+    {
+      "kind": "lineage_document",
+      "location": "819f4f426bfaf72e1a132abff9354480250f1444:scripts/summarize_melee_probe.py",
+      "bytes": 3148,
+      "sha256": "1be40f0b6871157bf0be96acc05aba632f614f88137e5c981bbaaa273efff4fc",
+      "git_blob": "fb8ad2a6131edd9fd23a644c4cc43c970c6bbd3f",
+      "reason": "Runner, smoke and summary code. Belongs to the code units (training league and simulator in row 7b), not to the records."
+    },
+    {
+      "kind": "lineage_document",
+      "location": "819f4f426bfaf72e1a132abff9354480250f1444:scripts/summarize_training_league.py",
+      "bytes": 3846,
+      "sha256": "ed10e6b6219f50b334702814529dff78a74c6e5727c85f5dc9eab23be0164ade",
+      "git_blob": "d5b2fd1d76d0eca6b66211fb02f780d311bd32c3",
+      "reason": "Runner, smoke and summary code. Belongs to the code units (training league and simulator in row 7b), not to the records."
+    },
+    {
+      "kind": "lineage_document",
+      "location": "819f4f426bfaf72e1a132abff9354480250f1444:tools/analyze_pluto.py",
+      "bytes": 7904,
+      "sha256": "be42f6efdf8995fa453c1894a0fcdf820a2f24e5e9a53d61d1bd69537dc6f458",
+      "git_blob": "eeebde5de03aa034ddfd4543f4f348d1465b5004",
+      "reason": "Pluto analysis tool for the third-party analysis listed above."
+    },
+    {
       "kind": "remote_run_data",
       "location": "arena host /opt/uoarena/* run directories (.logs/*)",
       "reason": "Replays, episodes, demonstrations, status and receipts of every live run, and the server-side checkpoints (for example anima3-reference-fit-d4da520/candidate-reference-bc). On a remote host; not accessed under the offline rule."
@@ -3018,6 +3401,19 @@
   ],
   "deployment_findings": {
     "public_model_deployment_found": false,
+    "scope": [
+      "No neural policy was publicly deployed.",
+      "Non-neural workers were publicly hosted: before the peer arena (2026-09-27/28) public mage and warrior workers ran as services on the public shard. The mage chose among five scripted playbooks and the warrior used a fixed rule (ARENA_VALIDATION.md, ARENA_LINODE.md).",
+      "The playbook learner (arena-learner, --promote) never made a real promotion: it reported collecting_training with baseline-v1 still active, and its promotion logic was tested only with synthetic evidence.",
+      "The peer-arena handoff (ARENA_PEER_HANDOFF.md) keeps the learner and all hosted worker units stopped and disabled."
+    ],
+    "scope_sources": [
+      "819f4f426bfaf72e1a132abff9354480250f1444:docs/ARENA_VALIDATION.md",
+      "819f4f426bfaf72e1a132abff9354480250f1444:docs/ARENA_LINODE.md",
+      "819f4f426bfaf72e1a132abff9354480250f1444:docs/ARENA_PEER_HANDOFF.md",
+      "819f4f426bfaf72e1a132abff9354480250f1444:deploy/arena/arena-learner.service",
+      "819f4f426bfaf72e1a132abff9354480250f1444:deploy/arena/arena-worker@.service"
+    ],
     "basis": [
       "Every public_deployment field in the imported JSON records is false; none is true.",
       "Every registry decision records public_deployment false; league-v2.md calls the registry experimental and says public agents are never replaced by its commands.",

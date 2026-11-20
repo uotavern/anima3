@@ -9,13 +9,15 @@ scripts and server paths of that time, and are not part of the current package.
   so the records still link to each other.
   - 76 files are read from `feat/training-league` at `819f4f4`.
   - `docs/experiments/2026-10-02-hundred-live-duels.md` is read from
-    `feat/arena-100-duels` at `baaaaef`. That commit only appends the section on the
+    `feat/arena-100-duels` at `baaaaef`, published as the archive branch
+    `archive/arena-100-duels-baaaaef`. That commit only appends the section on the
     remaining 17 matches. The training-tip version is a byte prefix of this file, and its
     length and SHA-256 are recorded.
 - `index.json` lists, for every copy, its source ref, commit and path, the commit that
   introduced it, byte count, SHA-256 and Git blob ID. It also lists 27 experiments in
   chronological order, every gate decision found in the JSON records, the parent-workspace
-  evidence and everything that was not imported.
+  evidence, and every file the lineage changed that was not imported, except the
+  `anima3/` and `tests/` code that units 1–8 and row 7b cover.
 - `tests/test_history_records.py` checks the index against the files offline.
 
 Nothing here was edited. A finding that a record does not contain is stated in
@@ -116,14 +118,28 @@ commit, path, SHA-256 and the asserted values only:
 
 ## Deployment finding
 
-No record shows a neural policy deployed publicly:
+Scope of the finding:
+
+- **No neural policy was publicly deployed.**
+- **Non-neural workers were publicly hosted.** Before the peer arena (2026-09-27 and
+  2026-09-28), public mage and warrior workers ran as services on the public shard. The
+  mage chose among five scripted playbooks, and the warrior used a fixed rule
+  (`docs/ARENA_VALIDATION.md`, `docs/ARENA_LINODE.md` at `819f4f4`).
+- **The playbook learner never made a real promotion.** The `arena-learner` unit ran
+  with `--promote`, but it reported `collecting_training` with `baseline-v1` still
+  active. Its promotion and rollback logic was tested only with synthetic evidence.
+- The peer-arena handoff (`docs/ARENA_PEER_HANDOFF.md`) keeps the learner and every
+  hosted worker unit stopped and disabled.
+
+The evidence that no neural policy was deployed:
 
 - Every `public_deployment` field in the imported JSON is false.
 - `league-v2.md` says the registry is experimental and that public agents are never
   replaced by its commands.
 - Each checkpoint README disclaims public promotion or replacement of the public agent.
-- The parent deployment map of 2026-11-17 (P5) lists no `arena-worker` or
-  `arena-learner` service among the services it observed.
+- The parent deployment map of 2026-11-17 (P5) shows no `arena-worker` or
+  `arena-learner` service running. Only that finding is recorded here, not the
+  map's content.
 
 Limits of this finding:
 
@@ -141,9 +157,17 @@ Limits of this finding:
   hash to the registry digests that the imported records quote.
 - remote run data under `/opt/uoarena` (replays, episodes, receipts, server checkpoints),
   which this offline unit did not access.
-- the third-party Pluto binary analysis, the Jev agent operating guides and the scripted
-  champion configuration. None of them is an Anima3 experiment result.
+- the third-party Pluto binary analysis and its tool.
+- the arena operating documents (`docs/ARENA*.md`). Two of them carry the hosted
+  non-neural worker record cited above.
+- `deploy/` units and configuration, including the legacy hosted worker and the
+  `--promote` learner.
+- `scripts/` runner and summary code, `examples/`, the branch README and
+  `pyproject.toml`. None of them is an Anima3 experiment result.
 - the parent workspace evidence (private repository).
+
+An internal website brief, deleted in `88c7798` before the branch was published, is
+not present at `819f4f4` and is not recorded.
 
 The primary branch's own README experiments (Jev and playbook comparisons through
 experiment five) are a different line of work. They are not part of this lineage and

@@ -1334,8 +1334,8 @@ module under `anima3/` changes.
 
 | Source | Imported | Recorded but not imported |
 | --- | --- | --- |
-| `feat/training-league` at `819f4f4` | 76 files: all of `docs/experiments/` except one, all of `docs/training/`, `NEURAL_DUEL.ko.md`, `TEN_DUEL_EXPERIMENT.ko.md`, `SELF_PLAY_ROADMAP.ko.md`, and the READMEs and manifests of the four `models/` checkpoints | The 12 checkpoint blobs (6.2 MB, schema v1); the Pluto binary analysis (6 files); two Jev agent operating guides; `deploy/arena/champion.json` |
-| `feat/arena-100-duels` at `baaaaef` | `docs/experiments/2026-10-02-hundred-live-duels.md`, which adds the remaining-17-fixture section and the scripted-probe distinction. The `819f4f4` version is its byte prefix (8,601 bytes, SHA-256 recorded). | — |
+| `feat/training-league` at `819f4f4` | 76 files: all of `docs/experiments/` except one, all of `docs/training/`, `NEURAL_DUEL.ko.md`, `TEN_DUEL_EXPERIMENT.ko.md`, `SELF_PLAY_ROADMAP.ko.md`, and the READMEs and manifests of the four `models/` checkpoints | Every other non-code file the lineage changed: the 12 checkpoint blobs (6.2 MB, schema v1), the Pluto analysis and its tool, the ten `docs/ARENA*.md` operating documents, `deploy/`, `scripts/`, `examples/`, the branch README and `pyproject.toml`. `anima3/` and `tests/` code belongs to units 1–8 and row 7b. |
+| `feat/arena-100-duels` at `baaaaef` (not previously on the remote; now published as `archive/arena-100-duels-baaaaef`) | `docs/experiments/2026-10-02-hundred-live-duels.md`, which adds the remaining-17-fixture section and the scripted-probe distinction. The `819f4f4` version is its byte prefix (8,601 bytes, SHA-256 recorded). | — |
 | Historical worktree `anima3-training-league/.logs` (untracked) | — | 13 `registry.json` hashes. Four equal the registry digests quoted by the imported records. |
 | Parent workspace `uotavern/uo` (private), `ecade9d` and `33e04d9` | — | The Reference BC audit summary, the compatibility smoke, the two narratives and the deployment map: commit, path, SHA-256 and the values the index relies on |
 | Arena host `/opt/uoarena` | — | Replays, episodes, receipts and server checkpoints, by location only |
@@ -1378,12 +1378,24 @@ version: append-only ledgers, and the Reference BC live plan, whose `status` cha
   - `public_deployment` requires `deployment_evidence` naming an indexed record of kind
     `deployment_evidence`. There is none, so all 27 experiments and their candidates are
     `not_deployed`.
-- **Verified finding: no neural policy was publicly deployed.**
+- **Verified finding: no neural policy was publicly deployed.** Its scope:
+  - Non-neural workers were publicly hosted. Before the peer arena (2026-09-27 and
+    2026-09-28), public mage and warrior workers ran on the public shard. The mage chose
+    among five scripted playbooks and the warrior used a fixed rule
+    (`ARENA_VALIDATION.md`, `ARENA_LINODE.md`).
+  - The playbook learner (`--promote`) never made a real promotion. It stayed on
+    `baseline-v1`, and its promotion logic was tested only with synthetic evidence.
+  - The peer-arena handoff keeps the learner and every hosted worker unit stopped and
+    disabled.
+
+  The evidence for the neural finding:
   - Every `public_deployment` field in the imported JSON is false.
   - The registry is documented as experimental, and each checkpoint README disclaims
     public replacement.
   - The parent audit and compatibility smoke of 2026-11-17 record no public deployment.
-  - The parent deployment map of the same day lists no arena worker or learner service.
+  - The parent deployment map of the same day shows no arena worker or learner service.
+    Only that boolean is recorded. The map is in a private repository, so the names of
+    its services are not copied into this public one.
   - Limits: stored flags and files on disk do not show which bytes a running process
     loaded. The `/opt/uoarena` snapshots that the lineage calls "deployed" ran unranked
     training matches between training accounts.
@@ -1399,8 +1411,8 @@ version: append-only ledgers, and the Reference BC live plan, whose `status` cha
 
 ### Offline acceptance
 
-`tests/test_history_records.py` uses only the standard library and pytest. It has 17
-cases. They check that:
+`tests/test_history_records.py` uses only the standard library and pytest. It has 24
+cases, including one git case for each of the two source commits. They check that:
 
 - every indexed file exists with its recorded byte count, SHA-256 and Git blob ID;
 - the import root holds exactly the indexed files and no binaries;
@@ -1412,6 +1424,17 @@ cases. They check that:
 - every candidate SHA-256 occurs in that experiment's records;
 - the gate list equals the gates re-derived from the JSON files (48, of which 36
   failed), and there are 17 rejected candidates;
+- every `registry_selected`, `registry_retained` and `rollback` label is derived from
+  the experiment's own JSON registries. A live registry selects when its gate passed and
+  retains otherwise. A simulator run registry selects its warmstart when the BC gate
+  passed. A passing live registry also names its incumbent as rollback. One exception
+  is pinned: the second-run selection in E07, which only `league-v2.md` records.
+- each `result` is consistent with that experiment's gate records: `passed_gate` needs
+  a passing live gate, `failed_gate` a failed gate and no passing live gate, and
+  `simulator_only` no live gate;
+- the reviewed labels are frozen in a table: the result and candidate selections per
+  experiment, digests of the narrative fields, the vocabulary, the `not_imported` set,
+  the parent-evidence SHA-256s and the deployment findings, which must be non-empty;
 - no experiment or candidate claims public deployment without linked evidence. A
   negative test feeds four forged claims to the same check, and each is refused.
 - no imported record contains `public_deployment: true`;
@@ -1419,23 +1442,36 @@ cases. They check that:
 - the four local registry hashes equal the digests quoted inside the imported records;
 - the 12 recorded checkpoint blobs equal the descriptors in the imported manifests.
 
-Source commits are tested as full hashes against the recorded lineage. When the lineage
-commits are present in the clone, one more case checks each file's blob at its source
-commit, the ancestry of its introducing commit and the excluded documents' blobs. CI's
-shallow checkout skips that case. Locally it passes.
+Source commits are tested as full hashes against the recorded lineage. Each git case
+skips only when its own commit is missing from the clone, as in CI's shallow checkout.
+When the commit is present (a full clone now has both, through
+`origin/feat/training-league` and `archive/arena-100-duels-baaaaef`), the case checks
+each file's blob at that commit, the ancestry of its introducing commit and the excluded
+documents' blobs.
 
-These mutations each fail a test:
+Each of these index mutations fails at least one test:
 
+- swapping the results of two experiments (E08 and E09);
+- relabelling the rejected E20 candidate as selected and E19's retained incumbent as
+  rejected;
+- relabelling an offline selection (E23) as a registry selection;
+- rewriting an outcome (E04) as a gain;
+- dropping E24's rollback candidate or a rejected candidate;
+- swapping the invalidated and rejected candidates of E10 and E13;
+- emptying the deployment basis;
+- dropping the Pluto entries from `not_imported`;
+- zeroing a parent-evidence SHA-256;
 - swapping two experiments;
 - dropping the failed gate records;
-- dropping a rejected candidate;
 - marking the selected candidate as publicly deployed;
 - editing `public_deployment` inside a record.
 
 | Environment | Result | Change |
 | --- | --- | --- |
-| Without torch (`--extra dev --extra jeff`) | **540 passing, 4 skipped** | 523 prior plus 17 history cases. The git case runs locally. |
-| With `--extra neural` | **653 passing** | 636 prior plus 17 history cases |
+| Without torch (`--extra dev --extra jeff`) | **547 passing, 4 skipped** | 523 prior plus 24 history cases. Both git cases run locally. |
+| With `--extra neural` | **660 passing** | 636 prior plus 24 history cases |
+
+The base suite needs the `jeff` extra: `test_decision` imports `typesafe_sdk` (unit 1).
 
 CI adds `tests/test_history_records.py` to the scoped Ruff gate. No dependency,
 lockfile, workflow job or module under `anima3/` changes.
@@ -1450,8 +1486,10 @@ Deferred:
   is outside the offline rule.
 - The parent workspace evidence. Its repository is private and this one is public, so
   only hashes and the values used are recorded.
-- The third-party Pluto analysis, which needs its own redistribution review, and the Jev
-  agent guides and champion configuration. None of them is an experiment result.
+- The third-party Pluto analysis, which needs its own redistribution review.
+- The arena operating documents, `deploy/`, `scripts/`, `examples/`, the branch README
+  and `pyproject.toml`. None of them is an experiment result. `ARENA_VALIDATION.md` and
+  `ARENA_LINODE.md` are cited for the hosted non-neural worker record.
 - The final table of the 100-match run. The committed protocol ends at the remaining-17
   launch. The run's totals (100 matches, 94 updates, simulator 0.385 to 0.06) appear
   only in `2026-10-06-historical-evaluation.json`. The per-match collection is on the
@@ -1477,9 +1515,10 @@ its tests, not cherry-picked wholesale simply because their title matches.
 
 `feat/arena-100-duels` also has the extra commit `baaaaef` (remaining 17 fixtures
 and scripted-probe distinction) absent from the training tip. Unit 9 preserves it in
-`docs/history/` instead of assuming `training-league` subsumes every worktree. The independently audited selected Reference BC result and current
-compatibility smoke are recorded in the parent workspace's
-`docs/model-evidence.md` and `docs/model-readiness.md`.
+`docs/history/` and publishes it as `archive/arena-100-duels-baaaaef`, instead of
+assuming `training-league` subsumes every worktree. The independently audited
+selected Reference BC result and current compatibility smoke are recorded in the
+parent workspace's `docs/model-evidence.md` and `docs/model-readiness.md`.
 
 Before a subsequent unit is merged, repeat the primary-invariant checks above,
 run its offline suite from the locked environment, and record the exact source
