@@ -46,12 +46,13 @@ jobs:
           tests/test_history_records.py
           anima3/neural/sim.py anima3/neural/drills.py anima3/neural/sim_evaluation.py
           anima3/neural/sim_rollouts.py tests/test_neural_sim.py tests/test_neural_sim_rollouts.py
+          anima3/neural/league.py tests/test_neural_league.py
 
   # Frozen-inference checks with the optional CPU-only PyTorch extra. The lock resolves
   # Linux torch from the PyTorch CPU index (about 0.2 GB instead of ~2.9 GB of CUDA wheels).
   neural-inference-tests:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
@@ -77,21 +78,23 @@ jobs:
           assert not torch.backends.cuda.is_built();
           assert not [d.metadata['Name'] for d in m.distributions()
           if d.metadata['Name'].startswith(('nvidia', 'cuda', 'triton'))]"
-      - name: Run checkpoint, inference, live-worker, training, imitation and simulator-rollout tests without skipping torch cases
+      - name: Run checkpoint, inference, live-worker, training and imitation tests without skipping torch cases
         shell: bash
         run: |
           uv run --locked --extra dev --extra jeff --extra neural pytest -q -rs \
             tests/test_neural_checkpoints.py tests/test_neural_inference.py \
             tests/test_neural_live_worker.py tests/test_neural_training.py \
-            tests/test_neural_imitation.py tests/test_neural_sim_rollouts.py | tee neural.log
+            tests/test_neural_imitation.py | tee neural.log
           if grep -qi "skipped" neural.log; then echo "torch tests were skipped"; exit 1; fi
-      - name: Run simulator source-equivalence tests against 819f4f4 without skipping
+      # The simulator-rollout and league torch tests run here, also without skipping.
+      - name: Run simulator and league source-equivalence tests against 819f4f4 without skipping
         shell: bash
         run: |
           test "$(git rev-parse 'archive/training-league-819f4f4^{commit}')" = \
             819f4f426bfaf72e1a132abff9354480250f1444
           uv run --locked --extra dev --extra jeff --extra neural pytest -q -rs \
-            tests/test_neural_sim.py tests/test_neural_sim_rollouts.py | tee sim.log
+            tests/test_neural_sim.py tests/test_neural_sim_rollouts.py \
+            tests/test_neural_league.py | tee sim.log
           if grep -qi "skipped" sim.log; then echo "source equivalence was skipped"; exit 1; fi
       - name: Run full offline suite with torch installed
         run: uv run --locked --extra dev --extra jeff --extra neural pytest -q

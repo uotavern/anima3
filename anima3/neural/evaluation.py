@@ -429,7 +429,7 @@ def selection_gate(
     opponents. The simulator gate passes the source suite's style order.
     """
     order = plan.opponents if opponent_order is None else tuple(opponent_order)
-    if sorted(order) != list(plan.opponents):
+    if not all(isinstance(o, str) for o in order) or sorted(order) != list(plan.opponents):
         raise EvaluationRefused("opponent order must name exactly the plan's opponents")
     before = _check_rows(plan, incumbent, plan.incumbent_sha256)
     after = _check_rows(plan, candidate, plan.candidate_sha256)
