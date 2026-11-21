@@ -54,6 +54,7 @@ from .train import (
     _chunks,
     _fresh_output,
     ancestry_consumed,
+    ancestry_simulator,
 )
 
 # Pass this as ``validation`` to state explicitly that nothing is scored on the side.
@@ -402,6 +403,7 @@ def _clone_selection(
     if not all(type(v) is TrainingDemonstrationVerifier for v in selection.verifiers.values()):
         raise ValueError("imitation input was not verified by its own collections")
     live_consumed, consumed = ancestry_consumed(loaded)
+    simulator_ancestry, simulator_consumed = ancestry_simulator(loaded)
     ancestry = {tuple(identity) for identity in consumed}
     seen = set(ancestry)
     hidden_size = loaded.model.config.hidden_size
@@ -486,6 +488,9 @@ def _clone_selection(
         "demonstrations_consumed": consumed,
         # Imitation consumes no live PPO episode; the lineage's record carries over.
         "live_consumed": live_consumed,
+        # A clone of a simulator-trained policy stays marked as such.
+        "simulator_ancestry": simulator_ancestry,
+        "simulator_consumed": simulator_consumed,
     }
     out.mkdir(parents=True, exist_ok=False)
     manifest = save_checkpoint(out, candidate, training=training)

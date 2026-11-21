@@ -1791,6 +1791,369 @@ Deferred:
 - `train.evaluate` against the simulator's built-in teacher.
 - Neural opponents in simulator evaluation plans; the source suite had none.
 
+## Unit 7b-2 Simulator league, simulator children and exact resume
+
+Based on unit 7b-1 (`e5c1a73`), this completes row 7b. It adds one module and
+changes three:
+
+- `neural/league.py`: the simulator curriculum league as one explicit function,
+  `run_league(plan, out, *, resume_from=None)`, with its run-local registry and exact
+  resume. Needs torch.
+- `train.py`: `ancestry_simulator`. Live PPO children carry the simulator marker
+  and record forward.
+- `imitation.py`: imitation children carry them too.
+- `evaluation.py`: a non-string `opponent_order` is refused as `EvaluationRefused`
+  instead of raising `TypeError` (7b-1 review nit).
+
+`league.py` is never imported implicitly (a subprocess test checks this), and has no
+CLI, no `__main__` and no schedule. Importing `anima3`, `anima3.neural` or the
+stdlib modules still does not import torch.
+
+### Source provenance
+
+| Source at `819f4f4` | Imported | Rewritten or left out |
+| --- | --- | --- |
+| `neural/league.py` `main` (`94051a2`, `25a169f`, `366ec62`, `95e5d0f`, `e05ee1e`, `a972d84`) | The loop, as `run_league`, statement for statement (details below the table). | The argparse CLI and its defaults become `LeaguePlan`, which has no defaults. Rewritten around the loop: the seed and the thread count apply inside `fork_rng` and are restored afterwards; the parent is loaded by SHA-256; evaluation uses `SimulatorEvaluationPlan` and `simulator_gate` (7b-1); provenance, registry vocabulary and resume are added. |
+| `neural/train.py` `behavioral_clone` | Already ported in unit 8 as `imitation.behavioral_clone` (same numerics), used unchanged | `ImitationConfig` carries the source's sequence length 64 and batch 8 explicitly. |
+| `neural/train.py` `ppo_update`, `collect_simulator` loop | Units 7 and 7b-1, used unchanged | The league calls the rollout loop directly so the run keeps one RNG stream, as the source did. |
+| `neural/checkpoints.py` `restore_optimizer`, `restore_training_rng` (`6b8d6f0`, `3ae14e7`) | — | Left out in unit 5. Rewritten as SHA-bound resume stages beside each snapshot. The source league had no resume. |
+| `neural/league.py` `evaluate_suite`, `promotion_gate` | 7b-1 | — |
+
+The loop imported from `main`, in order:
+
+- one seed for the run, then the initial policy (64/64) or the parent;
+- teacher demonstrations from the four drills: seeds `seed + i`; the `pressure`
+  teacher for `melee`, otherwise `balanced`; a 120- or 400-step episode cap;
+- behaviour cloning with Adam (lr 3e-4), skipped for a parent;
+- a fresh PPO Adam and a separate rehearsal Adam (lr 1e-4);
+- for each update: the drill schedule `DRILLS[min(3, u * 4 // updates)]`, rollouts
+  with seed `seed + 1000 + u` against the league, PPO with seed `seed + u`, and
+  optional rehearsal with seed `seed + 10000 + u`;
+- the league rule `[incumbent] + league[-3:]` every two updates, including its
+  duplicated incumbent;
+- evaluation of initial, warm start and candidate;
+- the BC, PPO and selection gates on the warm-start-or-initial base.
+
+### Equivalence with the source
+
+`test_neural_league.py` exports `archive/training-league-819f4f4` with
+`git archive` and runs the source `league.main` in an isolated interpreter with the
+same arguments as a `LeaguePlan`. Two configurations:
+
+1. A fresh policy, four updates, elapsed-time discount (`1.0`), one rehearsal epoch
+   and 40-step games.
+2. An exact parent, six updates (so the league rule drops its oldest snapshot),
+   per-step discount (`0.0`) and no rehearsal.
+
+In both, every checkpoint is tensor-for-tensor identical to the source's: initial,
+warm start and every snapshot. Also identical:
+
+- every evaluation row and mean score, including decided games, not only draws;
+- each gate's pass/fail, paired delta and interval;
+- the selected checkpoint;
+- every source field of every progress event: demonstration summaries, imitation
+  metrics, and each update's rollout counts and PPO and rehearsal metrics.
+
+With a parent the source compared identical warm-start and initial weights. This
+port records that gate as not run ("candidate and incumbent are the same weights").
+The outcome is the same: the incumbent is retained.
+
+### Boundaries
+
+- **Every budget, seed and rate stated.** `LeaguePlan` has no defaults:
+  - the seed;
+  - demonstration steps per drill;
+  - BC epochs, sequence length, batch, action balancing, learning rate and
+    gradient norm;
+  - rehearsal epochs (0–8) and their learning rate;
+  - PPO epochs, sequence length, burn-in, batch, learning rate, discount clock,
+    gamma, GAE lambda, clip range, value and entropy coefficients, gradient norm
+    and target KL;
+  - updates (1–64), rollout steps and `max_steps` (1–1200);
+  - the evaluation seed (at least 10⁹), games per style (20–100, even) and sampling;
+  - the thread count;
+  - the parent, as an absolute path and SHA-256, or explicitly none.
+
+  These are plain fields. `plan.bc`, `plan.rehearsal` and `plan.ppo` build the
+  `ImitationConfig` and `TrainConfig` from them, so no default of either class is
+  used and no hashed field goes unused (review round 1). The source league's values
+  are PPO lr 1e-4, BC lr 3e-4 and rehearsal lr 1e-4, with the unit-7 coefficients.
+  Every training seed (`seed + 10000 + updates` at most) must stay below the
+  evaluation floor, and the plan's SHA-256 covers all of it. A run leaves the
+  caller's torch RNG and thread count untouched.
+- **Simulator provenance on every checkpoint.** Each manifest's `training` names:
+  - `source: simulator-curriculum-league` and the simulator domain;
+  - the simulator, teacher and league-plan SHA-256s, the discount and the shaping
+    discount;
+  - `live_gain_established: false` and `real_server_strength_established: false`;
+  - no `lineage_dir`.
+
+  The warm start (when cloned) and every snapshot are `simulator_trained` and
+  `simulator_ancestry` and name their `parent_policy_sha`. They also carry
+  `simulator_consumed`: the cumulative list of `[kind, seed, drill, steps]` for the
+  demonstrations and rollouts they were trained on. This closes the 7b-1 note:
+  `save_checkpoint` is unchanged, and the simulator provenance is the manifest's
+  `training` block, which every league checkpoint writes.
+- **Ancestry.** Simulator data consumes no live episode or live demonstration. Every
+  league checkpoint therefore carries the parent's `live_consumed` and
+  `demonstrations_consumed` unchanged (empty for a fresh policy), and unit 8's
+  stripped-parent refusal applies to it. The marker cannot be dropped by later
+  training:
+  - `train.ancestry_simulator` makes every live PPO child and every imitation child
+    record `simulator_ancestry` and carry `simulator_consumed`. A descendant of a
+    simulator-trained policy is therefore never presented as purely live-trained.
+  - Malformed markers are refused before anything is written, not read as
+    unmarked:
+    - a `simulator_trained` or `simulator_ancestry` that is not a bool;
+    - a checkpoint labelled with the league source or the simulator domain but
+      lacking either marker or the record;
+    - a marked checkpoint without a well-formed `simulator_consumed`;
+    - `simulator_trained` without `simulator_ancestry`;
+    - an unmarked checkpoint that names simulator data.
+  - A simulator child has no `lineage_dir`, so a live `record_decision` can decide
+    on it only as a declared `external_candidate`, on fresh live evaluation
+    collections. Its simulator gates are simulator decisions, which
+    `record_decision` refuses (7b-1).
+- **Run-local experimental registry.** `registry.json` records:
+  - the three gates, and the selected checkpoint and SHA-256;
+  - for each of initial, warm start and candidate, its `selection` and
+    `deployment: not_deployed`;
+  - `registry_kind: run-local simulator registry`,
+    `selection_scope: simulator-experimental-only` and `simulator_only: true`;
+  - `live_gain_established`, `public_deployment` and `automatic_promotion` all
+    false.
+
+  The selections use the unit-9 vocabulary:
+  - `registry_selected` for the selected checkpoint;
+  - `rollback` for a base superseded by a passing candidate;
+  - `rejected` for a cloned warm start or a candidate that failed its gate;
+  - `not_gated` otherwise.
+
+  Selection is not deployment. Nothing switches, publishes or promotes a policy.
+- **Fresh output.** `out` must be absolute and must not exist, even as a symbolic
+  link. Resolved, it must not equal, sit inside or contain the parent checkpoint or
+  the previous run. A refused run writes nothing: every resume check, including
+  every blob read, runs before `out` is created, and no recorded path can leave
+  the previous run (blob names are `<kind>-<sha256>.pt` in their own stage
+  directory, checkpoint paths follow from their labels).
+- **Resume.**
+  - What is saved: after the warm start (stage 0) and after every update (stage
+    *k*), the run writes the PPO Adam state, the rehearsal Adam state and the torch
+    CPU RNG state as SHA-256-named blobs under `resume/stage-NNN/`. Then, last and
+    atomically, it writes `resume/stage-NNN.json`, naming:
+    - the blobs;
+    - the current model and every checkpoint by SHA-256;
+    - the league membership by label;
+    - the demonstration file's SHA-256;
+    - the simulator record and the progress events.
+  - What a resume checks: `run_league(plan, out, resume_from=previous)` takes
+    nothing in a stage manifest on trust. It refuses:
+    - a previous run whose `plan.json` is not this plan (any field: seed, budget,
+      coefficient, threads);
+    - stages that are not contiguous, beyond the plan's updates, with unknown or
+      missing keys, or naming another plan;
+    - a stage whose `previous_stage_sha256` is not the SHA-256 of the previous
+      stage file. The stages form a hash chain.
+    - any blob named other than `<kind>-<its sha256>.pt` for its slot. A blob's
+      payload must also name its kind (PPO Adam, rehearsal Adam or RNG), its stage
+      and the plan, so a swapped, renamed or copied-in blob of another slot or
+      stage is refused.
+    - any checkpoint whose weights do not hash to their SHA-256, or whose
+      `manifest.json` does not hash to the value each stage records;
+    - any checkpoint that does not carry the run's record. That record is the
+      league source and plan, the parent's (or empty) live and demonstration
+      lists, the simulator record the plan gives for its position, the parent
+      chain and the scheduled drill. A run from a parent also needs the parent's
+      weights and records in its initial checkpoint.
+    - any stage whose model, checkpoint labels and SHA-256s, league membership,
+      simulator record, demonstration SHA-256 or progress events differ from what
+      the plan and the checkpoints give. Membership follows the league rule. The
+      events are rebuilt from the demonstration summaries, the BC metrics and
+      each snapshot's rollout summary and metrics, which the checkpoints record.
+  - How it continues: it copies the checkpoints, demonstrations and stage files up
+    to the last complete stage into the new directory. It restores the model,
+    league, both Adam states and the RNG state, and continues the same loop. The
+    previous run is left byte-identical.
+  - A stage whose manifest was never written does not exist. That covers a crash
+    in a blob, between the blobs and the manifest, in a snapshot, or before the
+    first stage (where the run restarts from the seed). Such a crash is resumed from
+    the last complete stage.
+  - The demonstration file is written before stage 0. Behaviour cloning reads only
+    its features, masks, actions and the episodes' zero initial state, so it
+    reproduces the rehearsal input exactly.
+- **Determinism scope.** The plan fixes the thread count, and the result is
+  bit-identical on the same platform and torch build. A different build or CPU may
+  differ, as for unit 7's fixed-seed training.
+
+What is enforced and what is convention:
+
+- **Enforced in code:** everything above.
+- **Trust boundary, exactly:**
+  - **Detected:** any change to any one file a resume uses. Each checkpoint
+    manifest is bound by the stage written after it; a snapshot whose stage was
+    never written is not used. That includes:
+    - a stage manifest field (model, league, labels, record, events or a
+      descriptor) or blob, and an old stage file swapped for a new one;
+    - a checkpoint's weights or, once a stage names it, its manifest;
+    - the demonstrations or the plan.
+  - **Not detected:** a coordinated rewrite. Someone who re-derives every
+    dependent value can rewrite a checkpoint manifest, recompute its SHA-256 into
+    the stage chain and re-chain the later stages, or replace blobs with new
+    payloads that carry the right kind, stage and plan. The SHA-256s are not
+    signatures.
+  - **Not detected either:** a checkpoint re-saved without its simulator marker (the
+    weight SHA-256 covers weights only), and edits outside the run, such as to the
+    parent. A parent's manifest is not hash-bound by the run.
+- **Single writer:** concurrent writers on one run are not supported; resume
+  always writes a new directory.
+
+### Review round 1
+
+The independent review of `8da97ac` confirmed the source equivalence and the
+crash-resume bit-identity at every extra point it tried, and requested changes.
+Each item has tests and mutation checks:
+
+1. **Medium: resume trusted the stage manifest's content.** Edits to one stage
+   file changed the resumed result or were accepted:
+   - swapped Adam descriptors;
+   - stage 0's RNG blob copied into stage 1;
+   - edited league labels;
+   - the model set to the initial policy;
+   - emptied events;
+   - an emptied simulator record, which then reached a trusted child.
+
+   The model, checkpoint labels and SHA-256s, league, simulator record,
+   demonstration SHA-256 and events are now re-derived from the plan and the
+   hash-bound checkpoints, and must be equal. Each checkpoint's `manifest.json` is
+   bound by SHA-256, and the stages form a hash chain. Blobs must be named
+   `<kind>-<sha256>.pt` and carry their kind, stage and plan. Every reviewer edit
+   is a test case.
+2. **Low: a refused resume could leave `out`,** through a blob path outside the
+   run. Blob names are now bare and checked before anything is written. Every
+   resume check, including every blob read, runs before `out` is created.
+3. **Low: malformed simulator markers were dropped, not refused.** Non-bool
+   markers are now refused, as are a simulator-labelled manifest without its
+   markers, `simulator_trained` without `simulator_ancestry`, and an unmarked
+   checkpoint naming simulator data. This applies to live PPO and imitation alike.
+4. **Low: inherited defaults.** `LeaguePlan.ppo` was a `TrainConfig` whose
+   learning rate and gamma still defaulted, and `bc.learning_rate` was hashed but
+   unused. The plan now states every BC, rehearsal and PPO value as a field and
+   builds the configurations from them.
+5. **Low: test gaps.** New tests: league children carry a parent's live,
+   demonstration and simulator records (through a crash and resume), and the stage
+   checkpoint labels are checked on their own.
+
+### Offline acceptance
+
+| Environment | Result | Change |
+| --- | --- | --- |
+| Without torch (`--extra dev --extra jeff`) | **621 passing, 6 skipped** | Unchanged counts plus the league module skipping through `pytest.importorskip` (the 7b-1 opponent-order test checks two more orders). |
+| With `--extra neural` | **801 passing** | 747 prior, 53 league cases and one imitation case |
+
+These are the counts after review round 1; the first push had 621/6 and 776.
+Both suites passed three consecutive local runs.
+
+The league cases (`tests/test_neural_league.py`) cover:
+
+- the two source equivalences, with every update playing frozen league snapshots;
+- the selection in all five gate combinations;
+- the stage league labels;
+- plan bounds and the absence of defaults (every field required, every derived
+  configuration value a plan field);
+- provenance on every checkpoint;
+- a parent's live, demonstration and simulator records carried by every child,
+  through a crash and resume;
+- live PPO and imitation children of a simulator policy staying marked;
+- seven malformed-marker cases refused before anything is written;
+- the registry vocabulary, with gates that `record_decision` refuses;
+- the caller's RNG and threads left untouched;
+- a crash during update 3 resumed into new directories, compared with an
+  uninterrupted run. Compared are every checkpoint SHA-256, the registry, the
+  evaluations, the progress events and the demonstrations. Also covered:
+  - resuming the same crashed run twice;
+  - resuming the finished resumed run;
+  - a chain of two crashes;
+- crashes mid-write: before the stage manifest, inside a blob, inside a snapshot,
+  before the demonstrations, and during evaluation;
+- 22 tampered runs, each refused by the check its message names, writing nothing.
+  The stage edits are re-chained and re-bound, as a forger would, so no other
+  check catches them first. Cases:
+  - blob, weight and demonstration bytes;
+  - a stage of another plan, a missing middle stage, a broken chain and an extra
+    key;
+  - swapped, renamed, older-stage and outside-the-run blobs;
+  - league labels;
+  - the model set to initial (in a middle stage and in the head);
+  - emptied events (middle and head);
+  - an emptied simulator record;
+  - a replaced checkpoint SHA-256 and a dropped label;
+  - an unbound checkpoint manifest;
+  - a re-bound checkpoint record;
+- refusal of another plan (seed, rehearsal, threads, updates), overlapping,
+  existing, symlinked or relative outputs, and a non-plan;
+- the module not being imported implicitly.
+
+Mutations, each run alone, each of which fails a test (46, all re-run on the final
+tests):
+
+- the run not seeded, or not isolated in `fork_rng`;
+- the thread count not restored;
+- on resume, the RNG state, either Adam state, the league membership or the
+  demonstrations not restored;
+- a blob not hash-checked;
+- the plan not compared, or a stage's plan SHA-256 not checked;
+- non-contiguous stages accepted;
+- the stage checkpoint labels not checked;
+- no stage chain;
+- each of the re-derived stage values not checked: model, checkpoints, checkpoint
+  manifests, league, simulator record and events;
+- the blob name prefix, payload kind or payload stage not checked;
+- the checkpoints' records not checked;
+- a parent's live records not carried, or its simulator ancestry ignored;
+- an overlapping or an existing output allowed;
+- snapshots not marked simulator-trained;
+- rollouts not recorded in `simulator_consumed`;
+- training seeds allowed into the evaluation range;
+- the PPO learning rate not taken from the plan;
+- the league rule changed from `[-3:]` to `[-2:]`;
+- the selection ignoring the final gate, or the base ignoring the BC gate;
+- a checkpoint labelled deployed, or live gain claimed by the registry;
+- live PPO or imitation children dropping the simulator marker;
+- stripped, malformed, non-bool or inconsistent markers accepted;
+- a simulator-labelled manifest without markers accepted;
+- an unmarked record accepted;
+- a non-string opponent order accepted.
+
+Survivors along the way, each now killed by an added test:
+
+- **First push:** five survivors, as described in the first pass.
+- **Review:** three more: a parent's live records, its simulator ancestry and the
+  stage label check.
+- **First pass on the review fixes:** 13, each masked by an overlapping check. The
+  tamper cases now re-bind the hashes and match the refusing check's message.
+
+CI adds `league.py` and `tests/test_neural_league.py` to the scoped Ruff gate. The
+league tests join the step that runs the simulator equivalence against the archive
+tag without skipping. The neural job's timeout rises from 15 to 25 minutes. The
+lockfile and `pyproject.toml` are unchanged, and so are body, contract, README,
+`experiments/run_arm.sh`, `magic.py`, executor, schema, inference, checkpoint,
+model, live, splits, teacher, melee, demonstrations, sim, drills, `sim_evaluation`
+and `sim_rollouts`. `train.py`, `imitation.py` and `evaluation.py` change only as
+described.
+
+Not done:
+
+- No league was run beyond the tiny test budgets.
+- No simulator-trained checkpoint was evaluated live, selected or promoted.
+- No server, client or bridge was used.
+
+Deferred:
+
+- Live evaluation against a teacher opponent.
+- Neural opponents in simulator evaluation plans.
+- `train.evaluate` against the simulator's built-in teacher (7b-1).
+- GPU training.
+
 ## Remaining separately verified units
 
 | Order | Unit and likely files | Dependencies and acceptance |
@@ -1802,7 +2165,7 @@ Deferred:
 | 6 (integrated) | Live receipts, evaluation and bounded resume: `neural/live.py` | Units 2–5; prove count/duplicate/invalid-fixture handling, immutable arm policy identities and account locking before any separately authorized live fixture. |
 | 7 (integrated) | Evaluation statistics, selection gate and verified PPO: `neural/evaluation.py`, `neural/splits.py`, `neural/train.py` | Units 5–6; isolate training from evaluation, require an explicit held-out set, fixed budget floors, an explicit discount clock (`discount_time_unit` has no default; the source live update used 1.0, elapsed seconds), seat-paired blocks, single-use evidence and per-opponent regression rejection. No training, evaluation or promotion is run. |
 | 7b-1 (integrated) | Simulator, drills and simulator evaluation: `neural/sim.py`, `neural/drills.py`, `neural/sim_evaluation.py`, `neural/sim_rollouts.py` | Units 7–8; seeded simulator evaluation through the unit-7 gate under its own domain and teacher labels, simulator rollouts never live PPO episodes or demonstrations. Simulator gain is not live gain. |
-| 7b-2 | Simulator BC and PPO children, league self-play: `league.py` | Unit 7b-1; SHA-bound simulator children carrying the ancestry's consumed lists, a run-local experimental registry (selection is not deployment), optimizer/RNG resume idempotence. Live demonstrations and BC on them moved to unit 8. |
+| 7b-2 (integrated) | Simulator league, simulator BC and PPO children, exact resume: `neural/league.py` | Unit 7b-1; SHA-bound simulator children marked and carrying the ancestry's consumed lists, a run-local experimental registry (selection is not deployment), bit-identical optimizer/RNG resume. Row 7b is fully integrated. |
 | 8 (integrated) | Tactical teacher, probes, live demonstrations and BC: `neural/teacher.py`, `neural/melee.py`, `neural/demonstrations.py`, `neural/imitation.py` | Units 4, 6 and 7. Teacher and probe arms are never neural; demonstrations stay out of PPO records with verified provenance from training collections only; frozen-policy behaviour unchanged. The optional Jev shadow analysis is deferred (remote model service). |
 | 9 (integrated) | Historical experiment record reconciliation: `docs/history/` | Preserve chronology and failed candidates; attach completed evidence without interpreting registry selection as public deployment. |
 

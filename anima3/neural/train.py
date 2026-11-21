@@ -531,6 +531,55 @@ def ancestry_consumed(loaded: LoadedCheckpoint) -> tuple[list[list], list[list]]
     return _consumed(loaded), _demonstrations_consumed(loaded)
 
 
+SIMULATOR_SOURCE = "simulator-curriculum-league"
+SIMULATOR_DOMAIN = "approximate-pre-aos-simulator"  # drills.SIM_DOMAIN
+
+
+def ancestry_simulator(loaded: LoadedCheckpoint) -> tuple[bool, list[list]]:
+    """Whether the ancestry of ``loaded`` was trained in the simulator, and on what.
+
+    A simulator-trained checkpoint (``simulator_trained``) and every descendant
+    (``simulator_ancestry``) stays marked: each trained child, live PPO and
+    imitation alike, carries the marker and the ``simulator_consumed`` record
+    forward, so no descendant can be presented as purely live-trained. Refused,
+    rather than read as unmarked: a marker that is not a bool, a simulator-labelled
+    checkpoint (league source or simulator domain) without its markers and record,
+    a marked checkpoint without its record, ``simulator_trained`` without
+    ``simulator_ancestry``, and an unmarked checkpoint that names simulator data.
+    """
+    training = loaded.manifest.get("training", {})
+    if not isinstance(training, dict):
+        raise TypeError("checkpoint training metadata is not an object")
+    markers = ("simulator_trained", "simulator_ancestry")
+    if any(k in training and type(training[k]) is not bool for k in markers):
+        raise ValueError("checkpoint has a malformed simulator marker")
+    labelled = (
+        training.get("source") == SIMULATOR_SOURCE or training.get("domain") == SIMULATOR_DOMAIN
+    )
+    if labelled and not all(k in training for k in (*markers, "simulator_consumed")):
+        raise ValueError("simulator-labelled checkpoint lacks its simulator record")
+    trained = training.get("simulator_trained", False)
+    marked = trained or training.get("simulator_ancestry", False)
+    if marked and "simulator_consumed" not in training:
+        raise ValueError("simulator-trained checkpoint lacks its simulator record")
+    if trained and training.get("simulator_ancestry") is not True:
+        raise ValueError("simulator-trained checkpoint lacks its simulator ancestry marker")
+    consumed = training.get("simulator_consumed", [])
+    if not isinstance(consumed, list) or not all(
+        isinstance(i, list)
+        and len(i) == 4
+        and isinstance(i[0], str)
+        and type(i[1]) is int
+        and isinstance(i[2], str)
+        and type(i[3]) is int
+        for i in consumed
+    ):
+        raise ValueError("checkpoint lineage has a malformed simulator record")
+    if consumed and not marked:
+        raise ValueError("an unmarked checkpoint names simulator training data")
+    return marked, [list(i) for i in consumed]
+
+
 def _fresh_output(out, parent: Path) -> Path:
     raw = Path(out).absolute()
     resolved = raw.resolve()
@@ -619,6 +668,7 @@ def _unsafe_update_from_episodes(
         raise ValueError("bounded training runs on CPU only")
     out = _fresh_output(out, loaded.directory)
     consumed, demonstrations_consumed = ancestry_consumed(loaded)
+    simulator_ancestry, simulator_consumed = ancestry_simulator(loaded)
     seen = {tuple(identity) for identity in consumed}
     trajectories = []
     for episode in episodes:
@@ -670,6 +720,9 @@ def _unsafe_update_from_episodes(
         "live_consumed": consumed,
         # PPO imitates nothing; the ancestry's demonstration record carries over.
         "demonstrations_consumed": demonstrations_consumed,
+        # A live update of a simulator-trained policy stays marked as such.
+        "simulator_ancestry": simulator_ancestry,
+        "simulator_consumed": simulator_consumed,
     }
     out.mkdir(parents=True, exist_ok=False)
     manifest = save_checkpoint(out, candidate, training=training)

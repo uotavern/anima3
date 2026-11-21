@@ -491,3 +491,34 @@ def test_output_may_not_overlap_any_input_even_through_a_symlink(tmp_path, monke
             )  # fmt: skip
         assert not out.exists()
     assert clone(loaded, [train], tmp_path / "fine", validation=[checked], held_out=[held])
+
+
+def test_imitation_children_of_a_simulator_policy_stay_marked(tmp_path, monkeypatch):
+    """Row 7b-2: a clone keeps the ancestry's simulator marker and record."""
+    record = [["demonstrations", 20261006, "melee", 8]]
+    parent = saved(tmp_path, training={
+        "parent_policy_sha": "f" * 64, "live_consumed": [], "demonstrations_consumed": [],
+        "simulator_trained": True, "simulator_ancestry": True, "simulator_consumed": record,
+    })  # fmt: skip
+    train = collect(tmp_path, monkeypatch, "train")
+    result = clone(parent, [train], tmp_path / "student")
+    training = load_checkpoint(result["checkpoint"], expected_sha256=result["policy_sha"]).manifest[
+        "training"
+    ]
+    assert training["simulator_ancestry"] is True and training["simulator_consumed"] == record
+    plain = clone(saved(tmp_path, "plain"), [train], tmp_path / "plain-student")
+    training = json.loads((Path(plain["checkpoint"]) / "manifest.json").read_text())["training"]
+    assert training["simulator_ancestry"] is False and training["simulator_consumed"] == []
+    stripped = saved(tmp_path, "stripped", training={
+        "parent_policy_sha": "f" * 64, "live_consumed": [], "demonstrations_consumed": [],
+        "simulator_trained": True,
+    })  # fmt: skip
+    with pytest.raises(ValueError, match="simulator record"):
+        clone(stripped, [train], tmp_path / "x")
+    malformed = saved(tmp_path, "malformed", training={
+        "parent_policy_sha": "f" * 64, "live_consumed": [], "demonstrations_consumed": [],
+        "simulator_trained": "true", "simulator_ancestry": True, "simulator_consumed": [],
+    })  # fmt: skip
+    with pytest.raises(ValueError, match="malformed simulator marker"):
+        clone(malformed, [train], tmp_path / "x")
+    assert not (tmp_path / "x").exists()

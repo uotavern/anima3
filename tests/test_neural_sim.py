@@ -1231,7 +1231,13 @@ def test_gate_opponent_order_must_name_exactly_the_plan_opponents():
     plan = sim_plan()
     incumbent, candidate = records(plan, lambda s, f: 0, lambda s, f: 1)
     labels = [o for o, _ in plan.styles()]
-    for order in (labels[:4], [*labels, labels[0]], [*labels[:4], "scripted"]):
+    for order in (
+        labels[:4],
+        [*labels, labels[0]],
+        [*labels[:4], "scripted"],
+        [*labels[:4], None],
+        [*labels[:4], 3],
+    ):
         with pytest.raises(EvaluationRefused, match="opponent order"):
             selection_gate(plan.evaluation, incumbent, candidate, opponent_order=order)
     ordered = selection_gate(plan.evaluation, incumbent, candidate, opponent_order=labels)
