@@ -34,11 +34,10 @@ from anima3.neural.imitation import (
     demonstration_trajectory,
     imitation_metrics,
 )
-from anima3.neural.live import Arm, CollectionPlan
+from anima3.neural.live import LIVE_TEACHER_SHA256, Arm, CollectionPlan
 from anima3.neural.model import PolicyConfig, RecurrentPolicy
 from anima3.neural.schema import ACTION_NAMES, FEATURE_NAMES
 from anima3.neural.splits import NO_HELD_OUT
-from anima3.neural.teacher import TEACHER_SHA256
 from anima3.neural.train import ppo_update
 
 BC = ImitationConfig(epochs=2, sequence_length=4, batch_sequences=2, balance_actions=False)
@@ -223,7 +222,7 @@ def clone(loaded, collections, out, **overrides):
         "collections": collections,
         "held_out": NO_HELD_OUT,
         "validation": NO_VALIDATION,
-        "teacher_sha256": TEACHER_SHA256,
+        "teacher_sha256": LIVE_TEACHER_SHA256,
         "out": out,
         "config": BC,
         "seed": 11,
@@ -248,7 +247,7 @@ def test_clone_writes_a_sha_bound_checkpoint_with_full_provenance(tmp_path, monk
     assert training["source"] == "servuo-teacher-imitation"
     assert training["parent_policy_sha"] == loaded.policy_sha
     assert training["teacher"] == {
-        "name": "TacticalTeacher", "sha256": TEACHER_SHA256, "styles": ["tactical"],
+        "name": "TacticalTeacher", "sha256": LIVE_TEACHER_SHA256, "styles": ["tactical"],
         "policy_kind": "teacher",
     }  # fmt: skip
     assert training["lineage_dir"] == str(LINEAGE)
@@ -303,7 +302,7 @@ def test_clone_refuses_evaluation_input_overlap_and_relative_paths(tmp_path, mon
     with pytest.raises(ValueError, match="absolute"):
         clone_from_demonstrations(
             Path("relative-checkpoint"), expected_sha256=loaded.policy_sha, collections=[train],
-            held_out=NO_HELD_OUT, validation=NO_VALIDATION, teacher_sha256=TEACHER_SHA256,
+            held_out=NO_HELD_OUT, validation=NO_VALIDATION, teacher_sha256=LIVE_TEACHER_SHA256,
             out=tmp_path / "x", config=BC, seed=1, lineage_dir=LINEAGE, min_demonstrations=1,
         )  # fmt: skip
     for missing in ("held_out", "validation"):
@@ -367,14 +366,18 @@ def test_a_lineage_never_imitates_the_same_demonstration_twice(tmp_path, monkeyp
 def test_an_altered_demonstration_after_selection_is_refused(tmp_path, monkeypatch):
     loaded = saved(tmp_path)
     train = collect(tmp_path, monkeypatch, "train")
-    selection = select_demonstrations([train], teacher_sha256=TEACHER_SHA256, held_out=NO_HELD_OUT)
+    selection = select_demonstrations(
+        [train], teacher_sha256=LIVE_TEACHER_SHA256, held_out=NO_HELD_OUT
+    )
     selection.demonstrations[0]["steps"][0]["action"] = 0
     with pytest.raises(DemonstrationRefused, match="re-verification"):
         _clone_selection(
             loaded, selection, None, out=tmp_path / "x", config=BC, seed=1,
             lineage=str(LINEAGE), reference=None,
         )  # fmt: skip
-    selection = select_demonstrations([train], teacher_sha256=TEACHER_SHA256, held_out=NO_HELD_OUT)
+    selection = select_demonstrations(
+        [train], teacher_sha256=LIVE_TEACHER_SHA256, held_out=NO_HELD_OUT
+    )
     path, _ = next(iter(selection.files.values()))
     original = Path(path).read_bytes()
     edited = json.loads(original)
@@ -386,7 +389,9 @@ def test_an_altered_demonstration_after_selection_is_refused(tmp_path, monkeypat
             lineage=str(LINEAGE), reference=None,
         )  # fmt: skip
     Path(path).write_bytes(original)
-    selection = select_demonstrations([train], teacher_sha256=TEACHER_SHA256, held_out=NO_HELD_OUT)
+    selection = select_demonstrations(
+        [train], teacher_sha256=LIVE_TEACHER_SHA256, held_out=NO_HELD_OUT
+    )
     selection.verifiers = {k: (lambda d: True) for k in selection.verifiers}
     with pytest.raises(ValueError, match="own collections"):
         _clone_selection(
@@ -457,8 +462,10 @@ def test_validation_demonstrations_are_checked_against_the_ancestry(tmp_path, mo
     child = load_checkpoint(first["checkpoint"], expected_sha256=first["policy_sha"])
     with pytest.raises(DemonstrationRefused, match="validation demonstration was already"):
         clone(child, [other], tmp_path / "second", validation=[train])
-    fit = select_demonstrations([other], teacher_sha256=TEACHER_SHA256, held_out=NO_HELD_OUT)
-    scored = select_demonstrations([train], teacher_sha256=TEACHER_SHA256, held_out=NO_HELD_OUT)
+    fit = select_demonstrations([other], teacher_sha256=LIVE_TEACHER_SHA256, held_out=NO_HELD_OUT)
+    scored = select_demonstrations(
+        [train], teacher_sha256=LIVE_TEACHER_SHA256, held_out=NO_HELD_OUT
+    )
     scored.demonstrations[0]["steps"][0]["action"] = 0
     with pytest.raises(DemonstrationRefused, match="validation demonstration failed"):
         _clone_selection(
