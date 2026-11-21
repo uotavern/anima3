@@ -2014,9 +2014,12 @@ What is enforced and what is convention:
     - the demonstrations or the plan, its recorded code identity included.
 
     One single-file edit is accepted, because nothing hashes the last stage
-    file: a reformatting of its JSON (the same values serialised differently).
-    It leaves the weights, registry and events identical, and a test resumes
-    from such a file.
+    file: a reformatting of its JSON, meaning the same values of the same JSON
+    types serialised differently (whitespace, key order, the spelling of an
+    equal number). Stage values and `plan.json` are compared as canonical JSON,
+    so a type edit such as `0` to `0.0`, `1` to `true` or a `stage` of `2.0` is
+    refused. A reformatting leaves the weights, registry and events identical,
+    and a test resumes from such a file.
   - **Not detected:** a coordinated rewrite. Someone who re-derives every
     dependent value can rewrite a checkpoint manifest, recompute its SHA-256 into
     the stage chain and re-chain the later stages, or replace blobs with new
@@ -2268,22 +2271,45 @@ class body) changes.
    and its selection. Candidate `label` and `note` text is frozen by a
    per-experiment digest in the reviewed table, and the deployment check
    refuses deployment wording other than "not deployed" in the label or note
-   of a `not_deployed` candidate. Setting E22's note to "deployed publicly" now
-   fails both checks. `index.json` is unchanged.
+   or any other text field of a `not_deployed` candidate. Experiment and
+   candidate keys must be exactly the known sets, so an added field (say a
+   `comment`) fails both checks. Setting E22's note to "deployed publicly" now
+   fails both checks. The wording check is a keyword check: a deployment claim
+   in other words ("shipped to the public shard") is caught only by the frozen
+   digest. `index.json` is unchanged.
+
+### Review round 1
+
+The independent review of `15da498` approved with three low findings, each now
+fixed and tested:
+
+1. **Type edits to the last stage were accepted.** Python's `==` makes `1`,
+   `1.0` and `True` equal, so 159 of 163 single-value type edits to the last
+   stage resumed (weights and registry identical, but `progress.json` then
+   carried, say, `"wins": 0.0`). Stage values, the recorded plan and the code
+   identities are now compared as canonical JSON. The reviewer's script now
+   has all 163 refused, and a test edits a bool, an int and a float in the
+   head stage and three plan fields.
+2. **`"stage": 2.0` raised an uncaught `TypeError`.** A non-integer (or bool)
+   stage number is now refused as `LeagueRefused`.
+3. **An extra candidate key passed every history test.** Experiment and
+   candidate keys are now checked against the exact known sets, and the
+   deployment-wording check covers every text field of a candidate.
 
 ### Offline acceptance
 
 | Environment | Result | Change |
 | --- | --- | --- |
 | Without torch (`--extra dev --extra jeff`) | **627 passing, 6 skipped** | 621 before: two history, two teacher-identity and two demonstration-provenance cases |
-| With `--extra neural` | **821 passing** | 801 before: the six above and 14 league cases |
+| With `--extra neural` | **822 passing** | 801 before: the six above and 15 league cases |
 
 The 14 league cases: eight tampered runs (head and middle blob sizes, a stage's
 league and teacher identity, `plan.json`'s identity changed or dropped, and a
 checkpoint's simulator and teacher identity, each re-bound as a forger would),
 the identity's module set and edit sensitivity, the identity recorded in plan,
 stages and registry, a resume refused after a league, simulator or teacher code
-change (three cases), and a resume from a reformatted last stage.
+change (three cases), a resume from a reformatted last stage, and (review round
+1) type edits of the last stage and the recorded plan.
 
 Mutations, each run alone (26; 25 killed by a test):
 
@@ -2305,6 +2331,13 @@ The survivor is layered: the verifier's exact module-set check on a
 demonstration's `sources`, weakened to a subset check, is still backed by the
 arm-identity check, because a self-consistent smaller map gives an identity
 other than the planned arm's.
+
+Review round 1 added eight mutations, seven killed: stage values, the recorded
+plan or the stage number compared with Python's `==` or without its type
+check; candidate keys unchecked in either the deployment check or the frozen
+table; experiment keys unchecked; the wording check limited to label and note.
+The survivor, the code identities compared with `!=`, is equivalent: every
+value in them is a string, so no type edit can pass `!=`.
 
 ## Remaining separately verified units
 
