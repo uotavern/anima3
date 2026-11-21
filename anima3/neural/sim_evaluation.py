@@ -9,9 +9,14 @@ rollouts themselves are in ``sim_rollouts.py`` (which needs torch).
   the code identities of the simulator (``SIMULATOR_SHA256``) and of the teacher
   (``TEACHER_SHA256``). None of them has a default. Its SHA-256 identifies it.
 - Opponents are teacher styles, labelled ``teacher:<style>:<teacher sha256>``. Only
-  a simulator plan may name one; a live plan still refuses a teacher opponent.
+  a simulator plan may name one; a live plan still refuses a teacher opponent. As
+  in the source suite and gate, a simulator plan names exactly the five ``STYLES``
+  (``tactical`` was never in the suite), each with at least 20 games.
+- Games are played, recorded and bootstrapped in ``STYLES`` order, the source
+  suite's order, so the bootstrap's block list and hence its interval are the
+  source gate's.
 - Fixtures follow the source ``league.evaluate_suite`` (``819f4f4``): game ``g``
-  against the style with index ``i`` in ``TEACHER_STYLES`` uses simulator seed
+  against the style with index ``i`` in ``STYLES`` uses simulator seed
   ``seed + 10000 * i + g // 2`` and seat ``g % 2``. Games 2k and 2k+1 share a seed
   and swap seats, which is exactly the unit-7 two-seat block. Seat 0 is recorded as
   the ``challenger`` side and seat 1 as ``receiver``.
@@ -35,7 +40,7 @@ from dataclasses import dataclass
 from .drills import SIM_DOMAIN, SIMULATOR_SHA256
 from .evaluation import SIDES, EvaluationPlan, EvaluationRefused, selection_gate
 from .inference import require_sha256
-from .teacher import TEACHER_SHA256, TEACHER_STYLES
+from .teacher import STYLES, TEACHER_SHA256, TEACHER_STYLES
 
 SIM_PLAN_SCHEMA = "anima3-simulator-evaluation-plan-v1"
 SIM_RECORD_SCHEMA = "anima3-simulator-evaluation-v1"
@@ -92,6 +97,9 @@ class SimulatorEvaluationPlan:
         require_sha256(self.teacher_sha256)
         if any(o.split(":")[2] != self.teacher_sha256 for o in self.evaluation.opponents):
             raise ValueError("every teacher opponent must name the plan's teacher SHA-256")
+        # The source gate required every suite style; a subset (or tactical) is refused.
+        if sorted(_style(o) for o in self.evaluation.opponents) != sorted(STYLES):
+            raise ValueError("a simulator plan names exactly the five source suite styles")
 
     def to_json(self) -> dict:
         return {
@@ -119,12 +127,12 @@ class SimulatorEvaluationPlan:
         return hashlib.sha256(canonical.encode()).hexdigest()
 
     def styles(self) -> list[tuple[str, str]]:
-        """``(opponent label, teacher style)`` in the plan's canonical order."""
-        return [(o, _style(o)) for o in self.evaluation.opponents]
+        """``(opponent label, teacher style)`` in the source suite's ``STYLES`` order."""
+        return [(teacher_opponent(s, self.teacher_sha256), s) for s in STYLES]
 
     def fixtures(self, opponent: str) -> list[tuple[int, int, int]]:
         """``(fixture, simulator seed, seat)`` for every planned game against ``opponent``."""
-        index = TEACHER_STYLES.index(_style(opponent))
+        index = STYLES.index(_style(opponent))
         return [
             (game, self.seed + index * STYLE_SEED_STRIDE + game // 2, game % 2)
             for game in range(self.evaluation.games_per_opponent)
@@ -237,7 +245,8 @@ def simulator_gate(plan: SimulatorEvaluationPlan, incumbent: dict, candidate: di
     plan.require_current()
     _check_record(plan, incumbent, plan.evaluation.incumbent_sha256)
     _check_record(plan, candidate, plan.evaluation.candidate_sha256)
-    decision = selection_gate(plan.evaluation, incumbent, candidate)
+    order = [opponent for opponent, _ in plan.styles()]
+    decision = selection_gate(plan.evaluation, incumbent, candidate, opponent_order=order)
     passed = decision["passed"]
     decision.update(
         {

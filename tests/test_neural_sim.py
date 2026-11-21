@@ -45,7 +45,7 @@ from anima3.neural.schema import (
     encode,
     legal_mask,
 )
-from anima3.neural.sim import DuelSim, cast_seconds
+from anima3.neural.sim import SHAPING_GAMMA, DuelSim, cast_seconds
 from anima3.neural.sim_evaluation import (
     EVALUATION_SEED_FLOOR,
     SIM_DECISION_SCHEMA,
@@ -133,7 +133,10 @@ def test_masks_share_resource_cursor_showdown_and_blast_safety_rules():
 
 
 def test_simulator_seeded_teacher_trajectory_is_reproducible():
-    a, b = DuelSim(seed=71, max_steps=140), DuelSim(seed=71, max_steps=140)
+    a, b = (
+        DuelSim(seed=71, max_steps=140, shaping_gamma=SHAPING_GAMMA),
+        DuelSim(seed=71, max_steps=140, shaping_gamma=SHAPING_GAMMA),
+    )
     assert a.reset() == b.reset()
     while not a.done:
         actions_a = a.teacher(0), a.teacher(1)
@@ -144,7 +147,7 @@ def test_simulator_seeded_teacher_trajectory_is_reproducible():
 
 
 def test_opponent_private_mana_and_supplies_never_change_our_frame_or_teacher():
-    sim = DuelSim(max_steps=1200, seed=6)
+    sim = DuelSim(max_steps=1200, seed=6, shaping_gamma=SHAPING_GAMMA)
     frame, teacher = sim.frames()[0], sim.teacher(0)
     sim.fighters[1].mana = 0
     sim.fighters[1].reagents = [0] * 8
@@ -158,7 +161,7 @@ def test_pre_aos_cast_and_damage_delay_are_separate():
     assert cast_seconds("weaken") == pytest.approx(0.4)
     assert cast_seconds("energy_bolt") == pytest.approx(1.65)
     assert cast_seconds("flamestrike") == pytest.approx(1.9)
-    sim = DuelSim(seed=0, max_steps=1200, domain_randomization=False)
+    sim = DuelSim(seed=0, max_steps=1200, domain_randomization=False, shaping_gamma=SHAPING_GAMMA)
     sim.step((action("energy_bolt"), 0))
     hold_until(sim, 1.5)
     assert sim.fighters[0].mana == 100
@@ -171,7 +174,7 @@ def test_pre_aos_cast_and_damage_delay_are_separate():
 
 
 def test_quick_damage_interrupts_long_cast_without_spending_its_mana():
-    sim = DuelSim(seed=0, max_steps=1200, domain_randomization=False)
+    sim = DuelSim(seed=0, max_steps=1200, domain_randomization=False, shaping_gamma=SHAPING_GAMMA)
     sim.step((action("explosion"), action("magic_arrow")))
     hold_until(sim, 5.0)
     assert sim.fighters[0].interrupted == 1
@@ -182,7 +185,7 @@ def test_quick_damage_interrupts_long_cast_without_spending_its_mana():
 
 def test_damage_fatigue_matches_recorded_89hp_14stamina_40damage_before_hp_reduction():
     # Authoritative replay b470dc944875413194d96fcc97b8e079, t=13.923s.
-    sim = DuelSim(seed=0, max_steps=1200, domain_randomization=False)
+    sim = DuelSim(seed=0, max_steps=1200, domain_randomization=False, shaping_gamma=SHAPING_GAMMA)
     victim = sim.fighters[1]
     victim.hp = victim.hp_max = 89
     victim.stamina = victim.stamina_max = 14
@@ -209,7 +212,7 @@ def test_damage_fatigue_uses_source_integer_ratio_and_truncation(
     damage,
     expected_stamina,
 ):
-    sim = DuelSim(seed=0, max_steps=1200, domain_randomization=False)
+    sim = DuelSim(seed=0, max_steps=1200, domain_randomization=False, shaping_gamma=SHAPING_GAMMA)
     victim = sim.fighters[1]
     victim.hp, victim.hp_max, victim.stamina = hp, hp_max, stamina
     sim._hurt(0, 1, damage, "energy_bolt")
@@ -218,14 +221,14 @@ def test_damage_fatigue_uses_source_integer_ratio_and_truncation(
 
 
 def test_lethal_overkill_skips_fatigue_but_exact_zero_hp_preserves_source_branch():
-    sim = DuelSim(seed=0, max_steps=1200, domain_randomization=False)
+    sim = DuelSim(seed=0, max_steps=1200, domain_randomization=False, shaping_gamma=SHAPING_GAMMA)
     victim = sim.fighters[1]
     victim.hp = 40
     sim._hurt(0, 1, 41, "energy_bolt")
     assert victim.hp == 0
     assert victim.stamina == 25
 
-    sim = DuelSim(seed=0, max_steps=1200, domain_randomization=False)
+    sim = DuelSim(seed=0, max_steps=1200, domain_randomization=False, shaping_gamma=SHAPING_GAMMA)
     victim = sim.fighters[1]
     victim.hp = 40
     sim._hurt(0, 1, 40, "energy_bolt")
@@ -235,7 +238,7 @@ def test_lethal_overkill_skips_fatigue_but_exact_zero_hp_preserves_source_branch
 
 @pytest.mark.parametrize("spell", ["weaken", "clumsy"])
 def test_stat_debuff_interrupts_burst_before_prime_without_counting_as_damage(spell):
-    sim = DuelSim(seed=0, max_steps=1200, domain_randomization=False)
+    sim = DuelSim(seed=0, max_steps=1200, domain_randomization=False, shaping_gamma=SHAPING_GAMMA)
     sim.step((action("burst_bolt"), action(spell)))
     hold_until(sim, 2.0)
     assert sim.fighters[0].interrupted == 1
@@ -251,7 +254,7 @@ def test_stat_debuff_interrupts_burst_before_prime_without_counting_as_damage(sp
 
 @pytest.mark.parametrize("spell", ["weaken", "clumsy", "poison"])
 def test_control_target_breaks_existing_paralysis_and_cast_without_hp_damage(spell):
-    sim = DuelSim(seed=0, max_steps=1200, domain_randomization=False)
+    sim = DuelSim(seed=0, max_steps=1200, domain_randomization=False, shaping_gamma=SHAPING_GAMMA)
     sim.step((action("explosion"), 0))
     # A cast may already be in progress when another spell paralyzes its caster.
     sim.fighters[0].paralyzed_until = 20
@@ -265,7 +268,7 @@ def test_control_target_breaks_existing_paralysis_and_cast_without_hp_damage(spe
 
 @pytest.mark.parametrize("spell", ["weaken", "clumsy"])
 def test_equal_strength_reapplied_stat_curse_still_interrupts(spell):
-    sim = DuelSim(seed=0, max_steps=1200, domain_randomization=False)
+    sim = DuelSim(seed=0, max_steps=1200, domain_randomization=False, shaping_gamma=SHAPING_GAMMA)
     sim.step((0, action(spell)))
     hold_until(sim, 1.25)
     sim.step((action("energy_bolt"), action(spell)))
@@ -276,7 +279,7 @@ def test_equal_strength_reapplied_stat_curse_still_interrupts(spell):
 
 
 def test_poison_interrupts_primed_burst_immediately_before_first_poison_tick():
-    sim = DuelSim(seed=0, max_steps=1200, domain_randomization=False)
+    sim = DuelSim(seed=0, max_steps=1200, domain_randomization=False, shaping_gamma=SHAPING_GAMMA)
     sim.step((action("burst_bolt"), action("poison")))
     hold_until(sim, 1.25)
     assert sim.fighters[0].poison_until > sim.elapsed
@@ -289,7 +292,7 @@ def test_poison_interrupts_primed_burst_immediately_before_first_poison_tick():
 
 @pytest.mark.parametrize("spell", ["paralyze", "cure"])
 def test_paralyze_and_beneficial_cure_do_not_interrupt_existing_enemy_cast(spell):
-    sim = DuelSim(seed=0, max_steps=1200, domain_randomization=False)
+    sim = DuelSim(seed=0, max_steps=1200, domain_randomization=False, shaping_gamma=SHAPING_GAMMA)
     if spell == "cure":
         sim.fighters[1].poison_until = 30
     sim.step((action("explosion"), action(spell)))
@@ -303,7 +306,7 @@ def test_paralyze_and_beneficial_cure_do_not_interrupt_existing_enemy_cast(spell
 
 
 def test_potion_fuse_landing_and_damage_are_not_instant():
-    sim = DuelSim(seed=0, max_steps=1200, domain_randomization=False)
+    sim = DuelSim(seed=0, max_steps=1200, domain_randomization=False, shaping_gamma=SHAPING_GAMMA)
     sim.step((action("explosion_potion"), 0))
     hold_until(sim, 3.5)
     assert sim.fighters[1].hp == 100
@@ -318,7 +321,7 @@ def test_potion_fuse_landing_and_damage_are_not_instant():
 
 @pytest.mark.parametrize("name", ["heal_potion", "cure_potion", "explosion_potion"])
 def test_arena_stock_is_five_each_and_exhaustion_disables_an_otherwise_legal_potion(name):
-    sim = DuelSim(seed=0, max_steps=1200, domain_randomization=False)
+    sim = DuelSim(seed=0, max_steps=1200, domain_randomization=False, shaping_gamma=SHAPING_GAMMA)
     assert all(
         (fighter.heal_potions, fighter.cure_potions, fighter.explosion_potions) == (5, 5, 5)
         for fighter in sim.fighters
@@ -343,7 +346,7 @@ def test_arena_stock_is_five_each_and_exhaustion_disables_an_otherwise_legal_pot
 
 
 def test_burst_option_clusters_delayed_spell_potion_and_finisher_damage():
-    sim = DuelSim(seed=0, max_steps=1200, domain_randomization=False)
+    sim = DuelSim(seed=0, max_steps=1200, domain_randomization=False, shaping_gamma=SHAPING_GAMMA)
     sim.step((action("burst_bolt"), 0))
     hold_until(sim, 6)
     hits = [event for event in sim.trace if event["type"] == "damage"]
@@ -356,7 +359,7 @@ def test_burst_option_clusters_delayed_spell_potion_and_finisher_damage():
 
 
 def test_interrupted_burst_disposes_primed_potion_and_abandons_finisher():
-    sim = DuelSim(seed=0, max_steps=1200, domain_randomization=False)
+    sim = DuelSim(seed=0, max_steps=1200, domain_randomization=False, shaping_gamma=SHAPING_GAMMA)
     sim.step((action("burst_bolt"), action("magic_arrow")))
     hold_until(sim, 6)
     assert sim.fighters[0].interrupted == 1
@@ -370,7 +373,7 @@ def test_interrupted_burst_disposes_primed_potion_and_abandons_finisher():
 
 
 def test_walking_into_own_potion_blast_is_penalized_not_rewarded():
-    sim = DuelSim(seed=0, max_steps=1200, domain_randomization=False)
+    sim = DuelSim(seed=0, max_steps=1200, domain_randomization=False, shaping_gamma=SHAPING_GAMMA)
     sim.fighters[0].x, sim.fighters[1].x = 0, 3
     sim.step((action("explosion_potion"), 0))
     hold_until(sim, 2.25)
@@ -382,7 +385,13 @@ def test_walking_into_own_potion_blast_is_penalized_not_rewarded():
 
 
 def test_showdown_blocks_pending_heals_and_timeout_is_draw():
-    sim = DuelSim(seed=0, domain_randomization=False, max_steps=4, showdown_after=0.25)
+    sim = DuelSim(
+        seed=0,
+        domain_randomization=False,
+        max_steps=4,
+        showdown_after=0.25,
+        shaping_gamma=SHAPING_GAMMA,
+    )
     sim.fighters[0].hp = sim.fighters[1].hp = 50
     sim.step((action("heal"), action("heal")))
     assert not sim.frames()[0].mask[action("heal")]
@@ -396,7 +405,7 @@ def test_showdown_blocks_pending_heals_and_timeout_is_draw():
 
 
 def test_health_shaping_cannot_farm_discounted_reward_by_repeated_healing():
-    sim = DuelSim(seed=0, domain_randomization=False, max_steps=60)
+    sim = DuelSim(seed=0, domain_randomization=False, max_steps=60, shaping_gamma=SHAPING_GAMMA)
     sim.fighters[0].hp = sim.fighters[1].hp = 30
     discounted = 0.0
     while not sim.done:
@@ -408,7 +417,7 @@ def test_health_shaping_cannot_farm_discounted_reward_by_repeated_healing():
 
 
 def test_teacher_reaches_terminal_outcome_with_only_legal_actions():
-    sim = DuelSim(seed=12, max_steps=600, showdown_after=60)
+    sim = DuelSim(seed=12, max_steps=600, showdown_after=60, shaping_gamma=SHAPING_GAMMA)
     while not sim.done:
         choices = sim.teacher(0), sim.teacher(1)
         for side in range(2):
@@ -423,7 +432,7 @@ def test_teacher_reaches_terminal_outcome_with_only_legal_actions():
 
 
 def test_meditation_obeys_server_skill_clock_and_continues_past_eight_seconds():
-    sim = DuelSim(max_steps=1200, seed=7, domain_randomization=False)
+    sim = DuelSim(max_steps=1200, seed=7, domain_randomization=False, shaping_gamma=SHAPING_GAMMA)
     sim.fighters[0].mana = 60
     sim.step((action("meditate"), 0))
     assert sim.fighters[0].meditation_until > 10
@@ -437,7 +446,7 @@ def test_meditation_obeys_server_skill_clock_and_continues_past_eight_seconds():
 
 
 def test_meditation_can_fail_at_empty_mana_and_still_has_ten_second_cooldown():
-    sim = DuelSim(max_steps=1200, seed=0, domain_randomization=False)
+    sim = DuelSim(max_steps=1200, seed=0, domain_randomization=False, shaping_gamma=SHAPING_GAMMA)
     sim.fighters[0].mana = 0
     sim.rng.random = lambda: 0.99
     sim.step((action("meditate"), 0))
@@ -447,7 +456,7 @@ def test_meditation_can_fail_at_empty_mana_and_still_has_ten_second_cooldown():
 
 
 def test_public_explosion_estimate_survives_followup_and_expires():
-    sim = DuelSim(max_steps=1200, seed=1)
+    sim = DuelSim(max_steps=1200, seed=1, shaping_gamma=SHAPING_GAMMA)
     sim._start_cast(1, "explosion")
     expected = cast_seconds("explosion") + 2.5
     sim.elapsed = 1.0
@@ -501,7 +510,7 @@ def test_unknown_stun_skills_and_stale_state_fail_closed():
 
 
 def test_sim_stun_attempt_costs_and_freeze_survives_damage():
-    sim = DuelSim(max_steps=1200, seed=4, domain_randomization=False)
+    sim = DuelSim(max_steps=1200, seed=4, domain_randomization=False, shaping_gamma=SHAPING_GAMMA)
     sim.fighters[0].x, sim.fighters[1].x = 0, 1
     sim._perform(0, "stun")
     sim.step((0, 0))
@@ -515,7 +524,7 @@ def test_sim_stun_attempt_costs_and_freeze_survives_damage():
 
 
 def test_first_circle_damage_does_not_disturb_but_second_does():
-    sim = DuelSim(seed=0, max_steps=1200, domain_randomization=False)
+    sim = DuelSim(seed=0, max_steps=1200, domain_randomization=False, shaping_gamma=SHAPING_GAMMA)
     sim._start_cast(0, "magic_arrow")
     sim._hurt(1, 0, 5, "punch")
     assert sim.fighters[0].interrupted == 0
@@ -526,7 +535,7 @@ def test_first_circle_damage_does_not_disturb_but_second_does():
 
 @pytest.mark.parametrize("drill", DRILLS)
 def test_drills_reseed_and_teachers_only_choose_legal_actions(drill):
-    sim = DuelSim(seed=17, max_steps=100)
+    sim = DuelSim(seed=17, max_steps=100, shaping_gamma=SHAPING_GAMMA)
     frames = setup_drill(sim, drill, 0)
     assert sim._potential_previous == sim._potential()
     teachers = [TacticalTeacher("pressure"), TacticalTeacher("defensive")]
@@ -591,12 +600,12 @@ def run_tree(root: Path, prelude: str, body: str):
 
 
 PORT_IMPORTS = """
-from anima3.neural.sim import DuelSim
+from anima3.neural.sim import SHAPING_GAMMA, DuelSim
 from anima3.neural.drills import DRILLS, setup_drill
 from anima3.neural.teacher import TacticalTeacher
 """
 SOURCE_IMPORTS = """
-from anima3.neural.sim import DuelSim
+from anima3.neural.sim import SHAPING_GAMMA, DuelSim
 from anima3.neural.curriculum import DRILLS, setup_drill, TacticalTeacher
 """
 # Teacher-driven full games with and without domain randomisation, then every drill
@@ -618,7 +627,7 @@ DRIVER = textwrap.dedent(
         log = []
         for seed in (0, 1, 6, 71, 2026, 999_999_937):
             for randomized in (True, False):
-                sim = DuelSim(seed=seed, max_steps=1200, domain_randomization=randomized)
+                sim = DuelSim(seed=seed, max_steps=1200, domain_randomization=randomized, shaping_gamma=SHAPING_GAMMA)
                 log.append(sim.reset())
                 while not sim.done:
                     log.append(sim.step((sim.teacher(0), sim.teacher(1))))
@@ -627,7 +636,7 @@ DRIVER = textwrap.dedent(
         for index, drill in enumerate(DRILLS):
             for side in (0, 1):
                 for number, style in enumerate(STYLES6):
-                    sim = DuelSim(seed=10_000 + index * 7 + side, max_steps=480)
+                    sim = DuelSim(seed=10_000 + index * 7 + side, max_steps=480, shaping_gamma=SHAPING_GAMMA)
                     log.append(setup_drill(sim, drill, side))
                     other = STYLES6[(number + 1) % 6]
                     teachers = [TacticalTeacher(style), TacticalTeacher(other)]
@@ -702,13 +711,20 @@ def test_ported_simulator_is_ast_identical_to_source_except_the_constructor():
         for n in ast.walk(ast.parse((REPO / "anima3/neural/sim.py").read_text()))
         if isinstance(n, ast.FunctionDef) and n.name == "__init__"
     )
-    # The same parameters, minus the seed and max_steps defaults, plus one check.
+    # The same parameters, minus the seed, max_steps and shaping_gamma defaults, plus
+    # two checks before the unchanged source body.
     assert [a.arg for a in old.args.args] == [a.arg for a in new.args.args]
-    assert ast.dump(old.args.kwonlyargs[0]) == ast.dump(new.args.kwonlyargs[0])
+    assert [ast.dump(a) for a in old.args.kwonlyargs] == [ast.dump(a) for a in new.args.kwonlyargs]
     assert [ast.unparse(d) for d in old.args.defaults] == ["0", "1200"]
     assert new.args.defaults == []
-    assert [ast.dump(s) for s in old.body] == [ast.dump(s) for s in new.body[1:]]
+    old_kw = [None if d is None else ast.unparse(d) for d in old.args.kw_defaults]
+    new_kw = [None if d is None else ast.unparse(d) for d in new.args.kw_defaults]
+    assert [a.arg for a in new.args.kwonlyargs][-1] == "shaping_gamma"
+    assert old_kw == ["0.25", "180.0", "True", "SHAPING_GAMMA"]
+    assert new_kw == ["0.25", "180.0", "True", None]
+    assert [ast.dump(s) for s in old.body] == [ast.dump(s) for s in new.body[2:]]
     assert "must be stated as integers" in ast.unparse(new.body[0])
+    assert "shaping_gamma must be stated" in ast.unparse(new.body[1])
 
 
 def test_ported_drills_are_ast_identical_to_source():
@@ -727,17 +743,25 @@ def test_ported_drills_are_ast_identical_to_source():
         assert named(source, name) == named(port, name)
 
 
-def test_simulator_constructor_requires_an_explicit_seed_and_budget():
+def test_simulator_constructor_requires_an_explicit_seed_budget_and_discount():
     with pytest.raises(TypeError):
         DuelSim()
     with pytest.raises(TypeError):
-        DuelSim(seed=3)
+        DuelSim(seed=3, shaping_gamma=SHAPING_GAMMA)
     with pytest.raises(TypeError):
-        DuelSim(max_steps=10)
+        DuelSim(max_steps=10, shaping_gamma=SHAPING_GAMMA)
+    with pytest.raises(TypeError):
+        DuelSim(3, 10)  # no default shaping discount
     for seed, steps in ((True, 10), ("3", 10), (3.0, 10), (3, 10.0), (3, None), (3, False)):
         with pytest.raises(ValueError, match="stated as integers"):
-            DuelSim(seed, steps)
-    assert DuelSim(3, 10).max_steps == 10
+            DuelSim(seed, steps, shaping_gamma=SHAPING_GAMMA)
+    for gamma in (True, None, "0.99", float("nan"), float("inf")):
+        with pytest.raises(ValueError, match="shaping_gamma must be stated"):
+            DuelSim(3, 10, shaping_gamma=gamma)
+    for gamma in (0.0, 1.5, -0.1):
+        with pytest.raises(ValueError, match="shaping_gamma must be in"):
+            DuelSim(3, 10, shaping_gamma=gamma)
+    assert DuelSim(3, 10, shaping_gamma=1).max_steps == 10
 
 
 def test_simulator_identity_covers_the_simulator_drills_and_schema(tmp_path):
@@ -763,7 +787,7 @@ def test_simulator_identity_covers_the_simulator_drills_and_schema(tmp_path):
 
 def test_simulator_results_name_the_simulator_domain():
     assert SIM_DOMAIN == "approximate-pre-aos-simulator" and SIM_DOMAIN in DOMAINS
-    sim = DuelSim(5, 4)
+    sim = DuelSim(5, 4, shaping_gamma=SHAPING_GAMMA)
     while not sim.done:
         *_, info = sim.step((0, 0))
     assert info["source"] == SIM_DOMAIN and info["time_limit"] and info["winner"] is None
@@ -882,17 +906,32 @@ def test_simulator_plan_identity_is_canonical_and_complete():
         {"simulator_sha256": "ee" * 32},
     ):
         assert sim_plan(**change).sha256 != plan.sha256
-    assert sim_plan(styles=STYLES[:4]).sha256 != plan.sha256
     with pytest.raises(ValueError):
         SimulatorEvaluationPlan.from_json({**plan.to_json(), "extra": 1})
     with pytest.raises(ValueError):
         SimulatorEvaluationPlan.from_json({**plan.to_json(), "schema": "other"})
 
 
+def test_simulator_plan_names_exactly_the_source_suite_styles():
+    # The source gate required all five STYLES with at least 20 games each; the source
+    # suite never played the tactical teacher.
+    for styles in (STYLES[:4], ("defensive",), (*STYLES, "tactical"), (*STYLES[1:], "tactical")):
+        with pytest.raises(ValueError, match="exactly the five source suite styles"):
+            sim_plan(styles=styles)
+    with pytest.raises(ValueError, match="even integer"):
+        sim_plan(games=18)
+    assert TEACHER_STYLES[: len(STYLES)] == STYLES
+    # Played and recorded in the source suite's STYLES order, not sorted-label order.
+    assert [style for _, style in sim_plan().styles()] == list(STYLES)
+    assert [style for _, style in sim_plan(styles=tuple(reversed(STYLES))).styles()] == list(STYLES)
+    rows = simulator_record(sim_plan(), CANDIDATE, games(sim_plan(), lambda s, f: 1))["rows"]
+    assert [r["opponent"].split(":")[1] for r in rows[::20]] == list(STYLES)
+
+
 def test_fixtures_follow_the_source_suite_and_form_two_seat_blocks():
-    plan = sim_plan(styles=TEACHER_STYLES)
+    plan = sim_plan()
     for opponent, style in plan.styles():
-        index = TEACHER_STYLES.index(style)
+        index = STYLES.index(style)
         fixtures = plan.fixtures(opponent)
         assert [f for f, _, _ in fixtures] == list(range(20))
         for fixture, seed, side in fixtures:
@@ -1005,8 +1044,8 @@ def test_simulator_gate_equals_the_source_promotion_gate():
     promotion_gate = namespace["promotion_gate"]
     plan = sim_plan()
     picker = random.Random(41)
-    outcomes = {"passed": 0, "failed": 0}
-    for trial in range(40):
+    outcomes = {"passed": 0, "failed": 0, "sorted_order_differs": 0}
+    for trial in range(300):
         bias = {s: picker.uniform(-0.3, 0.5) for s in STYLES}
         table = {
             (label, s, f): (picker.random(), picker.random())
@@ -1021,34 +1060,43 @@ def test_simulator_gate_equals_the_source_promotion_gate():
                 return 0.5
             return 1.0 if draw < 0.4 + shift else 0.0
 
-        incumbent, candidate = records(
-            plan,
-            lambda s, f: outcome("before", s, f),
-            lambda s, f, bias=bias, trial=trial: outcome("after", s, f, bias[s] * (trial % 4) / 3),
-        )
+        def before(s, f):
+            return outcome("before", s, f)
+
+        def after(s, f, bias=bias, trial=trial):
+            return outcome("after", s, f, bias[s] * (trial % 4) / 3)
+
+        incumbent, candidate = records(plan, before, after)
         ours = simulator_gate(plan, incumbent, candidate)
 
-        def source_rows(record):
-            # The source gate in the port's row order (sorted opponent labels), which
-            # fixes the order of the bootstrap's block list.
+        def source_rows(score):
+            # Built as the source evaluate_suite orders its rows: STYLES, then game.
             return [
-                {"style": r["opponent"].split(":")[1], "seed": r["seed"], "side": r["sim_side"]}
-                | {"score": r["score"]}
-                for r in record["rows"]
+                {
+                    "style": style,
+                    "seed": plan.seed + index * 10000 + game // 2,
+                    "side": game % 2,
+                    "score": float(score(style, game)),
+                }
+                for index, style in enumerate(STYLES)
+                for game in range(20)
             ]
 
         theirs = promotion_gate(
-            {"domain": SIM_DOMAIN, "rows": source_rows(incumbent)},
-            {"domain": SIM_DOMAIN, "rows": source_rows(candidate)},
+            {"domain": SIM_DOMAIN, "rows": source_rows(before)},
+            {"domain": SIM_DOMAIN, "rows": source_rows(after)},
         )
         assert ours["passed"] == theirs["passed"], trial
         assert ours["paired_delta"] == pytest.approx(theirs["paired_delta"], abs=1e-12)
-        assert ours["paired_delta_ci95"] == pytest.approx(theirs["delta_ci95"], abs=1e-12)
+        assert ours["paired_delta_ci95"] == theirs["delta_ci95"], trial
         assert {
             o.split(":")[1]: v["mean_score_delta"] for o, v in ours["opponents"].items()
         } == pytest.approx(theirs["style_deltas"], abs=1e-12)
         outcomes["passed" if ours["passed"] else "failed"] += 1
-    assert outcomes["passed"] and outcomes["failed"]
+        # The plain unit-7 gate bootstraps in sorted-label order and can differ.
+        plain = selection_gate(plan.evaluation, incumbent, candidate)
+        outcomes["sorted_order_differs"] += plain["paired_delta_ci95"] != theirs["delta_ci95"]
+    assert outcomes["passed"] and outcomes["failed"] and outcomes["sorted_order_differs"]
 
 
 @pytest.mark.parametrize(
@@ -1177,3 +1225,17 @@ def test_simulator_modules_import_without_torch():
         """
     )
     subprocess.run([sys.executable, "-c", code], check=True, cwd=REPO)
+
+
+def test_gate_opponent_order_must_name_exactly_the_plan_opponents():
+    plan = sim_plan()
+    incumbent, candidate = records(plan, lambda s, f: 0, lambda s, f: 1)
+    labels = [o for o, _ in plan.styles()]
+    for order in (labels[:4], [*labels, labels[0]], [*labels[:4], "scripted"]):
+        with pytest.raises(EvaluationRefused, match="opponent order"):
+            selection_gate(plan.evaluation, incumbent, candidate, opponent_order=order)
+    ordered = selection_gate(plan.evaluation, incumbent, candidate, opponent_order=labels)
+    assert list(ordered["opponents"]) == labels
+    assert list(selection_gate(plan.evaluation, incumbent, candidate)["opponents"]) == sorted(
+        labels
+    )

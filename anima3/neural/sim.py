@@ -13,8 +13,12 @@ not a calibrated model of the production server.
 
 Ported from the training lineage ``819f4f4`` (``6b8d6f0`` to ``b170aba``). Every
 definition is AST-identical to the source except ``DuelSim.__init__``: the seed and
-the episode budget ``max_steps`` have no defaults and must be integers, so no
-simulated game runs on an implicit seed or horizon. Simulator output is labelled
+the episode budget ``max_steps`` have no defaults and must be integers, and the
+shaping discount ``shaping_gamma`` has no default and must be a finite number
+(``SHAPING_GAMMA`` is the source value), so no simulated game runs on an implicit
+seed, horizon or discount. The remaining defaults (``dt`` 0.25 s, ``showdown_after``
+180 s, ``domain_randomization``) are fixed simulator constants of this file and so
+are covered by ``SIMULATOR_SHA256``. Simulator output is labelled
 ``approximate-pre-aos-simulator`` and is never a live episode, a live demonstration
 or live evidence.
 """
@@ -144,11 +148,13 @@ class DuelSim:
     def __init__(
         self, seed: int, max_steps: int, *, dt: float = 0.25,
         showdown_after: float = 180.0, domain_randomization: bool = True,
-        shaping_gamma: float = SHAPING_GAMMA,
+        shaping_gamma: float,
     ) -> None:
-        # Local rule: the seed and the episode budget are always stated explicitly.
+        # Local rule: the seed, the episode budget and the discount are always stated.
         if type(seed) is not int or type(max_steps) is not int:
             raise ValueError("seed and max_steps must be stated as integers")
+        if type(shaping_gamma) not in (int, float) or not math.isfinite(shaping_gamma):
+            raise ValueError("shaping_gamma must be stated as a finite number")
         if max_steps < 1 or not math.isfinite(dt) or not 0.05 <= dt <= 1.0:
             raise ValueError("max_steps must be positive and dt must be in [0.05, 1.0]")
         if not math.isfinite(showdown_after) or showdown_after < 0:

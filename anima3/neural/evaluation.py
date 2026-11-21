@@ -160,7 +160,10 @@ class EvaluationPlan:
             )
             or len(set(opponents)) != len(opponents)
         ):
-            raise ValueError("opponents must be 1..16 distinct 'scripted'/'neural:<sha>' labels")
+            raise ValueError(
+                "opponents must be 1..16 distinct 'scripted', 'neural:<sha>' or"
+                " 'teacher:<style>:<sha>' labels"
+            )
         object.__setattr__(self, "opponents", tuple(sorted(opponents)))
         if self.domain not in DOMAINS:
             raise ValueError("unknown evaluation domain")
@@ -406,7 +409,9 @@ def _arm_summary(rows: list[dict]) -> dict:
     }
 
 
-def selection_gate(plan: EvaluationPlan, incumbent: dict, candidate: dict) -> dict:
+def selection_gate(
+    plan: EvaluationPlan, incumbent: dict, candidate: dict, *, opponent_order=None
+) -> dict:
     """Decide whether the candidate beat the incumbent under the fixed plan. Fail closed.
 
     Rows pair by (opponent, fixture): both policies faced the same opponent at the
@@ -418,13 +423,20 @@ def selection_gate(plan: EvaluationPlan, incumbent: dict, candidate: dict) -> di
     seats; as in the source gate only complete two-delta blocks enter the
     bootstrap, so every resampled block weighs the same. Fewer than ten complete
     blocks in total is too little evidence to decide, and the incumbent is kept.
+
+    ``opponent_order`` (default: the plan's sorted opponents) is the order in which
+    opponents' blocks enter the bootstrap list. It must name exactly the plan's
+    opponents. The simulator gate passes the source suite's style order.
     """
+    order = plan.opponents if opponent_order is None else tuple(opponent_order)
+    if sorted(order) != list(plan.opponents):
+        raise EvaluationRefused("opponent order must name exactly the plan's opponents")
     before = _check_rows(plan, incumbent, plan.incumbent_sha256)
     after = _check_rows(plan, candidate, plan.candidate_sha256)
     reasons = []
     opponents = {}
     block_means: list[float] = []
-    for opponent in plan.opponents:
+    for opponent in order:
         keys = [(opponent, f) for f in range(plan.games_per_opponent)]
         deltas: dict[tuple[str, int], float] = {}
         both_completed = 0

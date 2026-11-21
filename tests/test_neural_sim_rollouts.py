@@ -24,7 +24,7 @@ from test_neural_sim import (
     sim_plan,
 )
 
-from anima3.neural import sim_evaluation, train
+from anima3.neural import sim_evaluation, sim_rollouts, train
 from anima3.neural.checkpoints import CheckpointError, save_checkpoint
 from anima3.neural.drills import SIM_DOMAIN, SIMULATOR_SHA256
 from anima3.neural.live import LiveReplayVerifier
@@ -334,20 +334,73 @@ def _tree(root: Path) -> dict:
 
 @pytest.fixture
 def checkpoints(tmp_path):
-    made = {}
+    made, state = {}, {}
     for name, seed in (("incumbent", 21), ("candidate", 22)):
         root = tmp_path / name
-        made[name] = (root, save_checkpoint(root, policy(seed))["weights"]["sha256"])
+        model = policy(seed)
+        made[name] = (root, save_checkpoint(root, model)["weights"]["sha256"])
+        state[name] = model.state_dict()
+    # The same weights for the source interpreter (keys "incumbent" and "candidate").
+    torch.save(state, tmp_path / "pair.pt")
+    made["weights"] = tmp_path / "pair.pt"
     return made
+
+
+SOURCE_PIPELINE = """
+import json, torch
+from anima3.neural.league import evaluate_suite, promotion_gate
+from anima3.neural.model import PolicyConfig, RecurrentPolicy
+state = torch.load({path!r}, weights_only=True)
+reports = {{}}
+for name in ("incumbent", "candidate"):
+    model = RecurrentPolicy(PolicyConfig(76, 27, 64, 64))
+    model.load_state_dict(state[name])
+    reports[name] = evaluate_suite(
+        model.eval(), games_per_style=20, seed={seed}, max_steps={steps}, sampling="categorical")
+gate = promotion_gate(reports["incumbent"], reports["candidate"])
+print(json.dumps({{"reports": reports, "gate": gate}}))
+"""
+
+
+def test_simulator_pipeline_equals_source_suite_and_gate_end_to_end(source_tree, checkpoints):
+    plan = plan_for(checkpoints, max_steps=160)
+    source = run_tree(
+        source_tree,
+        "",
+        SOURCE_PIPELINE.format(path=str(checkpoints["weights"]), seed=plan.seed, steps=160),
+    )
+    for name in ("incumbent", "candidate"):
+        root, sha = checkpoints[name]
+        ours = evaluate_in_simulator(root, expected_sha256=sha, plan=plan)["rows"]
+        theirs = source["reports"][name]["rows"]
+        assert len(ours) == len(theirs) == 100
+        for mine, row in zip(ours, theirs, strict=True):
+            assert mine["opponent"].split(":")[1] == row["style"]
+            assert (mine["seed"], mine["sim_side"], mine["score"]) == (
+                row["seed"],
+                row["side"],
+                row["score"],
+            )
+            for key in ("damage", "self_damage", "actions", "elapsed"):
+                assert mine[key] == row[key]
+    decision = decide_in_simulator(
+        plan, incumbent=checkpoints["incumbent"][0], candidate=checkpoints["candidate"][0]
+    )
+    gate = source["gate"]
+    assert decision["passed"] == gate["passed"]
+    assert decision["paired_delta"] == pytest.approx(gate["paired_delta"], abs=1e-12)
+    assert decision["paired_delta_ci95"] == gate["delta_ci95"]
+    assert {
+        o.split(":")[1]: v["mean_score_delta"] for o, v in decision["opponents"].items()
+    } == pytest.approx(gate["style_deltas"], abs=1e-12)
+    assert len({row["score"] for row in source["reports"]["candidate"]["rows"]}) > 1
 
 
 def plan_for(checkpoints, **overrides):
     return sim_plan(
-        styles=("balanced", "potions"),
         candidate=checkpoints["candidate"][1],
         incumbent=checkpoints["incumbent"][1],
-        max_steps=30,
-        **overrides,
+        **{"max_steps": 30, **overrides},
     )
 
 
@@ -361,7 +414,7 @@ def test_evaluate_in_simulator_loads_by_sha_and_is_deterministic(checkpoints):
     assert torch.equal(torch.get_rng_state(), state)
     assert evaluate_in_simulator(root, expected_sha256=sha, plan=plan) == first
     assert first["domain"] == SIM_DOMAIN and first["simulator_only"] is True
-    assert first["simulator_plan_sha256"] == plan.sha256 and len(first["rows"]) == 40
+    assert first["simulator_plan_sha256"] == plan.sha256 and len(first["rows"]) == 100
     assert _tree(root.parent) == before  # nothing is written
     with pytest.raises(SimulatorRefused, match="neither"):
         evaluate_in_simulator(root, expected_sha256="ef" * 32, plan=plan)
@@ -407,3 +460,13 @@ def test_decide_in_simulator_is_re_derivable_and_simulator_only(checkpoints, tmp
         decide_in_simulator(
             plan, incumbent=checkpoints["candidate"][0], candidate=checkpoints["incumbent"][0]
         )
+
+
+def test_a_rollout_seed_in_the_evaluation_range_is_refused(monkeypatch):
+    class Reaching(random.Random):
+        def randrange(self, *args):
+            return EVALUATION_SEED_FLOOR
+
+    monkeypatch.setattr(sim_rollouts.random, "Random", Reaching)
+    with pytest.raises(RuntimeError, match="held-out evaluation range"):
+        collect_simulator(policy(6), steps=4, seed=1, max_episode_steps=4, shaping_gamma=SHAPING)

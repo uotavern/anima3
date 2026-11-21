@@ -37,7 +37,7 @@ from .checkpoints import load_checkpoint
 from .drills import DRILLS, SIM_DOMAIN, SIMULATOR_SHA256, setup_drill
 from .model import RecurrentPolicy, masked_distribution
 from .schema import ACTION_NAMES
-from .sim import SIM_VERSION, DuelSim
+from .sim import SHAPING_GAMMA, SIM_VERSION, DuelSim
 from .sim_evaluation import (
     EVALUATION_SEED_FLOOR,
     SimulatorEvaluationPlan,
@@ -45,7 +45,7 @@ from .sim_evaluation import (
     simulator_gate,
     simulator_record,
 )
-from .teacher import TEACHER_SHA256, TEACHER_STYLES, TacticalTeacher
+from .teacher import STYLES, TEACHER_SHA256, TEACHER_STYLES, TacticalTeacher
 from .train import MAX_TOTAL_TRANSITIONS, Trajectory
 
 
@@ -156,7 +156,8 @@ def _collect(
     while total < steps:
         episode_seed = rng.randrange(1_000_000_000)
         # Held-out simulator evaluation seeds start at the floor; training never does.
-        assert episode_seed < EVALUATION_SEED_FLOOR
+        if not episode_seed < EVALUATION_SEED_FLOOR:
+            raise RuntimeError("a rollout seed reached the held-out evaluation range")
         sim = DuelSim(episode_seed, max_episode_steps, shaping_gamma=shaping_gamma)
         side = len(episodes) % 2
         frames = setup_drill(sim, drill, side)
@@ -240,12 +241,13 @@ def _suite_rows(model, *, styles, games_per_style, seed, max_steps, sampling) ->
     rows = []
     model.eval()
     for style in styles:
-        style_index = TEACHER_STYLES.index(style)
+        style_index = STYLES.index(style)
         for game in range(games_per_style):
             # Both sides of each seed; separate policy RNG from simulator RNG.
             fixture_seed = seed + style_index * 10000 + game // 2
             side = game % 2
-            sim = DuelSim(fixture_seed, max_steps)
+            # The source suite used the simulator's own shaping discount.
+            sim = DuelSim(fixture_seed, max_steps, shaping_gamma=SHAPING_GAMMA)
             teacher = TacticalTeacher(style)
             hidden = model.initial_state()
             generator = torch.Generator().manual_seed(fixture_seed + side)
