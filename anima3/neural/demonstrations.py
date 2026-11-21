@@ -42,6 +42,7 @@ from .live import (
     COLLECTOR_VERSION,
     DEMONSTRATION_SCHEMA,
     EXECUTION_FINGERPRINT,
+    LIVE_TEACHER_MODULES,
     MATCH_ID,
     SHA256,
     starting_template_verified,
@@ -54,7 +55,7 @@ from .splits import (
     held_out_match_ids,
     read_collection,
 )
-from .teacher import TEACHER_MODULES, TEACHER_STYLES, TEACHER_VERSION, source_identity
+from .teacher import TEACHER_STYLES, TEACHER_VERSION, source_identity
 
 MAX_DEMONSTRATION_BYTES = 64 * 1024 * 1024
 MAX_STEPS = 50_000
@@ -219,7 +220,7 @@ class DemonstrationReceiptVerifier:
         sources = teacher["sources"]
         if not (
             isinstance(sources, dict)
-            and set(sources) == set(TEACHER_MODULES)
+            and set(sources) == set(LIVE_TEACHER_MODULES)
             and all(isinstance(v, str) and SHA256.fullmatch(v) for v in sources.values())
             and hmac.compare_digest(source_identity(sources), teacher["sha256"])
         ):
@@ -428,7 +429,7 @@ def select_demonstrations(
     """Collect imitation input recorded by teacher ``teacher_sha256`` from training collections.
 
     ``teacher_sha256`` is required: the teacher source SHA-256 the caller means
-    to imitate (``teacher.TEACHER_SHA256`` for the current code). ``held_out``
+    to imitate (``live.LIVE_TEACHER_SHA256`` for the current code). ``held_out``
     is required, as in :func:`~anima3.neural.splits.select_training_episodes`:
     the evaluation collections whose matches must not be imitated, or
     ``splits.NO_HELD_OUT``. ``styles`` optionally restricts the teacher styles.

@@ -842,9 +842,21 @@ def test_a_crash_part_way_through_claiming_is_reported_and_repairable(
     assert len(partial) == 3
     with pytest.raises(EvaluationRefused, match="only some of its claims exist") as refused:
         record_decision(l1, d)
-    assert "deleted, truncated" not in str(refused.value)
-    # Repair: every claim names its decision; remove that interrupted decision's claims.
+    message = str(refused.value)
+    assert "deleted, truncated" not in message
+    # The message points at the manual repair, not at a plain retry, which is refused again.
     digest = json.loads(partial[0].read_text())["decision_sha256"]
+    assert "cannot be retried as is" in message and "Repair by hand first" in message
+    assert "docs/LINEAGE_INTEGRATION.md" in message and "Crash between claims and row" in message
+    assert f"decision_sha256 {digest}" in message
+    assert all(str(path) in message for path in partial)
+    assert "retry the identical" not in message
+    with pytest.raises(EvaluationRefused, match="only some of its claims exist"):
+        record_decision(l1, d)
+    assert claim_files(tmp_path) == partial
+    doc = (Path(__file__).parents[1] / "docs/LINEAGE_INTEGRATION.md").read_text()
+    assert "- **Crash between claims and row.**" in doc and "- **Repair:** remove exactly" in doc
+    # Repair: every claim names its decision; remove that interrupted decision's claims.
     for path in partial:
         assert json.loads(path.read_text())["decision_sha256"] == digest
         path.unlink()

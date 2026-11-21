@@ -830,9 +830,13 @@ def record_decision(lineage_dir, decision: dict) -> dict:
             raise EvaluationRefused(f"evidence already claimed by a decision: {foreign[0]}")
         if present and len(present) != len(targets):
             missing = [str(t) for t in targets if t not in present]
+            # A retry cannot finish a partial claim: it is refused again until repaired.
             raise EvaluationRefused(
-                "interrupted decision: only some of its claims exist; retry the identical"
-                f" decision or see the repair procedure (missing: {missing})"
+                "interrupted decision: only some of its claims exist, so it cannot be"
+                " retried as is. Repair by hand first (docs/LINEAGE_INTEGRATION.md, unit 7,"
+                " 'Crash between claims and row'): remove exactly the claim files naming"
+                f" decision_sha256 {claim['decision_sha256']}, then record the decision"
+                f" again (present: {sorted(map(str, present))}; missing: {missing})"
             )
         # Either no claim exists yet, or every claim matches this exact decision
         # (a crash after claiming but before the row): adopt them and append.

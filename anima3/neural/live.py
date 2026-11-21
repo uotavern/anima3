@@ -61,8 +61,7 @@ from .melee import CastDumpProbe, MeleeProbe
 from .schema import ACTION_NAMES, schema_fingerprint
 from .teacher import (
     DEPENDENCIES,
-    TEACHER_SHA256,
-    TEACHER_SOURCES,
+    TEACHER_MODULES,
     TEACHER_STYLES,
     TEACHER_VERSION,
     TacticalTeacher,
@@ -79,8 +78,18 @@ COLLECTOR_VERSION = "frozen-options-v1"
 EXECUTION_FINGERPRINT = hashlib.sha256(
     Path(__file__).with_name("executor.py").read_bytes()
 ).hexdigest()
+# A live scripted arm is also identified by the code that turns the server's state
+# into its decisions and labels: ``duel_wait.server_state`` interprets DuelState, and
+# this module's actor loop sets the decision cadence (``DECISION_INTERVAL``) and the
+# freshness and readiness conditions under which a teacher choice is made and labelled.
+LABELLING_MODULES = ("neural/live.py", "duel_wait.py")
+# The live teacher arm: the teacher's choice identity (``TEACHER_SHA256``, which the
+# simulator uses unchanged) extended by the labelling modules.
+LIVE_TEACHER_MODULES = (*TEACHER_MODULES, *LABELLING_MODULES)
+LIVE_TEACHER_SOURCES = source_hashes(LIVE_TEACHER_MODULES)
+LIVE_TEACHER_SHA256 = source_identity(LIVE_TEACHER_SOURCES)
 # Like the teacher, a probe is identified by its module and every module it uses.
-PROBE_MODULES = ("neural/melee.py", *DEPENDENCIES)
+PROBE_MODULES = ("neural/melee.py", *DEPENDENCIES, *LABELLING_MODULES)
 PROBE_SOURCES = source_hashes(PROBE_MODULES)
 PROBE_SHA256 = source_identity(PROBE_SOURCES)
 PROBE_VARIANTS = (
@@ -137,8 +146,9 @@ class Arm:
 
     ``teacher`` and ``probe`` arms are scripted controllers. They carry no
     checkpoint or policy SHA-256; instead ``variant`` names the teacher style or
-    probe tactic and ``source_sha256`` the SHA-256 of the controller's source
-    module (``TEACHER_SHA256`` or ``PROBE_SHA256``), checked before any login.
+    probe tactic and ``source_sha256`` the identity of the controller's source
+    modules and the live labelling modules (``LIVE_TEACHER_SHA256`` or
+    ``PROBE_SHA256``), checked before any login.
     """
 
     kind: str
@@ -199,7 +209,7 @@ def preflight_arm(arm: Arm, *, find_spec=importlib.util.find_spec) -> None:
     login. This check uses ``find_spec`` so the parent still never imports torch.
     """
     if arm.kind in ("teacher", "probe"):
-        current = TEACHER_SHA256 if arm.kind == "teacher" else PROBE_SHA256
+        current = LIVE_TEACHER_SHA256 if arm.kind == "teacher" else PROBE_SHA256
         if not hmac.compare_digest(arm.source_sha256, current):
             raise ArmUnavailable(
                 f"{arm.kind} source differs from the planned identity {arm.source_sha256}"
@@ -1248,7 +1258,7 @@ def _demonstration(plan, fixture, actor, arm, other, match_id, meta, rows) -> di
             "style": arm.variant,
             "version": TEACHER_VERSION,
             "sha256": arm.source_sha256,
-            "sources": dict(TEACHER_SOURCES),
+            "sources": dict(LIVE_TEACHER_SOURCES),
         },
         "ppo_eligible": False,
         "eligible": bool(steps) and not invalid,
