@@ -17,6 +17,13 @@ HEX40 = re.compile(r"[0-9a-f]{40}")
 HEX64 = re.compile(r"[0-9a-f]{64}")
 DEPLOY_WORDING = re.compile(r"deploy", re.IGNORECASE)
 NOT_DEPLOYED = re.compile(r"\bnot deployed\b", re.IGNORECASE)
+# The only fields an index entry may have; an unknown key is refused, not ignored.
+EXPERIMENT_KEYS = {
+    "id", "title", "dates", "source_ref", "domain", "hypothesis", "configuration", "outcome",
+    "result", "files", "context_files", "candidates", "server_changes", "parent_evidence",
+    "deployment", "deployment_evidence", "recorded_at_utc",
+}  # fmt: skip
+CANDIDATE_KEYS = {"label", "sha256", "selection", "deployment", "deployment_evidence"}
 
 # Reviewed labels, frozen. Per experiment: result, (SHA-256 prefix, selection) per candidate,
 # a digest of the narrative fields and a digest of every candidate's label and note.
@@ -238,6 +245,15 @@ def check_deployment_claims(index):
     subjects += [
         (f"{e['id']}:{c['label']}", c) for e in index["experiments"] for c in e["candidates"]
     ]
+    candidates = [id(c) for e in index["experiments"] for c in e["candidates"]]
+    for e in index["experiments"]:
+        if set(e) != EXPERIMENT_KEYS:
+            raise ValueError(
+                f"{e['id']}: unknown or missing keys {sorted(set(e) ^ EXPERIMENT_KEYS)}"
+            )
+        for c in e["candidates"]:
+            if set(c) not in (CANDIDATE_KEYS, CANDIDATE_KEYS | {"note"}):
+                raise ValueError(f"{e['id']}:{c.get('label')}: unknown or missing candidate keys")
     for name, subject in subjects:
         status = subject["deployment"]
         if status not in allowed:
@@ -245,9 +261,13 @@ def check_deployment_claims(index):
         if status == "not_deployed":
             if subject["deployment_evidence"] is not None:
                 raise ValueError(f"{name}: evidence given for an undeployed subject")
-            # Free text may say "not deployed", never anything else about deployment.
-            for field in ("label", "note"):
-                text = subject.get(field) or ""
+            # A candidate's free text may say "not deployed", never anything else about
+            # deployment. Every text field is checked except the status itself.
+            # (Experiment narratives mention shard deployments and are frozen by digest.)
+            texts = subject.items() if id(subject) in candidates else ()
+            for field, text in texts:
+                if field == "deployment" or not isinstance(text, str):
+                    continue
                 if DEPLOY_WORDING.search(NOT_DEPLOYED.sub("", text)):
                     raise ValueError(f"{name}: {field} claims deployment: {text!r}")
         elif subject["deployment_evidence"] not in evidence:
@@ -409,6 +429,11 @@ def test_deployment_check_refuses_claims_without_evidence():
             note="selected in the experimental registry; not deployed, later deployed"
         ),
         lambda i: i["experiments"][6]["candidates"][1].update(note="Deployment to the arena"),
+        lambda i: i["experiments"][21]["candidates"][0].update(comment="deployed publicly"),
+        lambda i: i["experiments"][21]["candidates"][0].update(comment="harmless"),
+        lambda i: i["experiments"][21]["candidates"][0].pop("deployment_evidence"),
+        lambda i: i["experiments"][21].update(comment="deployed publicly"),
+        lambda i: i["experiments"][21]["candidates"][0].update(selection="deployed_publicly"),
     ):
         index = copy.deepcopy(INDEX)
         mutate(index)
@@ -427,6 +452,15 @@ def test_candidate_text_is_frozen_and_refuses_deployment_wording():
         if field == "note":
             with pytest.raises(ValueError, match="note claims deployment"):
                 check_deployment_claims(index)
+    # An unknown key is refused by both checks, whatever it says.
+    for target in ("candidate", "experiment"):
+        index = copy.deepcopy(INDEX)
+        e22 = next(e for e in index["experiments"] if e["id"] == "E22-reference-bc-fit")
+        (e22["candidates"][0] if target == "candidate" else e22)["comment"] = "harmless"
+        with pytest.raises(AssertionError, match="E22-reference-bc-fit"):
+            check_reviewed(index)
+        with pytest.raises(ValueError, match="unknown or missing"):
+            check_deployment_claims(index)
     e24 = next(e for e in INDEX["experiments"] if e["id"] == "E24-reference-bc-live-200")
     assert "not deployed" in e24["candidates"][0]["note"]  # the one allowed phrase
 
@@ -513,6 +547,9 @@ def check_reviewed(index):
     assert [e["id"] for e in index["experiments"]] == list(EXPECTED)
     for e in index["experiments"]:
         result, candidates, narrative, text = EXPECTED[e["id"]]
+        assert set(e) == EXPERIMENT_KEYS, e["id"]
+        for c in e["candidates"]:
+            assert set(c) in (CANDIDATE_KEYS, CANDIDATE_KEYS | {"note"}), e["id"]
         assert e["result"] == result, e["id"]
         got = tuple(
             (c["sha256"][:8] if c["sha256"] else None, c["selection"]) for c in e["candidates"]
