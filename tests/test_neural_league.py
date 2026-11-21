@@ -607,6 +607,16 @@ def _weights_file(directory: Path) -> Path:
     return directory / json.loads((directory / "manifest.json").read_text())["weights"]["file"]
 
 
+def _plan_code(root: Path, *, drop: bool = False, **values) -> None:
+    path = root / "plan.json"
+    recorded = json.loads(path.read_text())
+    if drop:
+        del recorded["code"]
+    else:
+        recorded["code"].update(values)
+    path.write_text(json.dumps(recorded, indent=2, sort_keys=True) + "\n")
+
+
 def _set(**values):
     return lambda state, root, stage: state.update(values)
 
@@ -674,6 +684,62 @@ TAMPER = {
         lambda r: _manifest(r, "warmstart", lambda m: m.update(created_at="1970")),
         "checkpoint_manifests does not match",
     ),
+    "head blob size edited": (
+        lambda r: edit_stage(
+            r, 4, lambda state, root, stage: state["rng"].update(bytes=state["rng"]["bytes"] + 1)
+        ),
+        "rng blob size differs",
+    ),
+    "middle blob size not an integer": (
+        lambda r: edit_stage(
+            r,
+            2,
+            lambda state, root, stage: state["optimizers"]["ppo"].update(
+                bytes=float(state["optimizers"]["ppo"]["bytes"])
+            ),
+        ),
+        "ppo-optimizer blob size differs",
+    ),
+    "stage code identity": (
+        lambda r: edit_stage(
+            r, 2, lambda state, root, stage: state["code"].update(league_sha256="0" * 64)
+        ),
+        "stage 2 was written by other code",
+    ),
+    "head stage teacher identity": (
+        lambda r: edit_stage(
+            r, 4, lambda state, root, stage: state["code"].update(teacher_sha256="0" * 64)
+        ),
+        "stage 4 was written by other code",
+    ),
+    "plan code identity": (
+        lambda r: _plan_code(r, simulator_sha256="0" * 64),
+        "other league, simulator or teacher code",
+    ),
+    "plan code identity dropped": (
+        lambda r: _plan_code(r, drop=True),
+        "other league, simulator or teacher code",
+    ),
+    "checkpoint teacher identity re-bound": (
+        lambda r: (
+            _manifest(
+                r,
+                "snapshots/update-002",
+                lambda m: m["training"]["simulator"].update(teacher_sha256="0" * 64),
+            )
+            or rebind(r)
+        ),
+        "update-002 was made with another simulator, teacher or plan",
+    ),
+    "checkpoint simulator identity re-bound": (
+        lambda r: (
+            _manifest(
+                r, "initial", lambda m: m["training"]["simulator"].update(simulator_sha256="0" * 64)
+            )
+            or rebind(r)
+        ),
+        "initial was made with another simulator, teacher or plan",
+    ),
     "checkpoint record re-bound": (
         lambda r: (
             _manifest(
@@ -721,6 +787,134 @@ def test_resume_refuses_another_plan_and_overlapping_outputs(uninterrupted, tmp_
     with pytest.raises(LeagueRefused, match="LeaguePlan"):
         run_league(plan().to_json(), tmp_path / "x")
     assert not (tmp_path / "resumed").exists() and not (tmp_path / "x").exists()
+
+
+def test_the_league_code_identity_covers_the_modules_that_decide_a_result(tmp_path):
+    import shutil
+
+    from anima3.neural import teacher
+
+    package = Path(league.__file__).resolve().parents[1]
+    assert set(league.LEAGUE_SOURCES) == {
+        "neural/league.py", "neural/train.py", "neural/imitation.py", "neural/sim_rollouts.py",
+        "neural/sim_evaluation.py", "neural/evaluation.py", "neural/model.py",
+        "neural/checkpoints.py", "stats.py",
+    }  # fmt: skip
+    assert league.LEAGUE_SOURCES == teacher.source_hashes(league.LEAGUE_MODULES, package)
+    assert league.LEAGUE_SHA256 == teacher.source_identity(league.LEAGUE_SOURCES)
+    assert league.code_identity() == {
+        "league_sha256": league.LEAGUE_SHA256,
+        "league_sources": league.LEAGUE_SOURCES,
+        "simulator_sha256": SIMULATOR_SHA256,
+        "teacher_sha256": TEACHER_SHA256,
+    }
+    copy = tmp_path / "anima3"
+    for module in league.LEAGUE_MODULES:
+        (copy / module).parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy(package / module, copy / module)
+    assert teacher.source_identity(teacher.source_hashes(league.LEAGUE_MODULES, copy)) == (
+        league.LEAGUE_SHA256
+    )
+    for module in league.LEAGUE_MODULES:
+        original = (copy / module).read_bytes()
+        (copy / module).write_bytes(original + b"\n")
+        changed = teacher.source_identity(teacher.source_hashes(league.LEAGUE_MODULES, copy))
+        assert changed != league.LEAGUE_SHA256, module
+        (copy / module).write_bytes(original)
+
+
+def test_plan_stages_and_registry_record_the_code_identity(uninterrupted):
+    code = league.code_identity()
+    assert json.loads((uninterrupted / "plan.json").read_text())["code"] == code
+    for stage in range(5):
+        assert json.loads(_stage_path(uninterrupted, stage).read_text())["code"] == code
+    assert json.loads((uninterrupted / "registry.json").read_text())["code"] == code
+
+
+@pytest.mark.parametrize("name", ["LEAGUE_SHA256", "SIMULATOR_SHA256", "TEACHER_SHA256"])
+def test_resume_refuses_a_run_made_with_other_code(uninterrupted, tmp_path, monkeypatch, name):
+    # As if league.py, train.py, the simulator or the teacher had been edited since.
+    monkeypatch.setattr(league, name, "e" * 64)
+    with pytest.raises(LeagueRefused, match="other league, simulator or teacher code"):
+        run_league(plan(), tmp_path / "resumed", resume_from=uninterrupted)
+    assert not (tmp_path / "resumed").exists()
+
+
+def test_reformatting_the_last_stage_file_is_the_one_accepted_edit(
+    uninterrupted, tmp_path, monkeypatch
+):
+    """The documented limit: nothing hashes the last stage file, so a re-serialisation of
+    the same JSON is accepted; every value in it is still checked, so the result is equal."""
+    with monkeypatch.context() as patch:
+        crash_on_call(patch, league, "ppo_update", 3)
+        with pytest.raises(Crash):
+            run_league(plan(), tmp_path / "crashed")
+    head = _stage_path(tmp_path / "crashed", 2)
+    head.write_text(json.dumps(json.loads(head.read_text()), separators=(",", ":")))
+    run_league(plan(), tmp_path / "resumed", resume_from=tmp_path / "crashed")
+    assert outcome(tmp_path / "resumed") == outcome(uninterrupted)
+
+
+def _leaves(value, path=()):
+    if isinstance(value, dict):
+        for key, item in value.items():
+            yield from _leaves(item, (*path, key))
+    elif isinstance(value, list):
+        for index, item in enumerate(value):
+            yield from _leaves(item, (*path, index))
+    else:
+        yield path, value
+
+
+def _type_edits(state):
+    """One edit per kind that Python's == hides: bool to int, int to float, float to int."""
+    found = {}
+    for path, value in _leaves(state):
+        if path[0] in ("plan_sha256", "previous_stage_sha256"):
+            continue
+        if type(value) is bool:
+            found.setdefault("bool", (path, int(value)))
+        elif type(value) is int:
+            found.setdefault(f"int {path[0]}", (path, float(value)))
+        elif type(value) is float and value.is_integer():
+            found.setdefault("float", (path, int(value)))
+    return found
+
+
+def test_type_edits_of_the_last_stage_and_plan_are_refused(tmp_path, monkeypatch):
+    """Only a reformatting of the last stage is accepted: 0, 0.0 and false are distinct."""
+    import shutil
+
+    with monkeypatch.context() as patch:
+        crash_on_call(patch, league, "ppo_update", 3)
+        with pytest.raises(Crash):
+            run_league(plan(), tmp_path / "crashed")
+    head = _stage_path(tmp_path / "crashed", 2)
+    original = head.read_text()
+    state = json.loads(original)
+    edits = _type_edits(state)
+    assert {"bool", "float", "int stage", "int events", "int simulator_consumed"} <= set(edits)
+    for number, (kind, (path, value)) in enumerate(sorted(edits.items())):
+        edited = json.loads(original)
+        target = edited
+        for key in path[:-1]:
+            target = target[key]
+        target[path[-1]] = value
+        head.write_text(json.dumps(edited, indent=2, sort_keys=True) + "\n")
+        expected = {"int stage": "another plan", "int optimizers": "size", "int rng": "size"}
+        with pytest.raises(LeagueRefused, match=expected.get(kind, "does not match")):
+            run_league(plan(), tmp_path / f"resumed-{number}", resume_from=tmp_path / "crashed")
+        assert not (tmp_path / f"resumed-{number}").exists(), kind
+    head.write_text(original)
+    for field, value in (("updates", 4.0), ("bc_balance_actions", 0), ("rehearsal_epochs", True)):
+        copy = tmp_path / f"plan-{field}"
+        shutil.copytree(tmp_path / "crashed", copy)
+        recorded = json.loads((copy / "plan.json").read_text())
+        recorded["plan"][field] = value
+        (copy / "plan.json").write_text(json.dumps(recorded))
+        with pytest.raises(LeagueRefused, match="another plan or configuration"):
+            run_league(plan(), tmp_path / "never", resume_from=copy)
+    assert not (tmp_path / "never").exists()
 
 
 def test_a_run_that_crashed_before_its_first_stage_restarts_from_the_seed(

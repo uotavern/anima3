@@ -32,6 +32,7 @@ from anima3.neural.demonstrations import (
 from anima3.neural.evaluation import EvaluationRefused, record_from_collection
 from anima3.neural.live import (
     DEMONSTRATION_SCHEMA,
+    LIVE_TEACHER_SHA256,
     PROBE_SHA256,
     TRAINING_RULES,
     Arm,
@@ -72,7 +73,7 @@ def supplied(**changes):
     )
 
 
-def teacher_arm(style="tactical", sha=TEACHER_SHA256):
+def teacher_arm(style="tactical", sha=LIVE_TEACHER_SHA256):
     return Arm("teacher", variant=style, source_sha256=sha)
 
 
@@ -177,7 +178,54 @@ def test_teacher_identity_covers_every_module_its_choice_depends_on(tmp_path):
         assert changed != TEACHER_SHA256
         (copy / module).write_text(original)
     assert PROBE_SHA256 == teacher.source_identity(live.PROBE_SOURCES)
-    assert set(live.PROBE_SOURCES) == {"neural/melee.py", *teacher.DEPENDENCIES}
+    assert set(live.PROBE_SOURCES) == {
+        "neural/melee.py", *teacher.DEPENDENCIES, "neural/live.py", "duel_wait.py",
+    }  # fmt: skip
+
+
+def test_live_arm_identities_cover_the_duel_state_and_labelling_code(tmp_path):
+    """Unit-8 follow-up: DuelState interpretation and labelling cadence are identity code."""
+    import shutil
+
+    from anima3.neural import teacher
+
+    package = Path(teacher.__file__).resolve().parents[1]
+    assert live.LABELLING_MODULES == ("neural/live.py", "duel_wait.py")
+    assert set(live.LIVE_TEACHER_SOURCES) == {*teacher.TEACHER_SOURCES, *live.LABELLING_MODULES}
+    assert live.LIVE_TEACHER_SOURCES == teacher.source_hashes(live.LIVE_TEACHER_MODULES, package)
+    assert LIVE_TEACHER_SHA256 == teacher.source_identity(live.LIVE_TEACHER_SOURCES)
+    # The simulator keeps the choice-only identity; the live arm's differs from it.
+    assert LIVE_TEACHER_SHA256 != TEACHER_SHA256
+    copy = tmp_path / "anima3"
+    modules = {*live.LIVE_TEACHER_MODULES, *live.PROBE_MODULES}
+    for module in modules:
+        (copy / module).parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy(package / module, copy / module)
+    for module, old, new in (
+        ("neural/live.py", "DECISION_INTERVAL = 0.25", "DECISION_INTERVAL = 0.5"),
+        ("neural/live.py", "STATE_FRESH_SECONDS = 3.0", "STATE_FRESH_SECONDS = 9.0"),
+        ("neural/live.py", "and executor.view.fresh", "and True"),
+        ("duel_wait.py", "def server_state(obs):", "def server_state(obs):  # other"),
+    ):
+        original = (copy / module).read_text()
+        assert old in original, (module, old)
+        (copy / module).write_text(original.replace(old, new, 1))
+        for names, identity in (
+            (live.LIVE_TEACHER_MODULES, LIVE_TEACHER_SHA256),
+            (live.PROBE_MODULES, PROBE_SHA256),
+        ):
+            assert teacher.source_identity(teacher.source_hashes(names, copy)) != identity
+        # The simulator's teacher identity does not depend on the live runner.
+        assert teacher.source_identity(teacher.source_hashes(teacher.TEACHER_MODULES, copy)) == (
+            TEACHER_SHA256
+        )
+        (copy / module).write_text(original)
+
+
+def test_a_teacher_arm_naming_the_choice_only_identity_is_refused():
+    with pytest.raises(ArmUnavailable, match="differs from the planned identity"):
+        preflight_arm(teacher_arm(sha=TEACHER_SHA256))
+    preflight_arm(teacher_arm())
 
 
 # --- ported probes -----------------------------------------------------------------------------
@@ -281,18 +329,18 @@ def test_cast_dump_probe_repeats_one_spell_sequence_across_timing_arms():
     [
         {"kind": "teacher"},
         {"kind": "teacher", "variant": "tactical"},
-        {"kind": "teacher", "variant": "neural", "source_sha256": TEACHER_SHA256},
+        {"kind": "teacher", "variant": "neural", "source_sha256": LIVE_TEACHER_SHA256},
         {"kind": "teacher", "variant": "tactical", "source_sha256": "AB" * 32},
-        {"kind": "teacher", "variant": "tactical", "source_sha256": TEACHER_SHA256,
+        {"kind": "teacher", "variant": "tactical", "source_sha256": LIVE_TEACHER_SHA256,
          "policy_sha256": POLICY_SHA},
-        {"kind": "teacher", "variant": "tactical", "source_sha256": TEACHER_SHA256,
+        {"kind": "teacher", "variant": "tactical", "source_sha256": LIVE_TEACHER_SHA256,
          "checkpoint": "x"},
         {"kind": "probe", "variant": "kick", "source_sha256": PROBE_SHA256},
         {"kind": "probe", "variant": "stun"},
         {"kind": "scripted", "variant": "tactical"},
         {"kind": "neural", "checkpoint": "x", "policy_sha256": POLICY_SHA, "variant": "stun"},
         {"kind": "neural", "checkpoint": "x", "policy_sha256": POLICY_SHA,
-         "source_sha256": TEACHER_SHA256},
+         "source_sha256": LIVE_TEACHER_SHA256},
     ],
 )  # fmt: skip
 def test_teacher_and_probe_arms_need_a_variant_and_source_identity(kwargs):
@@ -306,7 +354,7 @@ def test_teacher_and_probe_labels_are_never_neural(tmp_path):
         assert not arm.label.startswith("neural")
         assert arm.agent_policy == "scripted"
         assert len(f"{arm.label} {arm.agent_policy}".split()) == 3
-    assert teacher_arm().label == f"teacher tactical-{TEACHER_SHA256[:12]}"
+    assert teacher_arm().label == f"teacher tactical-{LIVE_TEACHER_SHA256[:12]}"
     assert Arm("scripted").label == "scripted fixed-scripted"
 
 
@@ -336,7 +384,7 @@ def test_existing_plan_sha256_is_unchanged_by_the_new_arm_fields(tmp_path):
         "checkpoint": None,
         "policy_sha256": None,
         "variant": "tactical",
-        "source_sha256": TEACHER_SHA256,
+        "source_sha256": LIVE_TEACHER_SHA256,
     }
 
 
@@ -648,7 +696,7 @@ def test_teacher_seat_writes_receipt_bound_demonstrations_beside_episodes(tmp_pa
     demo = json.loads(files[0].read_text())
     assert demo["schema"] == DEMONSTRATION_SCHEMA and demo["policy_kind"] == "teacher"
     assert demo["label"] == "teacher:tactical" and "policy_sha" not in demo
-    assert demo["teacher"]["sha256"] == TEACHER_SHA256
+    assert demo["teacher"]["sha256"] == LIVE_TEACHER_SHA256
     assert demo["ppo_eligible"] is False and demo["eligible"] is True
     assert demo["opponent_arm"]["kind"] == "neural"
     assert DemonstrationReceiptVerifier(root)(demo)
@@ -687,7 +735,8 @@ def valid_demo(tmp_path, monkeypatch):
         "replay_sha", "executor", "fingerprint", "illegal", "rejected_step", "clock", "fixture",
         "fixture_bool", "seat", "result", "empty", "feature_range", "version", "collector",
         "end_phase", "teacher_key", "verification_key", "result_key", "opponent_arm",
-        "sources", "sources_key", "consistent_other_teacher",
+        "sources", "sources_key", "consistent_other_teacher", "labelling_source",
+        "choice_only_identity",
     ],
 )  # fmt: skip
 def test_demonstration_provenance_is_checked_not_trusted(tmp_path, monkeypatch, damage):
@@ -755,6 +804,18 @@ def test_demonstration_provenance_is_checked_not_trusted(tmp_path, monkeypatch, 
 
         demo["teacher"]["sources"]["magic.py"] = OTHER
         demo["teacher"]["sha256"] = source_identity(demo["teacher"]["sources"])
+    elif damage == "labelling_source":
+        # Other DuelState interpretation, self-consistent: still not the planned arm.
+        from anima3.neural.teacher import source_identity
+
+        demo["teacher"]["sources"]["duel_wait.py"] = OTHER
+        demo["teacher"]["sha256"] = source_identity(demo["teacher"]["sources"])
+    elif damage == "choice_only_identity":
+        # The simulator's choice-only map, without the live labelling modules.
+        from anima3.neural.teacher import TEACHER_SOURCES
+
+        demo["teacher"]["sources"] = dict(TEACHER_SOURCES)
+        demo["teacher"]["sha256"] = TEACHER_SHA256
     else:
         step["features"][0] = 1.5
     verifier = DemonstrationReceiptVerifier(root)
@@ -818,13 +879,15 @@ def test_a_demonstration_needs_its_completed_row(tmp_path, monkeypatch):
 
 def test_a_teacher_rejected_round_is_kept_but_never_selected(tmp_path, monkeypatch):
     root = collect(tmp_path, monkeypatch, "demos", invalid={1: ["teacher_action_rejected"]})
-    selection = select_demonstrations([root], teacher_sha256=TEACHER_SHA256, held_out=NO_HELD_OUT)
+    selection = select_demonstrations(
+        [root], teacher_sha256=LIVE_TEACHER_SHA256, held_out=NO_HELD_OUT
+    )
     assert len(selection.demonstrations) == 1
     assert [r["reasons"] for r in selection.rejected] == [["ineligible", "teacher_action_rejected"]]
     record = selection.provenance[0]
     path = Path(record["file"])
     assert record["file_sha256"] == hashlib.sha256(path.read_bytes()).hexdigest()
-    assert record["teacher"]["sha256"] == TEACHER_SHA256 and record["collection"] == str(root)
+    assert record["teacher"]["sha256"] == LIVE_TEACHER_SHA256 and record["collection"] == str(root)
     assert record["replay_sha256"] == selection.demonstrations[0]["verification"]["replay_sha256"]
 
 
@@ -835,7 +898,7 @@ def test_other_teacher_and_style_demonstrations_are_rejected_on_record(tmp_path,
         r["reasons"] == ["other_teacher"] for r in other.rejected
     )
     styled = select_demonstrations(
-        [root], teacher_sha256=TEACHER_SHA256, held_out=NO_HELD_OUT, styles=["burst"]
+        [root], teacher_sha256=LIVE_TEACHER_SHA256, held_out=NO_HELD_OUT, styles=["burst"]
     )
     assert styled.demonstrations == [] and len(styled.rejected) == 2
 
@@ -843,7 +906,7 @@ def test_other_teacher_and_style_demonstrations_are_rejected_on_record(tmp_path,
 def test_evaluation_collections_never_supply_demonstrations(tmp_path, monkeypatch):
     root = collect(tmp_path, monkeypatch, "held", purpose="evaluation")
     with pytest.raises(DemonstrationRefused, match="held out"):
-        select_demonstrations([root], teacher_sha256=TEACHER_SHA256, held_out=NO_HELD_OUT)
+        select_demonstrations([root], teacher_sha256=LIVE_TEACHER_SHA256, held_out=NO_HELD_OUT)
     # Nor is a teacher ever scored as an evaluation opponent under any label.
     with pytest.raises(EvaluationRefused, match="'teacher' arm"):
         record_from_collection(root, POLICY_SHA)
@@ -857,18 +920,20 @@ def test_selection_needs_explicit_absolute_held_out_and_refuses_overlap(tmp_path
     )  # fmt: skip
     for bad in (None, str(held)):
         with pytest.raises(DemonstrationRefused, match="held_out"):
-            select_demonstrations([train], teacher_sha256=TEACHER_SHA256, held_out=bad)
+            select_demonstrations([train], teacher_sha256=LIVE_TEACHER_SHA256, held_out=bad)
     with pytest.raises(DemonstrationRefused, match="both"):
-        select_demonstrations([train], teacher_sha256=TEACHER_SHA256, held_out=[train])
+        select_demonstrations([train], teacher_sha256=LIVE_TEACHER_SHA256, held_out=[train])
     with pytest.raises(DemonstrationRefused, match="absolute"):
         select_demonstrations(
-            [Path("relative/train")], teacher_sha256=TEACHER_SHA256, held_out=NO_HELD_OUT
+            [Path("relative/train")], teacher_sha256=LIVE_TEACHER_SHA256, held_out=NO_HELD_OUT
         )
     with pytest.raises(DemonstrationRefused, match="listed twice"):
-        select_demonstrations([train, train], teacher_sha256=TEACHER_SHA256, held_out=NO_HELD_OUT)
+        select_demonstrations(
+            [train, train], teacher_sha256=LIVE_TEACHER_SHA256, held_out=NO_HELD_OUT
+        )
     with pytest.raises(DemonstrationRefused, match="teacher SHA-256"):
         select_demonstrations([train], teacher_sha256=None, held_out=NO_HELD_OUT)
-    assert select_demonstrations([train], teacher_sha256=TEACHER_SHA256, held_out=[held])
+    assert select_demonstrations([train], teacher_sha256=LIVE_TEACHER_SHA256, held_out=[held])
     # A held-out collection sharing a match identity with the input refuses the selection.
     held_ledger = held / "ledger.jsonl"
     rows = [json.loads(x) for x in held_ledger.read_text().splitlines()]
@@ -876,7 +941,7 @@ def test_selection_needs_explicit_absolute_held_out_and_refuses_overlap(tmp_path
     next(r for r in rows if r["event"] == "completed")["match_id"] = train_match
     held_ledger.write_text("".join(json.dumps(r) + "\n" for r in rows))
     with pytest.raises(DemonstrationRefused, match="held-out"):
-        select_demonstrations([train], teacher_sha256=TEACHER_SHA256, held_out=[held])
+        select_demonstrations([train], teacher_sha256=LIVE_TEACHER_SHA256, held_out=[held])
 
 
 def test_a_tampered_eligible_demonstration_refuses_the_whole_selection(tmp_path, monkeypatch):
@@ -884,7 +949,7 @@ def test_a_tampered_eligible_demonstration_refuses_the_whole_selection(tmp_path,
     demo["steps"][0]["action"] = 0  # still legal: only the ledger digest notices
     path.write_text(json.dumps(demo))
     with pytest.raises(DemonstrationRefused, match="SHA-256 in its ledger row"):
-        select_demonstrations([root], teacher_sha256=TEACHER_SHA256, held_out=NO_HELD_OUT)
+        select_demonstrations([root], teacher_sha256=LIVE_TEACHER_SHA256, held_out=NO_HELD_OUT)
     demo["steps"][0]["action"] = len(ACTION_NAMES) - 1  # illegal in its recorded mask
     path.write_text(json.dumps(demo))
     rows = [json.loads(x) for x in (root / "ledger.jsonl").read_text().splitlines()]
@@ -893,7 +958,7 @@ def test_a_tampered_eligible_demonstration_refuses_the_whole_selection(tmp_path,
             row["demonstration_sha256"] = [hashlib.sha256(path.read_bytes()).hexdigest()]
     (root / "ledger.jsonl").write_text("".join(json.dumps(r) + "\n" for r in rows))
     with pytest.raises(DemonstrationRefused, match="failed verification"):
-        select_demonstrations([root], teacher_sha256=TEACHER_SHA256, held_out=NO_HELD_OUT)
+        select_demonstrations([root], teacher_sha256=LIVE_TEACHER_SHA256, held_out=NO_HELD_OUT)
 
 
 def test_demonstration_paths_and_identities_must_match_their_row(tmp_path, monkeypatch):
@@ -903,7 +968,7 @@ def test_demonstration_paths_and_identities_must_match_their_row(tmp_path, monke
     completed["demonstrations"] = [str(root / "elsewhere" / "demonstration-2.json")]
     (root / "ledger.jsonl").write_text("".join(json.dumps(r) + "\n" for r in rows))
     with pytest.raises(DemonstrationRefused, match="escapes"):
-        select_demonstrations([root], teacher_sha256=TEACHER_SHA256, held_out=NO_HELD_OUT)
+        select_demonstrations([root], teacher_sha256=LIVE_TEACHER_SHA256, held_out=NO_HELD_OUT)
 
 
 def test_crash_after_completed_row_publishes_staged_demonstrations(tmp_path, monkeypatch):
@@ -1002,7 +1067,9 @@ def test_teacher_against_teacher_records_both_seats(tmp_path, monkeypatch):
     root = collect(tmp_path, monkeypatch, "pair", arms=arms)
     for row in Ledger.load(root / "ledger.jsonl").completed:
         assert row["episodes"] == [] and len(row["demonstrations"]) == 2
-    selection = select_demonstrations([root], teacher_sha256=TEACHER_SHA256, held_out=NO_HELD_OUT)
+    selection = select_demonstrations(
+        [root], teacher_sha256=LIVE_TEACHER_SHA256, held_out=NO_HELD_OUT
+    )
     assert len(selection.demonstrations) == 4
     for demo in selection.demonstrations:
         other = arms[0] if demo["teacher"]["style"] == "tactical" else arms[1]
@@ -1016,12 +1083,12 @@ def test_selection_caps_count_and_total_bytes(tmp_path, monkeypatch):
     root = collect(tmp_path, monkeypatch, "demos")
     monkeypatch.setattr(demonstrations, "MAX_SELECTED", 1)
     with pytest.raises(DemonstrationRefused, match="at most 1"):
-        select_demonstrations([root], teacher_sha256=TEACHER_SHA256, held_out=NO_HELD_OUT)
+        select_demonstrations([root], teacher_sha256=LIVE_TEACHER_SHA256, held_out=NO_HELD_OUT)
     monkeypatch.setattr(demonstrations, "MAX_SELECTED", 200)
     size = demo_files(root)[0].stat().st_size
     monkeypatch.setattr(demonstrations, "MAX_SELECTION_BYTES", size + 1)
     with pytest.raises(DemonstrationRefused, match="total read budget"):
-        select_demonstrations([root], teacher_sha256=TEACHER_SHA256, held_out=NO_HELD_OUT)
+        select_demonstrations([root], teacher_sha256=LIVE_TEACHER_SHA256, held_out=NO_HELD_OUT)
     # Rejected files count toward the budget too.
     with pytest.raises(DemonstrationRefused, match="total read budget"):
         select_demonstrations([root], teacher_sha256=OTHER, held_out=NO_HELD_OUT)

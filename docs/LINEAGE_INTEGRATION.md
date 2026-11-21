@@ -595,7 +595,9 @@ implicitly, and it has no CLI, no `__main__` and no schedule.
     - Any other decision is refused with the interrupted-decision message.
     - A crash part-way through claiming leaves only some claims. A retry is
       then refused as "interrupted decision: only some of its claims exist",
-      listing the missing ones.
+      and keeps being refused until the repair below. The message says so,
+      points here, and names the decision's `decision_sha256` and the present
+      and missing claim files.
     - **Repair:** remove exactly the claim files that name the interrupted
       decision's `decision_sha256` (pair claim, collection claims, lineage
       claim n), then retry the decision.
@@ -951,13 +953,17 @@ optional Jev shadow analysis is not ported (see Deferred).
   variant=<style>, source_sha256=...)` and `Arm("probe", variant=<tactic>,
   source_sha256=...)` carry no checkpoint and no policy SHA-256.
   - The variant is one of the six teacher styles or ten probe variants.
-  - `source_sha256` is required and must equal `TEACHER_SHA256` or
+  - `source_sha256` is required and must equal `live.LIVE_TEACHER_SHA256` or
     `PROBE_SHA256`. Each is the SHA-256 of the canonical JSON map from module
     to module SHA-256 for the controller and every module its choice depends
     on: `teacher.py` or `melee.py`, plus `neural/schema.py` (`legal_mask`,
     `ACTION_INDEX`, `CombatView`), `neural/executor.py` (`cast_seconds`),
     `magic.py` (the spell circles behind `cast_seconds`) and `contract.py`
-    (imported by both). The schema fingerprint covers only feature and action
+    (imported by both). Since the follow-ups the map also holds the live
+    labelling modules `neural/live.py` (decision cadence and freshness rules)
+    and `duel_wait.py` (DuelState interpretation). `teacher.TEACHER_SHA256` is
+    the map without them, which the simulator uses; a live teacher arm naming
+    it is refused. The schema fingerprint covers only feature and action
     names, not this logic. `preflight_arm` checks the identity before any
     login, and before a fresh run writes `collection.json`. A change to any of
     these modules therefore refuses a plan or a resume made with the old
@@ -1006,7 +1012,7 @@ optional Jev shadow analysis is not ported (see Deferred).
   - the current schema and executor fingerprints, `collector_version`, and a
     `collection_end_phase` of `Idle` or `RoundOver`;
   - a well-formed teacher block: name, style, `TEACHER_VERSION`, and a module
-    hash map (`sources`) over exactly the teacher modules that hashes to its
+    hash map (`sources`) over exactly the live teacher modules that hashes to its
     SHA-256;
   - that style and SHA-256 equal the planned arm of that seat (the seat
     follows from the `issued` row and fixture parity), and `opponent_arm`
@@ -1945,20 +1951,25 @@ The outcome is the same: the incumbent is retained.
     - the current model and every checkpoint by SHA-256;
     - the league membership by label;
     - the demonstration file's SHA-256;
-    - the simulator record and the progress events.
+    - the simulator record and the progress events;
+    - the code identity (see Follow-ups).
   - What a resume checks: `run_league(plan, out, resume_from=previous)` uses
-    no stage-manifest value that affects the result without checking it (the
-    unused blob `bytes` value is the one field it does not compare). It refuses:
+    no stage-manifest value without checking it. It refuses:
     - a previous run whose `plan.json` is not this plan (any field: seed, budget,
       coefficient, threads);
+    - a previous run, a stage or a checkpoint made with other code (see
+      Follow-ups): `plan.json` and every stage must record the current
+      `code_identity()`, the league, simulator and teacher identities, and every
+      checkpoint's `training.simulator` must name the current simulator and
+      teacher SHA-256s and the plan;
     - stages that are not contiguous, beyond the plan's updates, with unknown or
       missing keys, or naming another plan;
     - a stage whose `previous_stage_sha256` is not the SHA-256 of the previous
       stage file. The stages form a hash chain.
-    - any blob named other than `<kind>-<its sha256>.pt` for its slot. A blob's
-      payload must also name its kind (PPO Adam, rehearsal Adam or RNG), its stage
-      and the plan, so a swapped, renamed or copied-in blob of another slot or
-      stage is refused.
+    - any blob named other than `<kind>-<its sha256>.pt` for its slot, or whose
+      descriptor `bytes` is not its exact size. A blob's payload must also name
+      its kind (PPO Adam, rehearsal Adam or RNG), its stage and the plan, so a
+      swapped, renamed or copied-in blob of another slot or stage is refused.
     - any checkpoint whose weights do not hash to their SHA-256, or whose
       `manifest.json` does not hash to the value each stage records;
     - any checkpoint that does not carry the run's record. That record is the
@@ -1984,10 +1995,10 @@ The outcome is the same: the incumbent is retained.
     reproduces the rehearsal input exactly.
 - **Determinism scope.** The plan fixes the thread count, and the result is
   bit-identical on the same platform, torch build, thread count and code. A
-  different build or CPU may differ, as for unit 7's fixed-seed training. Neither
-  the plan nor a stage records a code identity for `league.py` or `train.py`, so a
-  resume after a code change is not detected. The checkpoints record the simulator
-  and teacher identities, but a resume does not compare them either.
+  different build or CPU may differ, as for unit 7's fixed-seed training. A
+  resume after a change to the league, simulator or teacher code is refused (see
+  Follow-ups); a change to a module outside those three identities, or to torch,
+  is not detected.
 
 What is enforced and what is convention:
 
@@ -1996,23 +2007,35 @@ What is enforced and what is convention:
   - **Detected:** any single-file change that would affect the resumed result is
     refused. Each checkpoint manifest is bound by the stage written after it; a
     snapshot whose stage was never written is not used. That includes:
-    - a stage manifest field (model, league, labels, record, events or a
-      descriptor) or blob, and an old stage file swapped for a new one;
+    - a stage manifest field (model, league, labels, record, events, code
+      identity or a blob descriptor, its `bytes` included) or blob, and an old
+      stage file swapped for a new one;
     - a checkpoint's weights or, once a stage names it, its manifest;
-    - the demonstrations or the plan.
+    - the demonstrations or the plan, its recorded code identity included.
 
-    Two single-file edits to the last stage file are accepted, because nothing
-    hashes that file: a blob descriptor's `bytes` value (unused; the SHA-256 binds
-    the blob) and a reformatting of its JSON. Both leave the weights, registry and
-    events identical.
+    One single-file edit is accepted, because nothing hashes the last stage
+    file: a reformatting of its JSON, meaning the same values of the same JSON
+    types serialised differently (whitespace, key order, the spelling of an
+    equal number). Stage values and `plan.json` are compared as canonical JSON,
+    so a type edit such as `0` to `0.0`, `1` to `true` or a `stage` of `2.0` is
+    refused. A reformatting leaves the weights, registry and events identical,
+    and a test resumes from such a file.
   - **Not detected:** a coordinated rewrite. Someone who re-derives every
     dependent value can rewrite a checkpoint manifest, recompute its SHA-256 into
     the stage chain and re-chain the later stages, or replace blobs with new
     payloads that carry the right kind, stage and plan. The SHA-256s are not
     signatures. The last stage is the cheapest case: nothing chains to it, so a
     forged RNG blob takes two files, the new blob and the last stage file
-    with that descriptor's hash fields recomputed, and changes the result. An
-    earlier stage also needs every later stage re-chained.
+    with that descriptor's hash and size fields recomputed, and changes the
+    result. An earlier stage also needs every later stage re-chained. A
+    `resume/HEAD` file naming the last stage's SHA-256 would not raise that cost
+    meaningfully: it is one more unkeyed file the same forger rewrites, so it is
+    not added.
+  - **Not detected:** recorded code identities rewritten to the current code's
+    values. They are SHA-256s of module files, recorded in plain JSON and
+    compared with the running code; they detect a resume after a code change,
+    not a forger who rewrites `plan.json`, the stages (re-chained) and the
+    checkpoint manifests (re-bound).
   - **Not detected either:** a checkpoint re-saved without its simulator marker (the
     weight SHA-256 covers weights only), and edits outside the run, such as to the
     parent. A parent's manifest is not hash-bound by the run.
@@ -2172,6 +2195,149 @@ Deferred:
 - Neural opponents in simulator evaluation plans.
 - `train.evaluate` against the simulator's built-in teacher (7b-1).
 - GPU training.
+
+## Follow-ups
+
+Non-blocking follow-ups from the reviews of units 7, 8, 9 and 7b-2
+([UO workspace issue 11](https://github.com/uotavern/uo/issues/11)), based on
+`67fe66a`. Nothing here trains, evaluates or promotes a policy, and no ported
+module (`sim.py`, `drills.py`, `schema.py`, `melee.py`, the `TacticalTeacher`
+class body) changes.
+
+1. **7b-2 resume code identities.** `league.code_identity()` names:
+   - `league_sha256`, the module-hash identity (as for the teacher) of every
+     module besides the simulator's and the teacher's whose code decides a
+     league result: `league.py` (loop, stage and registry rules), `train.py`
+     (PPO, discount), `imitation.py` (BC), `sim_rollouts.py` (rollout and
+     evaluation loops), `sim_evaluation.py`, `evaluation.py` and `stats.py`
+     (the gate and its statistics), `model.py` (the network) and
+     `checkpoints.py` (checkpoint and blob serialisation), with its map;
+   - `simulator_sha256` and `teacher_sha256`.
+
+   `inference.py` (a SHA-256 format check) and `live.py` (`atomic_json`, a
+   JSON writer whose output is hash-bound where it matters) are left out, so a
+   live-runner edit does not refuse a simulator resume. `plan.json`, every
+   stage and the registry record the identity. A resume refuses a `plan.json`
+   or stage whose identity is not the running code's, a checkpoint whose
+   `training.simulator` names another simulator, teacher or plan (before, only
+   its plan was compared), and a blob descriptor whose `bytes` is not the
+   blob's exact size. The trust boundary above is updated: the last stage's
+   one accepted single-file edit is now a JSON reformatting, which a test
+   resumes from. A `resume/HEAD` pointer is not added: it is one more unkeyed
+   file the same forger rewrites, so it would not raise the cost of forging
+   the last stage. Runs written before this change have no recorded identity
+   and cannot be resumed; none was kept (only test budgets were run).
+2. **Unit 7 partial-claim message.** The refusal for a decision with only some
+   of its claims told the operator to "retry the identical decision", which is
+   refused again until repaired. It now says the decision cannot be retried as
+   is, points to "Crash between claims and row" above, and names the
+   `decision_sha256` and the present and missing claim files. The test checks
+   the message, that a retry is still refused, and the repair.
+3. **Unit 8 labelling identity.** DuelState interpretation
+   (`duel_wait.server_state`) and the teacher's decision cadence and
+   freshness rules (`DECISION_INTERVAL`, `STATE_FRESH_SECONDS` and the actor
+   loop in `live.py`) were bound only by the hand-maintained
+   `COLLECTOR_VERSION`. They are now in the module maps of the live arms:
+   `live.LIVE_TEACHER_SHA256` is the teacher map plus `neural/live.py` and
+   `duel_wait.py`, and `PROBE_SHA256` gains the same two modules. A live
+   teacher arm must name `LIVE_TEACHER_SHA256` (one naming the choice-only
+   `TEACHER_SHA256` is refused), and demonstrations record and are verified
+   against the extended map. `TEACHER_SHA256` stays the choice-only identity
+   that the simulator, its evaluation plans and the league use, so a
+   live-runner edit does not touch simulator results.
+   - **Identities change.** `TEACHER_SHA256` `2ab6daec…1f61` becomes
+     `9117aba1…7fac` (its docstring now says which identity a live arm names),
+     `PROBE_SHA256` `60b86e43…5366` becomes `cffd4f7e…fc13`, and the live
+     teacher arm's identity becomes `4bfe5b85…7dd6`. `SIMULATOR_SHA256`
+     (`53aa35c5…b151`) is unchanged.
+   - **Why that is safe.** No live collection or demonstration has been
+     recorded with these modules: the only demonstrations in the workspace
+     are the source branch's `anima3-live-demonstration-v1` files and BC
+     summaries, which this package never accepts, and no test, index or
+     record pins a teacher, probe or simulator identity value. A plan made
+     with the old identities is refused by `preflight_arm`, as for any code
+     change.
+   - **Cost.** Every edit to `live.py` or `duel_wait.py`, even one that does
+     not affect a teacher, now changes the live teacher and probe identities
+     and refuses resuming a collection planned with the old ones. Recorded
+     demonstrations stay selectable by their recorded identity, as before.
+   - **Already stated, left as is:** a unit-7 PPO child without
+     `demonstrations_consumed` is refused as a trained parent by unit 8
+     (Unit 8 Boundaries and review round 1, item 1). That is the safe
+     direction.
+4. **Unit 9 records.** The README experiment rows for E16–E18 now name the
+   run-local `registry_selected` `772c0fc6` candidate that `index.json` lists,
+   and a test checks that every README row names each identified candidate
+   and its selection. Candidate `label` and `note` text is frozen by a
+   per-experiment digest in the reviewed table, and the deployment check
+   refuses deployment wording other than "not deployed" in the label or note
+   or any other text field of a `not_deployed` candidate. Experiment and
+   candidate keys must be exactly the known sets, so an added field (say a
+   `comment`) fails both checks. Setting E22's note to "deployed publicly" now
+   fails both checks. The wording check is a keyword check: a deployment claim
+   in other words ("shipped to the public shard") is caught only by the frozen
+   digest. `index.json` is unchanged.
+
+### Review round 1
+
+The independent review of `15da498` approved with three low findings, each now
+fixed and tested:
+
+1. **Type edits to the last stage were accepted.** Python's `==` makes `1`,
+   `1.0` and `True` equal, so 159 of 163 single-value type edits to the last
+   stage resumed (weights and registry identical, but `progress.json` then
+   carried, say, `"wins": 0.0`). Stage values, the recorded plan and the code
+   identities are now compared as canonical JSON. The reviewer's script now
+   has all 163 refused, and a test edits a bool, an int and a float in the
+   head stage and three plan fields.
+2. **`"stage": 2.0` raised an uncaught `TypeError`.** A non-integer (or bool)
+   stage number is now refused as `LeagueRefused`.
+3. **An extra candidate key passed every history test.** Experiment and
+   candidate keys are now checked against the exact known sets, and the
+   deployment-wording check covers every text field of a candidate.
+
+### Offline acceptance
+
+| Environment | Result | Change |
+| --- | --- | --- |
+| Without torch (`--extra dev --extra jeff`) | **627 passing, 6 skipped** | 621 before: two history, two teacher-identity and two demonstration-provenance cases |
+| With `--extra neural` | **822 passing** | 801 before: the six above and 15 league cases |
+
+The 14 league cases: eight tampered runs (head and middle blob sizes, a stage's
+league and teacher identity, `plan.json`'s identity changed or dropped, and a
+checkpoint's simulator and teacher identity, each re-bound as a forger would),
+the identity's module set and edit sensitivity, the identity recorded in plan,
+stages and registry, a resume refused after a league, simulator or teacher code
+change (three cases), a resume from a reformatted last stage, and (review round
+1) type edits of the last stage and the recorded plan.
+
+Mutations, each run alone (26; 25 killed by a test):
+
+- league: blob size or its integer type not checked; `plan.json`, stage or
+  checkpoint identities not compared; the teacher identity, `train.py` or
+  `stats.py` left out of the identity; the identity not recorded in
+  `plan.json`, a stage or the registry;
+- evaluation: the partial-claim message without the decision SHA-256 or the
+  present claims, or telling the operator to retry;
+- live: `live.py` or `duel_wait.py` left out of the labelling modules; the live
+  teacher identity equal to the choice-only one; the probe without the
+  labelling modules; preflight accepting the choice-only identity;
+  demonstrations recording the choice-only map;
+- history: no deployment-wording check; any "deployed" accepted; candidate text
+  not frozen, or the note left out of its digest; the README E16 row without
+  `772c0fc6`.
+
+The survivor is layered: the verifier's exact module-set check on a
+demonstration's `sources`, weakened to a subset check, is still backed by the
+arm-identity check, because a self-consistent smaller map gives an identity
+other than the planned arm's.
+
+Review round 1 added eight mutations, seven killed: stage values, the recorded
+plan or the stage number compared with Python's `==` or without its type
+check; candidate keys unchecked in either the deployment check or the frozen
+table; experiment keys unchecked; the wording check limited to label and note.
+The survivor, the code identities compared with `!=`, is equivalent: every
+value in them is a string, so no type edit can pass `!=`.
 
 ## Remaining separately verified units
 

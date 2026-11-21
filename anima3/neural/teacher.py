@@ -10,10 +10,13 @@ is the SHA-256 of the canonical JSON map ``TEACHER_SOURCES`` from each module
 the choice depends on to that module's SHA-256: this file, ``schema.py``
 (``legal_mask``, ``ACTION_INDEX``, ``CombatView``), ``executor.py``
 (``cast_seconds``), ``magic.py`` (spell circles behind ``cast_seconds``) and
-``contract.py`` (imported by both). A live teacher arm names it, and every
-demonstration records it with the map, so a demonstration says exactly which
-code chose its actions. An edit to any of those modules changes the identity
-and refuses resumption of a collection planned with the old one. The schema
+``contract.py`` (imported by both). The simulator names it. A live teacher arm
+names ``live.LIVE_TEACHER_SHA256``, this map extended by the live labelling
+modules (``live.py``, the decision cadence and freshness rules, and
+``duel_wait.py``, the DuelState interpretation), and every demonstration records
+that map, so a demonstration says exactly which code chose and labelled its
+actions. An edit to any of those modules changes the identity and refuses
+resumption of a collection planned with the old one. The schema
 fingerprint covers only feature and action names, not this logic. A teacher's
 choices are demonstrations for supervised imitation only: they are never PPO
 experience and never reported under a neural policy label.
