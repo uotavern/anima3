@@ -15,15 +15,19 @@ REPO = Path(__file__).resolve().parents[1]
 INDEX_PATH = REPO / "docs" / "history" / "index.json"
 HEX40 = re.compile(r"[0-9a-f]{40}")
 HEX64 = re.compile(r"[0-9a-f]{64}")
+DEPLOY_WORDING = re.compile(r"deploy", re.IGNORECASE)
+NOT_DEPLOYED = re.compile(r"\bnot deployed\b", re.IGNORECASE)
 
 # Reviewed labels, frozen. Per experiment: result, (SHA-256 prefix, selection) per candidate,
-# and a digest of the narrative fields. Changing any of them needs a deliberate update here.
+# a digest of the narrative fields and a digest of every candidate's label and note.
+# Changing any of them needs a deliberate update here.
 EXPECTED = {
-    "E01-ten-duels": ("negative", (), "90215ef46461cd07"),
+    "E01-ten-duels": ("negative", (), "90215ef46461cd07", "4f53cda18c2baa0c"),
     "E02-neural-starter": (
         "diagnostic",
         (("7c0cbe1a", "not_gated"), (None, "rejected"), ("2953462a", "not_gated")),
         "0d1155a76bebb631",
+        "ce894e3b24fdc3d1",
     ),
     "E03-neural-continuation": (
         "simulator_only",
@@ -34,99 +38,117 @@ EXPECTED = {
             ("fe5796b4", "not_gated"),
         ),
         "cd3ab1fc5d85da99",
+        "770425ae208ea2dd",
     ),
     "E04-hundred-live-duels": (
         "negative",
         (("4fd33a57", "not_gated"), ("ee89aab5", "not_gated")),
         "dbd25a79b9919301",
+        "6a815ec7a6852aad",
     ),
-    "E05-melee-harm-probe": ("diagnostic", (), "70ef33e3b59d3ff2"),
-    "E06-cast-dump-timing": ("diagnostic", (), "719ee1ff47422ee7"),
+    "E05-melee-harm-probe": ("diagnostic", (), "70ef33e3b59d3ff2", "4f53cda18c2baa0c"),
+    "E06-cast-dump-timing": ("diagnostic", (), "719ee1ff47422ee7", "4f53cda18c2baa0c"),
     "E07-curriculum-league-v2": (
         "simulator_only",
         (("39abd306", "registry_selected"), ("e5915b8d", "registry_selected"), (None, "rejected")),
         "edbe4b392b1afc25",
+        "28191fab8c75731c",
     ),
     "E08-live-pilot-28": (
         "failed_gate",
         (("ec9b2a7c", "rejected"), ("e5915b8d", "registry_retained")),
         "5ca0375b6a18ca64",
+        "15004864edb654a0",
     ),
     "E09-skill-clock-simulator": (
         "simulator_only",
         (("0c6ca921", "registry_selected"), (None, "rejected")),
         "d1a40717cfa14658",
+        "b57bc5ddf852215f",
     ),
     "E10-skill-clock-live-imitation": (
         "invalidated",
         (("03b06cc7", "invalidated"), ("d0096ef9", "invalidated")),
         "a0b979f7d66b9f80",
+        "331e13d29f099ca9",
     ),
-    "E11-supply-correction": ("diagnostic", (), "47d1b53513b9d866"),
-    "E12-visibility-diagnosis": ("diagnostic", (), "83e48ae109787c7b"),
+    "E11-supply-correction": ("diagnostic", (), "47d1b53513b9d866", "4f53cda18c2baa0c"),
+    "E12-visibility-diagnosis": ("diagnostic", (), "83e48ae109787c7b", "4f53cda18c2baa0c"),
     "E13-supply-fixed-trial": (
         "failed_gate",
         (("5e56ab68", "rejected"), ("3d0f7b45", "rejected")),
         "eb50aa045d6ea32b",
+        "3df416bc7c42faa7",
     ),
     "E14-v8-bc-screen": (
         "failed_gate",
         (("5e56ab68", "rejected"), ("0c6ca921", "registry_retained")),
         "31bd54f965c7f814",
+        "10609731db7f4860",
     ),
     "E15-threat-memory": (
         "failed_gate",
         (("772c0fc6", "registry_selected"), (None, "rejected")),
         "75a04c492866062e",
+        "ac2ef1ed5c34b89f",
     ),
     "E16-bc-rehearsal": (
         "failed_gate",
         (("772c0fc6", "registry_selected"), (None, "rejected")),
         "f01e1a9cfb730243",
+        "fa838132538db8f2",
     ),
     "E17-elapsed-time-discount": (
         "failed_gate",
         (("772c0fc6", "registry_selected"), (None, "rejected")),
         "1c40c922dc7e7e5c",
+        "742ec61710d7214d",
     ),
     "E18-time-rehearsal": (
         "failed_gate",
         (("772c0fc6", "registry_selected"), (None, "rejected")),
         "bafdc712cbd99942",
+        "968e69734352a534",
     ),
     "E19-incumbent-continuation": (
         "failed_gate",
         ((None, "rejected"), ("0c6ca921", "registry_retained")),
         "efe329715e6702c4",
+        "ca7023ce8790a30e",
     ),
     "E20-recovered-bc-200": (
         "failed_gate",
         (("5e03b624", "rejected"), ("0c6ca921", "registry_retained")),
         "72b64664f74b5cfb",
+        "d81b5fe5c0d26f07",
     ),
     "E21-recovered-bc-replication-400": (
         "failed_gate",
         (("5e03b624", "rejected"), ("0c6ca921", "registry_retained")),
         "9913b02fec42fec0",
+        "d81b5fe5c0d26f07",
     ),
     "E22-reference-bc-fit": (
         "diagnostic",
         (("0b3fb0a1", "not_gated"), ("af3cb4ad", "not_gated")),
         "a7e93c4faa552ad1",
+        "7d0324f8f706c0c5",
     ),
     "E23-reference-simulator": (
         "simulator_only",
         (("0b3fb0a1", "rejected"), ("af3cb4ad", "offline_selected")),
         "9518a86c96802327",
+        "5ba78e90a7d48b57",
     ),
     "E24-reference-bc-live-200": (
         "passed_gate",
         (("af3cb4ad", "registry_selected"), ("0c6ca921", "rollback")),
         "f6fc5323fb89d423",
+        "07b79dc71dfa20b4",
     ),
-    "E25-jev-shadow": ("negative", (), "c86836fa231778f7"),
-    "E26-tactical-pilot": ("diagnostic", (), "04f90409f3da9978"),
-    "E27-potion-defense": ("diagnostic", (), "9e2a6319cc4bb24a"),
+    "E25-jev-shadow": ("negative", (), "c86836fa231778f7", "4f53cda18c2baa0c"),
+    "E26-tactical-pilot": ("diagnostic", (), "04f90409f3da9978", "4f53cda18c2baa0c"),
+    "E27-potion-defense": ("diagnostic", (), "9e2a6319cc4bb24a", "4f53cda18c2baa0c"),
 }
 NARRATIVE = (
     "title",
@@ -223,6 +245,11 @@ def check_deployment_claims(index):
         if status == "not_deployed":
             if subject["deployment_evidence"] is not None:
                 raise ValueError(f"{name}: evidence given for an undeployed subject")
+            # Free text may say "not deployed", never anything else about deployment.
+            for field in ("label", "note"):
+                text = subject.get(field) or ""
+                if DEPLOY_WORDING.search(NOT_DEPLOYED.sub("", text)):
+                    raise ValueError(f"{name}: {field} claims deployment: {text!r}")
         elif subject["deployment_evidence"] not in evidence:
             raise ValueError(f"{name}: {status} without a linked deployment evidence record")
 
@@ -376,11 +403,46 @@ def test_deployment_check_refuses_claims_without_evidence():
             deployment="public_deployment", deployment_evidence=i["experiments"][23]["files"][1]
         ),
         lambda i: i["experiments"][0].update(deployment="deployed"),
+        lambda i: i["experiments"][21]["candidates"][0].update(note="deployed publicly"),
+        lambda i: i["experiments"][21]["candidates"][1].update(label="reference BC (deployed)"),
+        lambda i: i["experiments"][23]["candidates"][0].update(
+            note="selected in the experimental registry; not deployed, later deployed"
+        ),
+        lambda i: i["experiments"][6]["candidates"][1].update(note="Deployment to the arena"),
     ):
         index = copy.deepcopy(INDEX)
         mutate(index)
         with pytest.raises(ValueError):
             check_deployment_claims(index)
+
+
+def test_candidate_text_is_frozen_and_refuses_deployment_wording():
+    """A note such as E22's set to "deployed publicly" fails both checks."""
+    for field, value in (("note", "deployed publicly"), ("label", "plain BC, renamed")):
+        index = copy.deepcopy(INDEX)
+        e22 = next(e for e in index["experiments"] if e["id"] == "E22-reference-bc-fit")
+        e22["candidates"][0][field] = value
+        with pytest.raises(AssertionError, match="E22-reference-bc-fit"):
+            check_reviewed(index)
+        if field == "note":
+            with pytest.raises(ValueError, match="note claims deployment"):
+                check_deployment_claims(index)
+    e24 = next(e for e in INDEX["experiments"] if e["id"] == "E24-reference-bc-live-200")
+    assert "not deployed" in e24["candidates"][0]["note"]  # the one allowed phrase
+
+
+def test_readme_experiment_rows_list_every_identified_candidate():
+    rows = {}
+    for line in (REPO / "docs/history/README.md").read_text().splitlines():
+        if re.match(r"\| E\d\d \|", line):
+            rows[line.split("|")[1].strip()] = line.split("|")[5]
+    assert sorted(rows) == sorted(e["id"][:3] for e in INDEX["experiments"])
+    for e in INDEX["experiments"]:
+        row = rows[e["id"][:3]]
+        for c in e["candidates"]:
+            if c["sha256"]:
+                assert f"`{c['sha256'][:8]}`" in row, (e["id"], c["label"])
+            assert c["selection"] in row, (e["id"], c["label"], c["selection"])
 
 
 def test_source_records_never_claim_public_deployment():
@@ -442,17 +504,27 @@ def digest(obj):
     return hashlib.sha256(json.dumps(obj, sort_keys=True, ensure_ascii=False).encode()).hexdigest()
 
 
-def test_reviewed_labels_and_narratives_are_frozen():
-    assert [e["id"] for e in INDEX["experiments"]] == list(EXPECTED)
-    for e in INDEX["experiments"]:
-        result, candidates, narrative = EXPECTED[e["id"]]
+def candidate_text(experiment):
+    return [[c["label"], c.get("note")] for c in experiment["candidates"]]
+
+
+def check_reviewed(index):
+    """Raise AssertionError if any reviewed label, narrative or candidate text changed."""
+    assert [e["id"] for e in index["experiments"]] == list(EXPECTED)
+    for e in index["experiments"]:
+        result, candidates, narrative, text = EXPECTED[e["id"]]
         assert e["result"] == result, e["id"]
         got = tuple(
             (c["sha256"][:8] if c["sha256"] else None, c["selection"]) for c in e["candidates"]
         )
         assert got == candidates, e["id"]
         assert digest([e[k] for k in NARRATIVE])[:16] == narrative, e["id"]
-    assert digest(INDEX["vocabulary"]) == VOCABULARY_DIGEST
+        assert digest(candidate_text(e))[:16] == text, e["id"]
+    assert digest(index["vocabulary"]) == VOCABULARY_DIGEST
+
+
+def test_reviewed_labels_and_narratives_are_frozen():
+    check_reviewed(INDEX)
 
 
 def registry_objects(experiment):

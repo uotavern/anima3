@@ -69,9 +69,9 @@ Times are the UTC author time of the commit that first recorded the experiment.
 | E13 | 2026-10-07 14:54 | Supply-corrected BC and PPO trial (v7) | failed_gate | `5e56ab68`, `3d0f7b45` rejected |
 | E14 | 2026-10-08 01:17 | 40-game frozen v8 BC screen | failed_gate | `5e56ab68` rejected; `0c6ca921` registry_retained |
 | E15 | 2026-10-08 01:25 | Threat-memory simulator retraining | failed_gate | `772c0fc6` registry_selected (run-local); PPO rejected |
-| E16 | 2026-10-08 01:30 | PPO with BC rehearsal | failed_gate | PPO rejected |
-| E17 | 2026-10-08 01:38 | Elapsed-time discount PPO | failed_gate | PPO rejected |
-| E18 | 2026-10-08 01:42 | Elapsed-time PPO with rehearsal | failed_gate | PPO rejected |
+| E16 | 2026-10-08 01:30 | PPO with BC rehearsal | failed_gate | `772c0fc6` registry_selected (run-local); PPO rejected |
+| E17 | 2026-10-08 01:38 | Elapsed-time discount PPO | failed_gate | `772c0fc6` registry_selected (run-local); PPO rejected |
+| E18 | 2026-10-08 01:42 | Elapsed-time PPO with rehearsal | failed_gate | `772c0fc6` registry_selected (run-local); PPO rejected |
 | E19 | 2026-10-08 01:47 | Direct continuation of the incumbent | failed_gate | continuation rejected; `0c6ca921` registry_retained |
 | E20 | 2026-10-08 04:52 | Recovered BC and 200-game live evaluation | failed_gate | `5e03b624` rejected; `0c6ca921` registry_retained |
 | E21 | 2026-10-08 14:41 | Preregistered 400-game replication | failed_gate | `5e03b624` rejected; `0c6ca921` registry_retained |
