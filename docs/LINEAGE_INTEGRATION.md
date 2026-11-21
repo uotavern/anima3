@@ -1495,6 +1495,302 @@ Deferred:
   only in `2026-10-06-historical-evaluation.json`. The per-match collection is on the
   arena host.
 
+## Unit 7b-1 Simulator, drills and simulator evaluation through the unit-7 gate
+
+Based on unit 9 (`f281555`), this is the first of two parts of row 7b. It adds four
+modules and changes `evaluation.py`:
+
+- `neural/sim.py`: the approximate pre-AOS duel simulator `DuelSim`. Stdlib only.
+- `neural/drills.py`: `DRILLS`, `setup_drill` and the simulator's code identity
+  `SIMULATOR_SHA256`. Stdlib only.
+- `neural/sim_evaluation.py`: `SimulatorEvaluationPlan`, simulator records and the
+  simulator-only gate decision. Stdlib only.
+- `neural/sim_rollouts.py`: seeded simulator rollouts (`collect_simulator`) and the
+  simulator evaluation games. Needs torch.
+- `evaluation.py`: teacher-style opponent labels for simulator plans only, and
+  refusal of simulator plans and decisions on the live path.
+
+Importing `anima3`, `anima3.neural`, `sim`, `drills` or `sim_evaluation` does not import
+torch. A subprocess test refuses any torch import and checks that `sim_rollouts` was not
+imported either. `sim_rollouts.py` has no CLI, no `__main__`, no schedule and no
+training loop, and writes no file.
+
+### Split of row 7b
+
+Row 7b is split into two reviewable parts:
+
+- **7b-1 (this unit):** the simulator, the drills, simulator rollouts and seeded
+  simulator evaluation through the unit-7 gate, with the separation from live
+  evidence.
+- **7b-2 (next):** simulator behaviour cloning and simulator PPO children, the league
+  self-play loop and its run-local experimental registry, and optimizer/RNG resume.
+  Its plan is under Deferred.
+
+### Source provenance
+
+| Source at `819f4f4` | Imported | Rewritten or left out |
+| --- | --- | --- |
+| `neural/sim.py` (`6b8d6f0`, `3ae14e7`, `94051a2`, `e597299`, `b170aba`) | Every definition AST-identical, including `SIM_VERSION` `approximate-pre-aos-options-v7-meditation-clock`, `DuelSim.step`, `teacher` and every event handler | `DuelSim.__init__` loses the `seed=0`, `max_steps=1200` and `shaping_gamma=SHAPING_GAMMA` defaults and refuses a non-integer seed or budget and a non-numeric (including bool) or non-finite discount. The remaining defaults (`dt`, `showdown_after`, `domain_randomization`) are fixed constants of `sim.py` and are covered by `SIMULATOR_SHA256`. The module docstring gains a port note. |
+| `neural/curriculum.py` `DRILLS`, `setup_drill` (`94051a2`) | AST-identical | Moved to `drills.py` (unit 8 moved the teacher to `teacher.py`). `drills.py` adds `SIM_DOMAIN` and `SIMULATOR_SHA256`. |
+| `neural/train.py` `collect_simulator` (`6b8d6f0`, `94051a2`, `25a169f`) | The loop, as `sim_rollouts._collect`: episode seeds from `random.Random(seed)`, alternating learner seat, drill set-up, teacher-labelled actions with the model's log-probability, frozen opponents in about half of the games, bootstrap of unfinished episodes, the summary counts | No default for `steps`, `seed`, `max_episode_steps` or `shaping_gamma`. CPU only, inside `torch.random.fork_rng` seeded with `seed`. Every trajectory is labelled (below); teacher-labelled ones carry `ppo_eligible: false`. |
+| `neural/league.py` `evaluate_suite` (`94051a2`, `25a169f`, `3dfe973`, `a972d84`) | The game loop, as `sim_rollouts._suite_rows`: the five `STYLES` in source order, fixture seed `seed + 10000 * style_index + game // 2`, seat `game % 2`, a policy generator seeded `fixture_seed + seat`, a fresh teacher per game, the simulator's own shaping discount, score from the winner | Games, seed, budget and sampling come from a `SimulatorEvaluationPlan`; none has a default. `evaluate_in_simulator` loads the checkpoint by SHA-256. |
+| `neural/league.py` `promotion_gate` (`94051a2`, `494b66f`) | Already ported in unit 7 as `selection_gate` | `selection_gate` gains a keyword-only `opponent_order` (default: the plan's sorted opponents, so live decisions are unchanged). `simulator_gate` passes the source `STYLES` order, which fixes the bootstrap's block order. |
+| `neural/train.py` `evaluate` | — | Not ported. It played only the simulator's built-in `teacher`; the league suite superseded it. |
+| `neural/league.py` `main`, `neural/train.py` `behavioral_clone` on simulator labels, `ppo_update` on simulator rollouts | — | Row 7b-2. |
+
+### Equivalence with the source
+
+- **AST.** Tests parse the source files with `git show 819f4f4:<path>`. Every
+  top-level statement of `sim.py` and every member of `DuelSim` is AST-identical to the
+  source except `__init__`. Its parameters match, the three defaults (seed,
+  `max_steps`, `shaping_gamma`) are gone, and its body is the source body after two
+  added checks. `setup_drill` and `DRILLS` are
+  AST-identical to the source `curriculum.py`.
+- **Seeded output, stdlib.** The source `anima3` package at `819f4f4` is exported
+  with `git archive` into a temporary directory. One driver runs in two isolated
+  interpreters, one importing that tree and one this one. It plays:
+  - twelve teacher-driven full games, with and without domain randomisation;
+  - every drill from both seats against all six teacher styles, with random legal
+    and some illegal learner actions.
+
+  Every frame, reward, info dictionary and trace is hashed. The 55,413,378-byte
+  outputs are identical, SHA-256 `8cd6f649…dfb77`. That digest is pinned, so a
+  shallow clone without the source commit still checks the port against it.
+- **Seeded output, torch.** On the same saved weights, the source
+  `train.collect_simulator`, run in its own interpreter after
+  `torch.manual_seed(seed)`, and this `collect_simulator` give identical
+  trajectories in five cases. Compared are features, masks, actions,
+  log-probabilities, values, hidden states, rewards, durations,
+  terminal/truncation flags, bootstrap values, info and summaries, minus the added
+  labels. The cases cover all drills, teacher labels, mixed styles and frozen
+  opponents. The source `league.evaluate_suite` and `_suite_rows` give identical
+  rows under both samplings.
+- **Gate.** The source `promotion_gate` is compiled from the source commit's text.
+  Its rows are built independently in the source suite's order (`STYLES`, then
+  game). On 300 random simulator score tables it gives exactly the same pass/fail
+  and 95% interval as `simulator_gate`, and the same paired and per-style deltas
+  (both passes and failures occur). The bootstrap resamples a list of block means,
+  so their order changes the interval; the plain unit-7 gate, in sorted-label
+  order, gives a different interval on some of the same tables, and the test
+  requires that it does. Reviewer probe: in sorted order the source gate's
+  pass/fail flipped in 23 of 2000 tables.
+- **End to end.** On the same two policies, the source `evaluate_suite` for each
+  (20 games per style, 160 steps) followed by the source `promotion_gate` equals
+  `evaluate_in_simulator` for each and `decide_in_simulator`: the same rows in the
+  same order (style, seed, seat, score, damage, self-damage, action counts,
+  elapsed), pass/fail, interval and deltas.
+- Ported cases: the 25 simulator, schema and mask cases of the source
+  `test_neural_sim.py`, and five cases of `test_training_league.py`: executor stun,
+  unknown stun skills, simulator stun, first-circle disturbance and drills. Each
+  `DuelSim` now states its seed and budget. The source's three tactical-teacher
+  cases were already ported in unit 8.
+
+### Boundaries
+
+- **No default seed, budget or discount.** `DuelSim(seed, max_steps,
+  shaping_gamma=...)` and `collect_simulator` need every seed, budget and shaping
+  discount stated. `collect_simulator` takes `steps`
+  (1–1,000,000), `seed`, `max_episode_steps` and `shaping_gamma`. A fixed seed gives
+  identical trajectories and leaves the caller's global torch and Python RNG
+  untouched. The source instead read the global torch RNG, seeded once at league
+  start.
+- **Simulator labels.** Every simulator trajectory's `info` carries:
+  - `source` and `domain` `approximate-pre-aos-simulator`;
+  - `simulator_sha256`, `teacher_sha256`, `live_episode: false`;
+  - its `sim_seed`, `rollout_seed` and `drill`.
+
+  The summary carries the same labels and `real_server_strength_established: false`.
+  `SIMULATOR_SHA256` is the SHA-256 of the canonical module-hash map over `sim.py`,
+  `drills.py` and `schema.py`, built like `TEACHER_SHA256`. Editing any of them
+  changes it, and a test edits copies of each.
+- **Rollouts are never live episodes or live demonstrations.**
+  - `update_verified_episodes` accepts only a `TrainingSelection` and refuses
+    rollouts.
+  - `_unsafe_update_from_episodes`, even with a trusting verifier, refuses a
+    rollout, its dictionary form and that dictionary relabelled
+    `purpose: training`. Nothing is written.
+  - `LiveReplayVerifier` rejects it.
+  - Live BC reads only verified demonstration selections from `training`
+    collections (unit 8), never in-memory trajectories.
+  - A teacher-labelled rollout is `ppo_eligible: false`, so `ppo_update` refuses it
+    as PPO experience. The source relied on convention here.
+- **Evaluation data is never training data.** Evaluation seeds are at least 10⁹, as
+  in the source `evaluate_suite`. `collect_simulator` draws every episode seed with
+  `randrange(10**9)` and refuses one that is not below that floor
+  (`RuntimeError`, tested by forcing it), so no simulator evaluation game is a
+  rollout game.
+- **Simulator evaluation plan.** `SimulatorEvaluationPlan` wraps a unit-7
+  `EvaluationPlan` with domain `approximate-pre-aos-simulator`. With no defaults it
+  fixes:
+  - the held-out seed base (10⁹ to 2⁶²);
+  - `max_steps` (1–1200; 1200 steps of 0.25 s are the 300-second server round);
+  - `sampling` (`categorical` or `greedy`);
+  - `simulator_sha256` and `teacher_sha256`.
+
+  Its SHA-256 covers the whole plan and is canonical (opponent order does not matter).
+  As the source gate required, it names exactly the five suite `STYLES`; a subset,
+  a single style or `tactical` (which the source suite never played) is refused.
+  The unit-7 floors still apply: 20–100 even games per opponent (so at least 20 per
+  style, as in the source), the exclusion allowance and the paired-game minimum.
+  Games are played, recorded and bootstrapped in `STYLES` order. A plan made for other simulator or
+  teacher code is refused before any game (`require_current`).
+- **Teacher opponent label.** Unit 8 refused evaluation against a teacher until a
+  plan label existed. The simulator suite plays only teacher styles, so 7b-1 needs
+  one: `teacher:<style>:<TEACHER_SHA256>`. It binds the style and the teacher code.
+  The label grammar admits the six teacher styles; a simulator plan uses the five
+  suite styles.
+  - Only a simulator-domain plan may name it.
+  - A simulator plan names nothing else.
+  - A live plan still refuses it.
+  - `record_from_collection` still refuses a live teacher arm.
+
+  Live teacher evaluation stays deferred. Scoring it would need the teacher identity
+  checked from the collection, as `select_demonstrations` does. Existing live plans
+  keep their SHA-256s (two are pinned from `f281555`).
+- **Fixtures.** Game `g` against style index `i` (in `STYLES`) uses seed
+  `seed + 10000 i + g // 2` and seat `g % 2`, as in the source. Games 2k and 2k+1
+  therefore form the unit-7 two-seat block. Seat 0 is recorded as `challenger` and
+  seat 1 as `receiver`. `simulator_record` refuses a missing, extra, reordered or
+  re-seeded game, a wrong style or seat, or a non-float score. A game that ended
+  truncated or non-terminal is `valid: false`, and the gate then fails closed.
+- **Simulator gain is not live gain.**
+  - `simulator_gate` checks both records against the plan SHA-256, both code
+    identities, the policy and every planned seed and seat. It then runs the
+    unit-7 `selection_gate` with the source `STYLES` order.
+  - It returns its own schema (`anima3-simulator-gate-decision-v1`) and outcome
+    `candidate_passed_simulator_gate` or `retain_incumbent`.
+  - It carries `simulator_only: true`, `live_gain_established: false`,
+    `selection_scope: simulator-experimental-only`, `automatic_promotion: false`,
+    `public_deployment: false` and `real_server_strength_established: false`.
+  - Under a live plan the unit-7 gate refuses simulator records ("different
+    domains"). `decide_from_collections` refuses a simulator plan.
+  - `record_decision` refuses a simulator decision. It does so by schema, and also
+    when relabelled with the live schema and outcome, or even with `domain: servuo`,
+    by the plan's domain. It writes no record or claim.
+
+  A simulator result therefore cannot satisfy the live unit-7 selection gate or be
+  recorded as live gain.
+- **Loaded by SHA, written nowhere.** `evaluate_in_simulator` needs an absolute
+  checkpoint path and the plan's candidate or incumbent SHA-256. It loads and plays
+  inside `fork_rng` on CPU and leaves the caller's RNG and the checkpoint tree
+  unchanged. `decide_in_simulator` evaluates both and gates them. The same plan and
+  checkpoints give the identical decision. Swapped checkpoints are refused by their
+  SHA-256s. Nothing is trained, written, selected or promoted.
+
+Enforced in code: everything above. Convention: the simulator is an approximation.
+Its docstring lists what is simplified, and simulated wins say nothing about ServUO.
+
+### Offline acceptance
+
+| Environment | Result | Change |
+| --- | --- | --- |
+| Without torch (`--extra dev --extra jeff`) | **621 passing, 5 skipped** | 547 prior plus 74 simulator/evaluation cases. The rollout module skips through `pytest.importorskip`. |
+| With `--extra neural` | **747 passing** | 660 prior, 74 simulator/evaluation and 13 rollout cases |
+
+These are the counts after review round 1; the first push had 619/5 and 743. Both
+suites passed three consecutive local runs.
+
+With the source commit present, as in a full clone, every equivalence case runs. In a
+shallow clone the four stdlib and three torch source-tree cases skip, and the pinned
+digest is still checked.
+CI's neural job now fetches full history and tags. It checks that the tag
+`archive/training-league-819f4f4` (pushed with this unit, so the source stays
+reachable if `feat/training-league` moves) resolves to `819f4f4`, then runs
+`test_neural_sim.py` and
+`test_neural_sim_rollouts.py` in a step that fails on any skip, so the equivalence runs
+in CI. The scoped Ruff gate adds the six new files, and `test_neural_sim_rollouts.py`
+joins the neural no-skip step.
+
+Mutations, each run alone, each of which fails a test (34, all re-run after review
+round 1; a 35th from the first push, style seeds from plan order, became equivalent
+once plans name the five styles in `STYLES` order and was dropped):
+
+- removing the constructor's integer check;
+- changing the potion fuse in `sim.py` or a drill's distance range;
+- dropping `schema.py` from the simulator identity;
+- accepting teacher labels in live plans;
+- deciding live collections under a simulator plan;
+- accepting a simulator decision in the selection record;
+- removing the evaluation seed floor, the `max_steps` bound or the plan's
+  teacher-SHA tie;
+- no current-code check, in the plan or in the gate;
+- not checking the record's plan SHA-256 or its seeds and seats;
+- not matching games to fixtures;
+- treating an unfinished game as valid;
+- keeping the live schema or outcome, or claiming live gain;
+- rollouts without `fork_rng` or without seeding;
+- teacher labels left PPO-eligible;
+- unlabelled trajectories;
+- a changed rollout loop (seat order);
+- removing the shaping-discount type check;
+- a simulator plan accepting a subset of the styles;
+- the simulator gate bootstrapping in sorted order, or the styles played in sorted
+  order;
+- no check that the gate's opponent order names the plan's opponents;
+- no check of the rollout seed range;
+- evaluation without the current-code check;
+- a relative checkpoint accepted;
+- rollouts on a non-CPU device;
+- evaluation advancing the global RNG.
+
+The lockfile and `pyproject.toml` are unchanged. Body, contract, README,
+`experiments/run_arm.sh`, `magic.py`, executor, schema, inference, checkpoint, model,
+live, splits, train, teacher, melee, demonstrations and imitation modules are also
+unchanged. `evaluation.py` changes only as described above.
+
+### Review round 1
+
+The independent review of `d68c07a` approved with low findings, all addressed:
+
+1. The simulator gate was weaker than the source: a plan with one style passed, the
+   tactical teacher was allowed, and games were bootstrapped in sorted-label order,
+   which can flip the source gate's outcome. Plans now name exactly the five
+   `STYLES`, play and bootstrap in `STYLES` order, and an end-to-end test compares
+   the whole pipeline with the source suite and gate.
+2. `DuelSim` kept a default shaping discount. It is now required and type-checked.
+3. CI depended on `819f4f4` staying the head of `feat/training-league`. The tag
+   `archive/training-league-819f4f4` now holds it, and CI checks it.
+4. Nits: the rollout seed check raises instead of asserting, and the opponents
+   error message names teacher labels. `save_checkpoint` writes no simulator marker
+   yet (below).
+
+Not done:
+
+- No simulator rollout, evaluation or decision was run on a real checkpoint.
+- Nothing was trained, selected or promoted.
+- No server, client or bridge was used.
+
+Deferred:
+
+- **Simulator provenance in checkpoints.** `save_checkpoint` carries no simulator
+  marker today; 7b-1 writes no checkpoint. 7b-2 must record simulator provenance in
+  every child manifest (below) before any simulator-trained checkpoint exists.
+- **Row 7b-2.** The plan:
+  - Simulator BC on teacher-labelled rollouts and simulator PPO on rollouts, each
+    writing a SHA-bound child to a fresh directory outside every input.
+  - Each child records `domain: approximate-pre-aos-simulator`, the simulator and
+    teacher identities, its rollout seeds and drills.
+  - **Ancestry.** A simulator child is a trained checkpoint (it names
+    `parent_policy_sha`). It therefore carries the parent's `live_consumed` and
+    `demonstrations_consumed` unchanged: simulator data consumes no live episode or
+    live demonstration. It adds its simulator seeds to a new `simulator_consumed`
+    list. Unit 8's rule that a trained parent missing either list is refused applies
+    to it as well.
+  - It can become a live candidate only through fresh live evaluation collections.
+  - The league loop keeps the source structure (initial, BC warm start, PPO updates
+    against a league of the incumbent and the last three frozen snapshots, a final
+    simulator gate). It is an explicit function with every budget and seed stated,
+    and no CLI.
+  - Its registry is run-local and experimental (`registry_selected` in the unit-9
+    vocabulary). Selection is not deployment.
+  - Optimizer and RNG resume: Adam state and the RNG states are written SHA-bound
+    beside each snapshot. Resuming refuses a different plan, config or parent SHA,
+    writes to a new directory, and is tested to be bit-identical to an
+    uninterrupted run with the same seed and budget.
+- Live evaluation against a teacher opponent (see above).
+- `train.evaluate` against the simulator's built-in teacher.
+- Neural opponents in simulator evaluation plans; the source suite had none.
+
 ## Remaining separately verified units
 
 | Order | Unit and likely files | Dependencies and acceptance |
@@ -1505,7 +1801,8 @@ Deferred:
 | 5 (integrated) | Frozen neural inference and checkpoint validation | Unit 4; add the minimum Torch optional dependency and regenerate/review the lock deliberately. Require dimensions, schema fingerprint, finite weights and SHA-bound loading. Preserve audited selected and rollback artifacts. |
 | 6 (integrated) | Live receipts, evaluation and bounded resume: `neural/live.py` | Units 2–5; prove count/duplicate/invalid-fixture handling, immutable arm policy identities and account locking before any separately authorized live fixture. |
 | 7 (integrated) | Evaluation statistics, selection gate and verified PPO: `neural/evaluation.py`, `neural/splits.py`, `neural/train.py` | Units 5–6; isolate training from evaluation, require an explicit held-out set, fixed budget floors, an explicit discount clock (`discount_time_unit` has no default; the source live update used 1.0, elapsed seconds), seat-paired blocks, single-use evidence and per-opponent regression rejection. No training, evaluation or promotion is run. |
-| 7b | Simulator, simulator BC and league self-play: `sim.py`, `setup_drill`, `league.py` | Units 7–8; seeded simulator evaluation through the unit-7 gate, simulator rollouts never live PPO episodes, optimizer/RNG resume idempotence. Live demonstrations and BC on them moved to unit 8. Simulator gain is not live gain. |
+| 7b-1 (integrated) | Simulator, drills and simulator evaluation: `neural/sim.py`, `neural/drills.py`, `neural/sim_evaluation.py`, `neural/sim_rollouts.py` | Units 7–8; seeded simulator evaluation through the unit-7 gate under its own domain and teacher labels, simulator rollouts never live PPO episodes or demonstrations. Simulator gain is not live gain. |
+| 7b-2 | Simulator BC and PPO children, league self-play: `league.py` | Unit 7b-1; SHA-bound simulator children carrying the ancestry's consumed lists, a run-local experimental registry (selection is not deployment), optimizer/RNG resume idempotence. Live demonstrations and BC on them moved to unit 8. |
 | 8 (integrated) | Tactical teacher, probes, live demonstrations and BC: `neural/teacher.py`, `neural/melee.py`, `neural/demonstrations.py`, `neural/imitation.py` | Units 4, 6 and 7. Teacher and probe arms are never neural; demonstrations stay out of PPO records with verified provenance from training collections only; frozen-policy behaviour unchanged. The optional Jev shadow analysis is deferred (remote model service). |
 | 9 (integrated) | Historical experiment record reconciliation: `docs/history/` | Preserve chronology and failed candidates; attach completed evidence without interpreting registry selection as public deployment. |
 

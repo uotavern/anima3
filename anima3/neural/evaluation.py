@@ -28,6 +28,11 @@ Stdlib only; importing this module never imports torch, trains or promotes.
   its manifest. A passed gate is
   evidence for a separate, explicit decision; it never promotes or deploys a
   checkpoint.
+- A plan's domain is part of its identity. A live (``servuo``) plan names scripted or
+  neural opponents; an ``approximate-pre-aos-simulator`` plan names only teacher
+  styles (``teacher:<style>:<sha>``) and is decided by ``sim_evaluation``. Live
+  collections are never decided under a simulator plan, and only a live decision
+  can enter a selection record: simulator gain is not live gain.
 """
 
 from __future__ import annotations
@@ -47,6 +52,7 @@ from ..stats import wilson
 from .inference import require_sha256
 from .live import TRAINING_RULES, LiveReplayVerifier, _fsync_dir
 from .splits import SplitRefused, read_collection, read_episode
+from .teacher import TEACHER_STYLES
 
 RECORD_SCHEMA = "anima3-evaluation-record-v1"
 DECISION_SCHEMA = "anima3-selection-decision-v1"
@@ -70,6 +76,10 @@ MAX_CLAIM_BYTES = 64 * 1024
 MAX_GAMES_PER_OPPONENT = 100
 MAX_OPPONENTS = 16
 OPPONENT = re.compile(r"(scripted|neural:[0-9a-f]{64})")
+# A scripted teacher style named with the teacher's code identity. Only a simulator
+# plan may name one: a live teacher opponent still has no evaluation label (unit 8).
+TEACHER_OPPONENT = re.compile("teacher:(" + "|".join(TEACHER_STYLES) + "):[0-9a-f]{64}")
+LIVE_DOMAIN = "servuo"
 
 
 class EvaluationRefused(ValueError):
@@ -144,11 +154,26 @@ class EvaluationPlan:
         if (
             not isinstance(opponents, (tuple, list))
             or not 1 <= len(opponents) <= MAX_OPPONENTS
-            or not all(isinstance(o, str) and OPPONENT.fullmatch(o) for o in opponents)
+            or not all(
+                isinstance(o, str) and (OPPONENT.fullmatch(o) or TEACHER_OPPONENT.fullmatch(o))
+                for o in opponents
+            )
             or len(set(opponents)) != len(opponents)
         ):
-            raise ValueError("opponents must be 1..16 distinct 'scripted'/'neural:<sha>' labels")
+            raise ValueError(
+                "opponents must be 1..16 distinct 'scripted', 'neural:<sha>' or"
+                " 'teacher:<style>:<sha>' labels"
+            )
         object.__setattr__(self, "opponents", tuple(sorted(opponents)))
+        if self.domain not in DOMAINS:
+            raise ValueError("unknown evaluation domain")
+        # Live opponents are scripted or neural; simulator opponents are teacher styles.
+        label = OPPONENT if self.domain == LIVE_DOMAIN else TEACHER_OPPONENT
+        if not all(label.fullmatch(o) for o in self.opponents):
+            raise ValueError(
+                "a live plan names 'scripted'/'neural:<sha>' opponents and a simulator plan"
+                " names 'teacher:<style>:<sha>' opponents"
+            )
         if f"neural:{self.candidate_sha256}" in self.opponents:
             raise ValueError("the candidate cannot be its own evaluation opponent")
         if f"neural:{self.incumbent_sha256}" in self.opponents:
@@ -172,8 +197,6 @@ class EvaluationPlan:
         minimum = self.min_paired_games_per_opponent
         if type(minimum) is not int or not MIN_GAMES_PER_OPPONENT <= minimum <= games:
             raise ValueError("minimum paired games must be an integer in 20..games per opponent")
-        if self.domain not in DOMAINS:
-            raise ValueError("unknown evaluation domain")
 
     def to_json(self) -> dict:
         value = asdict(self)
@@ -386,7 +409,9 @@ def _arm_summary(rows: list[dict]) -> dict:
     }
 
 
-def selection_gate(plan: EvaluationPlan, incumbent: dict, candidate: dict) -> dict:
+def selection_gate(
+    plan: EvaluationPlan, incumbent: dict, candidate: dict, *, opponent_order=None
+) -> dict:
     """Decide whether the candidate beat the incumbent under the fixed plan. Fail closed.
 
     Rows pair by (opponent, fixture): both policies faced the same opponent at the
@@ -398,13 +423,20 @@ def selection_gate(plan: EvaluationPlan, incumbent: dict, candidate: dict) -> di
     seats; as in the source gate only complete two-delta blocks enter the
     bootstrap, so every resampled block weighs the same. Fewer than ten complete
     blocks in total is too little evidence to decide, and the incumbent is kept.
+
+    ``opponent_order`` (default: the plan's sorted opponents) is the order in which
+    opponents' blocks enter the bootstrap list. It must name exactly the plan's
+    opponents. The simulator gate passes the source suite's style order.
     """
+    order = plan.opponents if opponent_order is None else tuple(opponent_order)
+    if sorted(order) != list(plan.opponents):
+        raise EvaluationRefused("opponent order must name exactly the plan's opponents")
     before = _check_rows(plan, incumbent, plan.incumbent_sha256)
     after = _check_rows(plan, candidate, plan.candidate_sha256)
     reasons = []
     opponents = {}
     block_means: list[float] = []
-    for opponent in plan.opponents:
+    for opponent in order:
         keys = [(opponent, f) for f in range(plan.games_per_opponent)]
         deltas: dict[tuple[str, int], float] = {}
         both_completed = 0
@@ -504,6 +536,9 @@ def decide_from_collections(
     """
     if type(external_candidate) is not bool:
         raise EvaluationRefused("external_candidate must be True or False")
+    if plan.domain != LIVE_DOMAIN:
+        # Collections are live evidence; a simulator plan is decided by sim_evaluation.
+        raise EvaluationRefused("live collections are decided only under a live plan")
     evaluations = {}
     for sha, directories in (
         (plan.incumbent_sha256, incumbent),
@@ -573,6 +608,9 @@ def _validate_decision(decision) -> EvaluationPlan:
         plan = EvaluationPlan.from_json(decision.get("plan"))
     except (TypeError, ValueError) as exc:
         raise EvaluationRefused(f"decision plan is invalid: {exc}") from exc
+    if plan.domain != LIVE_DOMAIN or decision.get("domain") != LIVE_DOMAIN:
+        # Simulator gain is not live gain: no simulator result enters a selection record.
+        raise EvaluationRefused("only a live evaluation decision can be recorded")
     if (
         plan.to_json() != decision["plan"]
         or plan.sha256 != decision.get("plan_sha256")
