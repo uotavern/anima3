@@ -1946,8 +1946,9 @@ The outcome is the same: the incumbent is retained.
     - the league membership by label;
     - the demonstration file's SHA-256;
     - the simulator record and the progress events.
-  - What a resume checks: `run_league(plan, out, resume_from=previous)` takes
-    nothing in a stage manifest on trust. It refuses:
+  - What a resume checks: `run_league(plan, out, resume_from=previous)` uses
+    no stage-manifest value that affects the result without checking it (the
+    unused blob `bytes` value is the one field it does not compare). It refuses:
     - a previous run whose `plan.json` is not this plan (any field: seed, budget,
       coefficient, threads);
     - stages that are not contiguous, beyond the plan's updates, with unknown or
