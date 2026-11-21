@@ -458,6 +458,19 @@ def _normal(value):
     return json.loads(json.dumps(value))
 
 
+def _canonical(value) -> str:
+    return json.dumps(value, sort_keys=True, separators=(",", ":"))
+
+
+def _same(recorded, expected) -> bool:
+    """Equal as JSON, types included: ``1``, ``1.0`` and ``true`` are three values.
+
+    Python's ``==`` makes ``1 == 1.0 == True``, which would accept a type edit of a
+    recorded value; a canonical serialisation does not.
+    """
+    return _canonical(recorded) == _canonical(_normal(expected))
+
+
 def _write_stage(run: _Run, stage: int, state: dict) -> None:
     blobs = run.root / "resume" / f"stage-{stage:03d}"
     previous = None
@@ -550,13 +563,12 @@ def _latest_stage(previous: Path, plan: LeaguePlan) -> dict | None:
         recorded = json.loads((previous / "plan.json").read_text())
     except (OSError, ValueError) as exc:
         raise LeagueRefused(f"previous run has no readable plan: {exc}") from exc
-    if not isinstance(recorded, dict) or {k: v for k, v in recorded.items() if k != "code"} != {
-        "schema": PLAN_SCHEMA,
-        "plan": plan.to_json(),
-        "plan_sha256": plan.sha256,
-    }:
+    if not isinstance(recorded, dict) or not _same(
+        {k: v for k, v in recorded.items() if k != "code"},
+        {"schema": PLAN_SCHEMA, "plan": plan.to_json(), "plan_sha256": plan.sha256},
+    ):
         raise LeagueRefused("previous run was made with another plan or configuration")
-    if recorded.get("code") != code_identity():
+    if not _same(recorded.get("code"), code_identity()):
         raise LeagueRefused(
             "previous run was made with other league, simulator or teacher code; it cannot resume"
         )
@@ -638,10 +650,11 @@ def _latest_stage(previous: Path, plan: LeaguePlan) -> dict | None:
             or set(state) != STAGE_KEYS
             or state["schema"] != STAGE_SCHEMA
             or state["plan_sha256"] != plan.sha256
+            or type(state["stage"]) is not int
             or state["stage"] != stage
         ):
             raise LeagueRefused(f"resume stage {stage} belongs to another plan")
-        if state["code"] != code_identity():
+        if not _same(state["code"], code_identity()):
             raise LeagueRefused(f"resume stage {stage} was written by other code")
         if state["previous_stage_sha256"] != chain:
             raise LeagueRefused(f"resume stage {stage} does not follow the previous stage")
@@ -658,7 +671,7 @@ def _latest_stage(previous: Path, plan: LeaguePlan) -> dict | None:
             "events": _derived_events(manifests, stage),
         }
         for key, value in derived.items():
-            if _normal(state[key]) != _normal(value):
+            if not _same(state[key], value):
                 raise LeagueRefused(f"resume stage {stage} {key} does not match the run")
         blobs = previous / "resume" / f"stage-{stage:03d}"
         if not isinstance(state["optimizers"], dict) or set(state["optimizers"]) != {

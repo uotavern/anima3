@@ -855,6 +855,68 @@ def test_reformatting_the_last_stage_file_is_the_one_accepted_edit(
     assert outcome(tmp_path / "resumed") == outcome(uninterrupted)
 
 
+def _leaves(value, path=()):
+    if isinstance(value, dict):
+        for key, item in value.items():
+            yield from _leaves(item, (*path, key))
+    elif isinstance(value, list):
+        for index, item in enumerate(value):
+            yield from _leaves(item, (*path, index))
+    else:
+        yield path, value
+
+
+def _type_edits(state):
+    """One edit per kind that Python's == hides: bool to int, int to float, float to int."""
+    found = {}
+    for path, value in _leaves(state):
+        if path[0] in ("plan_sha256", "previous_stage_sha256"):
+            continue
+        if type(value) is bool:
+            found.setdefault("bool", (path, int(value)))
+        elif type(value) is int:
+            found.setdefault(f"int {path[0]}", (path, float(value)))
+        elif type(value) is float and value.is_integer():
+            found.setdefault("float", (path, int(value)))
+    return found
+
+
+def test_type_edits_of_the_last_stage_and_plan_are_refused(tmp_path, monkeypatch):
+    """Only a reformatting of the last stage is accepted: 0, 0.0 and false are distinct."""
+    import shutil
+
+    with monkeypatch.context() as patch:
+        crash_on_call(patch, league, "ppo_update", 3)
+        with pytest.raises(Crash):
+            run_league(plan(), tmp_path / "crashed")
+    head = _stage_path(tmp_path / "crashed", 2)
+    original = head.read_text()
+    state = json.loads(original)
+    edits = _type_edits(state)
+    assert {"bool", "float", "int stage", "int events", "int simulator_consumed"} <= set(edits)
+    for number, (kind, (path, value)) in enumerate(sorted(edits.items())):
+        edited = json.loads(original)
+        target = edited
+        for key in path[:-1]:
+            target = target[key]
+        target[path[-1]] = value
+        head.write_text(json.dumps(edited, indent=2, sort_keys=True) + "\n")
+        expected = {"int stage": "another plan", "int optimizers": "size", "int rng": "size"}
+        with pytest.raises(LeagueRefused, match=expected.get(kind, "does not match")):
+            run_league(plan(), tmp_path / f"resumed-{number}", resume_from=tmp_path / "crashed")
+        assert not (tmp_path / f"resumed-{number}").exists(), kind
+    head.write_text(original)
+    for field, value in (("updates", 4.0), ("bc_balance_actions", 0), ("rehearsal_epochs", True)):
+        copy = tmp_path / f"plan-{field}"
+        shutil.copytree(tmp_path / "crashed", copy)
+        recorded = json.loads((copy / "plan.json").read_text())
+        recorded["plan"][field] = value
+        (copy / "plan.json").write_text(json.dumps(recorded))
+        with pytest.raises(LeagueRefused, match="another plan or configuration"):
+            run_league(plan(), tmp_path / "never", resume_from=copy)
+    assert not (tmp_path / "never").exists()
+
+
 def test_a_run_that_crashed_before_its_first_stage_restarts_from_the_seed(
     uninterrupted, tmp_path, monkeypatch
 ):
