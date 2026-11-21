@@ -32,11 +32,13 @@ gives the source's weights bit for bit.
 - **Exact resume.** After the warm start and after every update the run writes,
   beside the snapshot, the Adam states of both optimizers, the RNG state and the
   league membership as SHA-256-bound blobs and then, atomically, a stage
-  manifest. :func:`run_league` with ``resume_from`` refuses another plan or any
-  blob, checkpoint or demonstration file whose SHA-256 differs, copies the run up
-  to its last complete stage into a new directory and continues. A stage whose
-  manifest was never written (a crash mid-write) is ignored. The result is
-  bit-identical to an uninterrupted run, however often it is resumed.
+  manifest. :func:`run_league` with ``resume_from`` refuses another plan, other
+  code (the league, simulator and teacher identities of :func:`code_identity`,
+  which ``plan.json``, every stage and the registry record) or any blob,
+  checkpoint or demonstration file whose SHA-256 differs, copies the run up to its
+  last complete stage into a new directory and continues. A stage whose manifest
+  was never written (a crash mid-write) is ignored. The result is bit-identical to
+  an uninterrupted run, however often it is resumed.
 """
 
 from __future__ import annotations
@@ -73,7 +75,7 @@ from .sim_evaluation import (
     teacher_opponent,
 )
 from .sim_rollouts import _collect, _suite_rows
-from .teacher import STYLES, TEACHER_SHA256
+from .teacher import STYLES, TEACHER_SHA256, source_hashes, source_identity
 from .train import (
     MAX_TOTAL_TRANSITIONS,
     SIMULATOR_SOURCE,
@@ -96,6 +98,39 @@ HIDDEN_SIZE = ENCODER_SIZE = 64
 MAX_BLOB_BYTES = 128 * 1024 * 1024
 MAX_DEMONSTRATION_BYTES = 512 * 1024 * 1024
 STAGE = re.compile(r"stage-(\d{3})\.json")
+# The league's own code identity: every module, besides the simulator's and the
+# teacher's (``SIMULATOR_SHA256``, ``TEACHER_SHA256``), whose code decides a league
+# result. That is the loop, stage and registry rules (this file), PPO and the
+# discount (``train.py``), behaviour cloning (``imitation.py``), the rollout and
+# evaluation loops (``sim_rollouts.py``), the simulator gate and its statistics
+# (``sim_evaluation.py``, ``evaluation.py``, ``stats.wilson``), the policy network
+# (``model.py``) and checkpoint and blob serialisation (``checkpoints.py``).
+# ``inference.py`` (a SHA-256 format check) and ``live.py`` (``atomic_json``, a JSON
+# file writer whose output is hash-bound where it matters) are left out, so edits to
+# the live runner do not refuse a simulator resume.
+LEAGUE_MODULES = (
+    "neural/league.py",
+    "neural/train.py",
+    "neural/imitation.py",
+    "neural/sim_rollouts.py",
+    "neural/sim_evaluation.py",
+    "neural/evaluation.py",
+    "neural/model.py",
+    "neural/checkpoints.py",
+    "stats.py",
+)
+LEAGUE_SOURCES = source_hashes(LEAGUE_MODULES)
+LEAGUE_SHA256 = source_identity(LEAGUE_SOURCES)
+
+
+def code_identity() -> dict:
+    """The code a run was made with: league, simulator and teacher identities."""
+    return {
+        "league_sha256": LEAGUE_SHA256,
+        "league_sources": dict(LEAGUE_SOURCES),
+        "simulator_sha256": SIMULATOR_SHA256,
+        "teacher_sha256": TEACHER_SHA256,
+    }
 
 
 class LeagueRefused(ValueError):
@@ -370,6 +405,7 @@ BLOB_NAME = re.compile(r"(ppo-optimizer|rehearsal-optimizer|rng)-([0-9a-f]{64})\
 STAGE_KEYS = {
     "schema",
     "plan_sha256",
+    "code",
     "stage",
     "previous_stage_sha256",
     "model",
@@ -436,6 +472,7 @@ def _write_stage(run: _Run, stage: int, state: dict) -> None:
     manifest = {
         "schema": STAGE_SCHEMA,
         "plan_sha256": run.plan.sha256,
+        "code": code_identity(),
         "stage": stage,
         "previous_stage_sha256": previous,
         "model": state["model"],
@@ -466,6 +503,8 @@ def _stage_blob(blobs: Path, descriptor, kind: str, stage: int, plan: LeaguePlan
     if not match or match.group(1) != kind or match.group(2) != descriptor["sha256"]:
         raise LeagueRefused(f"resume stage {stage} names a foreign {kind} blob")
     payload = _read_verified(blobs / descriptor["file"], descriptor["sha256"], MAX_BLOB_BYTES)
+    if type(descriptor["bytes"]) is not int or descriptor["bytes"] != len(payload):
+        raise LeagueRefused(f"resume stage {stage} {kind} blob size differs from its descriptor")
     value = torch.load(io.BytesIO(payload), map_location="cpu", weights_only=True)
     if (
         not isinstance(value, dict)
@@ -511,8 +550,16 @@ def _latest_stage(previous: Path, plan: LeaguePlan) -> dict | None:
         recorded = json.loads((previous / "plan.json").read_text())
     except (OSError, ValueError) as exc:
         raise LeagueRefused(f"previous run has no readable plan: {exc}") from exc
-    if recorded != {"schema": PLAN_SCHEMA, "plan": plan.to_json(), "plan_sha256": plan.sha256}:
+    if not isinstance(recorded, dict) or {k: v for k, v in recorded.items() if k != "code"} != {
+        "schema": PLAN_SCHEMA,
+        "plan": plan.to_json(),
+        "plan_sha256": plan.sha256,
+    }:
         raise LeagueRefused("previous run was made with another plan or configuration")
+    if recorded.get("code") != code_identity():
+        raise LeagueRefused(
+            "previous run was made with other league, simulator or teacher code; it cannot resume"
+        )
     stages = sorted(
         int(m.group(1))
         for p in (previous / "resume").glob("stage-*.json")
@@ -557,9 +604,16 @@ def _latest_stage(previous: Path, plan: LeaguePlan) -> dict | None:
     for index, label in enumerate(labels):
         training = manifests[label]["training"]
         expected = inherited if label == "initial" else _consumed(plan, inherited, index - 1)
+        if training.get("simulator") != {
+            "simulator_sha256": SIMULATOR_SHA256,
+            "teacher_sha256": TEACHER_SHA256,
+            "plan_sha256": plan.sha256,
+        }:
+            raise LeagueRefused(
+                f"checkpoint {label} was made with another simulator, teacher or plan"
+            )
         if (
             training.get("source") != SOURCE
-            or training.get("simulator", {}).get("plan_sha256") != plan.sha256
             or training.get("live_consumed") != live
             or training.get("demonstrations_consumed") != demonstrations
             or training.get("simulator_consumed") != expected
@@ -587,6 +641,8 @@ def _latest_stage(previous: Path, plan: LeaguePlan) -> dict | None:
             or state["stage"] != stage
         ):
             raise LeagueRefused(f"resume stage {stage} belongs to another plan")
+        if state["code"] != code_identity():
+            raise LeagueRefused(f"resume stage {stage} was written by other code")
         if state["previous_stage_sha256"] != chain:
             raise LeagueRefused(f"resume stage {stage} does not follow the previous stage")
         chain = _sha(payload)
@@ -658,7 +714,12 @@ def run_league(plan: LeaguePlan, out, *, resume_from=None) -> dict:
             root.mkdir(parents=True)
             atomic_json(
                 root / "plan.json",
-                {"schema": PLAN_SCHEMA, "plan": plan.to_json(), "plan_sha256": plan.sha256},
+                {
+                    "schema": PLAN_SCHEMA,
+                    "plan": plan.to_json(),
+                    "plan_sha256": plan.sha256,
+                    "code": code_identity(),
+                },
             )
             if state is not None:
                 _copy_run(plan, previous, root, state)
@@ -966,6 +1027,7 @@ def _evaluate(run: _Run, previous: Path | None) -> dict:
             }
             for label in ("initial", "warmstart", "candidate")
         },
+        "code": code_identity(),
         "registry_kind": "run-local simulator registry",
         "selection_scope": "simulator-experimental-only",
         "simulator_only": True,
