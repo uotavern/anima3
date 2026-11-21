@@ -48,7 +48,7 @@ import json
 import math
 import re
 import shutil
-from dataclasses import asdict, dataclass, replace
+from dataclasses import asdict, dataclass, fields, replace
 from pathlib import Path
 
 import torch
@@ -76,6 +76,7 @@ from .sim_rollouts import _collect, _suite_rows
 from .teacher import STYLES, TEACHER_SHA256
 from .train import (
     MAX_TOTAL_TRANSITIONS,
+    SIMULATOR_SOURCE,
     TrainConfig,
     Trajectory,
     _discount,
@@ -87,7 +88,7 @@ from .train import (
 PLAN_SCHEMA = "anima3-simulator-league-plan-v1"
 STAGE_SCHEMA = "anima3-simulator-league-stage-v1"
 REGISTRY_SCHEMA = "anima3-simulator-league-registry-v1"
-SOURCE = "simulator-curriculum-league"
+SOURCE = SIMULATOR_SOURCE
 MAX_UPDATES = 64
 MAX_REHEARSAL_EPOCHS = 8
 # The source league's policy: 64 hidden and 64 encoder units.
@@ -113,7 +114,14 @@ def _count(name: str, value, low: int, high: int) -> None:
 
 @dataclass(frozen=True, kw_only=True)
 class LeaguePlan:
-    """Every budget, seed and threshold of one league run; nothing has a default.
+    """Every budget, seed, rate and coefficient of one league run; nothing has a default.
+
+    The behaviour-cloning, rehearsal and PPO settings are plain fields, not
+    configuration objects with defaults of their own, so every value the run uses is
+    stated and hashed, and none is unused. The source league used BC lr 3e-4,
+    rehearsal lr 1e-4, PPO lr 1e-4, sequence 64, batch 8, burn-in 8, gamma 0.995,
+    GAE lambda 0.95, clip 0.2, value 0.5, entropy 0.01, gradient norm 0.5 and
+    target KL 0.04.
 
     ``seed`` seeds the run's single RNG stream; demonstrations use ``seed + i``,
     rollouts ``seed + 1000 + update``, PPO shuffles ``seed + update`` and
@@ -125,11 +133,27 @@ class LeaguePlan:
 
     seed: int
     bc_steps_per_drill: int
-    bc: ImitationConfig
+    bc_epochs: int
+    bc_sequence_length: int
+    bc_batch_sequences: int
+    bc_balance_actions: bool
     bc_learning_rate: float
+    bc_max_grad_norm: float
     rehearsal_epochs: int
     rehearsal_learning_rate: float
-    ppo: TrainConfig
+    ppo_epochs: int
+    ppo_sequence_length: int
+    ppo_burn_in: int
+    ppo_batch_sequences: int
+    ppo_learning_rate: float
+    discount_time_unit: float
+    gamma: float
+    gae_lambda: float
+    clip_range: float
+    value_coef: float
+    entropy_coef: float
+    ppo_max_grad_norm: float
+    target_kl: float
     updates: int
     rollout_steps: int
     max_steps: int
@@ -147,13 +171,16 @@ class LeaguePlan:
         if self.seed + 10_000 + self.updates >= EVALUATION_SEED_FLOOR:
             raise ValueError("training seeds must stay below the held-out evaluation range")
         _count("bc_steps_per_drill", self.bc_steps_per_drill, 1, MAX_TOTAL_TRANSITIONS // 4)
-        if type(self.bc) is not ImitationConfig or self.bc.reference_kl_coef != 0:
-            raise ValueError("bc must be an ImitationConfig without a reference model")
-        _rate("bc_learning_rate", self.bc_learning_rate)
+        for name in ("bc_learning_rate", "rehearsal_learning_rate", "ppo_learning_rate"):
+            _rate(name, getattr(self, name))
         _count("rehearsal_epochs", self.rehearsal_epochs, 0, MAX_REHEARSAL_EPOCHS)
-        _rate("rehearsal_learning_rate", self.rehearsal_learning_rate)
-        if type(self.ppo) is not TrainConfig:
-            raise ValueError("ppo must be an explicit TrainConfig")
+        for name in (f.name for f in fields(self)):
+            if name.endswith(("_coef", "_range", "_norm", "_kl", "gamma", "_lambda", "_unit")):
+                value = getattr(self, name)
+                if type(value) not in (int, float) or not math.isfinite(value):
+                    raise ValueError(f"{name} must be a finite number")
+        # The configurations check every remaining bound and type.
+        _ = self.bc, self.ppo
         _count("rollout_steps", self.rollout_steps, 1, MAX_TOTAL_TRANSITIONS)
         _count("max_steps", self.max_steps, 1, MAX_SIM_STEPS)
         if type(self.evaluation_seed) is not int or not (
@@ -176,6 +203,43 @@ class LeaguePlan:
                 raise ValueError("name the start checkpoint by an absolute path")
             require_sha256(self.start_sha256)
 
+    @property
+    def bc(self) -> ImitationConfig:
+        """The warm-start behaviour cloning; its learning rate is its optimizer's."""
+        return ImitationConfig(
+            epochs=self.bc_epochs,
+            sequence_length=self.bc_sequence_length,
+            batch_sequences=self.bc_batch_sequences,
+            balance_actions=self.bc_balance_actions,
+            learning_rate=self.bc_learning_rate,
+            max_grad_norm=self.bc_max_grad_norm,
+        )
+
+    @property
+    def rehearsal(self) -> ImitationConfig:
+        """Rehearsal after each update: the BC settings with its own epochs and rate."""
+        return replace(
+            self.bc, epochs=self.rehearsal_epochs, learning_rate=self.rehearsal_learning_rate
+        )
+
+    @property
+    def ppo(self) -> TrainConfig:
+        return TrainConfig(
+            epochs=self.ppo_epochs,
+            sequence_length=self.ppo_sequence_length,
+            burn_in=self.ppo_burn_in,
+            batch_sequences=self.ppo_batch_sequences,
+            discount_time_unit=self.discount_time_unit,
+            learning_rate=self.ppo_learning_rate,
+            gamma=self.gamma,
+            gae_lambda=self.gae_lambda,
+            clip_range=self.clip_range,
+            value_coef=self.value_coef,
+            entropy_coef=self.entropy_coef,
+            max_grad_norm=self.ppo_max_grad_norm,
+            target_kl=self.target_kl,
+        )
+
     def to_json(self) -> dict:
         return {"schema": PLAN_SCHEMA, **asdict(self)}
 
@@ -186,9 +250,9 @@ class LeaguePlan:
 
     def shaping_gamma(self) -> float:
         # Source: gamma ** (dt / unit) for an elapsed-time discount, else gamma per step.
-        unit = self.ppo.discount_time_unit
+        unit = self.discount_time_unit
         dt = DuelSim(0, 1, shaping_gamma=1.0).dt
-        return self.ppo.gamma ** (dt / unit) if unit else self.ppo.gamma
+        return self.gamma ** (dt / unit) if unit else self.gamma
 
 
 def _evaluation_plan(plan: LeaguePlan, incumbent: str, candidate: str):
@@ -243,15 +307,6 @@ def _read_verified(path: Path, sha256: str, limit: int) -> bytes:
     if len(payload) > limit or hashlib.sha256(payload).hexdigest() != sha256:
         raise LeagueRefused(f"{path.name} does not hash to its recorded SHA-256")
     return payload
-
-
-def _read_blob(root: Path, descriptor) -> object:
-    if not isinstance(descriptor, dict) or Path(str(descriptor.get("file"))).name != str(
-        descriptor.get("file")
-    ):
-        raise LeagueRefused("malformed resume blob descriptor")
-    payload = _read_verified(root / descriptor["file"], descriptor.get("sha256"), MAX_BLOB_BYTES)
-    return torch.load(io.BytesIO(payload), map_location="cpu", weights_only=True)
 
 
 def _load(path: Path, sha256: str):
@@ -310,30 +365,148 @@ def _demonstrations_from(value: dict) -> list[Trajectory]:
     return episodes
 
 
+BLOB_KINDS = ("ppo-optimizer", "rehearsal-optimizer", "rng")
+BLOB_NAME = re.compile(r"(ppo-optimizer|rehearsal-optimizer|rng)-([0-9a-f]{64})\.pt")
+STAGE_KEYS = {
+    "schema",
+    "plan_sha256",
+    "stage",
+    "previous_stage_sha256",
+    "model",
+    "checkpoints",
+    "checkpoint_manifests",
+    "league",
+    "simulator_consumed",
+    "demonstrations_sha256",
+    "events",
+    "optimizers",
+    "rng",
+}
+
+
+def _labels(stage: int) -> list[str]:
+    return ["initial", "warmstart", *(f"update-{u:03d}" for u in range(1, stage + 1))]
+
+
+def _league_labels(stage: int) -> list[str]:
+    """The source league rule after ``stage`` updates, duplicated incumbent included."""
+    labels = ["warmstart"]
+    for update in range(stage):
+        if (update + 1) % 2 == 0:
+            labels.append(f"update-{update + 1:03d}")
+            labels = ["warmstart"] + labels[-3:]
+    return labels
+
+
+def _drill(plan: LeaguePlan, update: int) -> str:
+    return DRILLS[min(3, update * 4 // plan.updates)]
+
+
+def _consumed(plan: LeaguePlan, inherited: list, stage: int | None) -> list[list]:
+    """The simulator record after the demonstrations and ``stage`` updates."""
+    demos = [
+        ["demonstrations", plan.seed + i, d, plan.bc_steps_per_drill] for i, d in enumerate(DRILLS)
+    ]
+    rollouts = [
+        ["rollout", plan.seed + 1000 + u, _drill(plan, u), plan.rollout_steps]
+        for u in range(stage or 0)
+    ]
+    return [*inherited, *demos, *rollouts]
+
+
+def _sha(payload: bytes) -> str:
+    return hashlib.sha256(payload).hexdigest()
+
+
+def _normal(value):
+    return json.loads(json.dumps(value))
+
+
 def _write_stage(run: _Run, stage: int, state: dict) -> None:
     blobs = run.root / "resume" / f"stage-{stage:03d}"
+    previous = None
+    if stage:
+        previous = _sha((run.root / "resume" / f"stage-{stage - 1:03d}.json").read_bytes())
+
+    def blob(kind, value):
+        # The payload names its kind, stage and plan, so a blob cannot stand in for another.
+        payload = {"kind": kind, "stage": stage, "plan_sha256": run.plan.sha256, "state": value}
+        return _blob(blobs, kind, payload)
+
     manifest = {
         "schema": STAGE_SCHEMA,
         "plan_sha256": run.plan.sha256,
         "stage": stage,
+        "previous_stage_sha256": previous,
         "model": state["model"],
         "checkpoints": dict(run.checkpoints),
+        "checkpoint_manifests": {
+            label: _sha((run.path(label) / "manifest.json").read_bytes())
+            for label in run.checkpoints
+        },
         "league": state["league"],
         "simulator_consumed": state["simulator_consumed"],
         "demonstrations_sha256": state["demonstrations_sha256"],
         "events": list(run.events),
         "optimizers": {
-            "ppo": _blob(blobs, "ppo-optimizer", state["optimizer"].state_dict()),
-            "rehearsal": _blob(blobs, "rehearsal-optimizer", state["rehearsal"].state_dict()),
+            "ppo": blob("ppo-optimizer", state["optimizer"].state_dict()),
+            "rehearsal": blob("rehearsal-optimizer", state["rehearsal"].state_dict()),
         },
-        "rng": _blob(blobs, "rng", torch.get_rng_state()),
+        "rng": blob("rng", torch.get_rng_state()),
     }
     # The manifest is written last and atomically: without it the stage never happened.
     atomic_json(run.root / "resume" / f"stage-{stage:03d}.json", manifest)
 
 
+def _stage_blob(blobs: Path, descriptor, kind: str, stage: int, plan: LeaguePlan):
+    """Read one resume blob that must be ``kind`` of ``stage`` of ``plan``, in its stage dir."""
+    if not isinstance(descriptor, dict) or set(descriptor) != {"file", "sha256", "bytes"}:
+        raise LeagueRefused("malformed resume blob descriptor")
+    match = BLOB_NAME.fullmatch(str(descriptor["file"]))
+    if not match or match.group(1) != kind or match.group(2) != descriptor["sha256"]:
+        raise LeagueRefused(f"resume stage {stage} names a foreign {kind} blob")
+    payload = _read_verified(blobs / descriptor["file"], descriptor["sha256"], MAX_BLOB_BYTES)
+    value = torch.load(io.BytesIO(payload), map_location="cpu", weights_only=True)
+    if (
+        not isinstance(value, dict)
+        or set(value) != {"kind", "stage", "plan_sha256", "state"}
+        or (value["kind"], value["stage"], value["plan_sha256"]) != (kind, stage, plan.sha256)
+    ):
+        raise LeagueRefused(f"resume stage {stage} {kind} blob belongs to another stage or plan")
+    return value["state"]
+
+
+def _derived_events(manifests: dict, stage: int) -> list[dict]:
+    """The progress events of ``stage`` as the checkpoints record them."""
+    warm = manifests["warmstart"]["training"]
+    events = [
+        {"stage": "demonstrations", "drill": drill, **summary}
+        for drill, summary in zip(DRILLS, warm["demonstration_summaries"], strict=True)
+    ]
+    events.append({"stage": "imitation", **warm["bc"]})
+    for update in range(1, stage + 1):
+        training = manifests[f"update-{update:03d}"]["training"]
+        events.append(
+            {
+                "stage": "ppo",
+                "update": update,
+                "drill": training["drill"],
+                **training["rollout"],
+                **training["metrics"],
+            }
+        )
+    return _normal(events)
+
+
 def _latest_stage(previous: Path, plan: LeaguePlan) -> dict | None:
-    """The last complete stage of a previous run of exactly this plan, fully verified."""
+    """The last complete stage of a previous run of exactly this plan, fully verified.
+
+    Nothing in a stage manifest is taken on trust: its blobs must be the named kind
+    of that stage and plan, in that stage's directory; the stages form a hash chain;
+    and the model, league, checkpoint labels and SHA-256s, simulator record and
+    progress events must equal what the plan and the hash-bound checkpoints give.
+    Every check runs before anything is written.
+    """
     try:
         recorded = json.loads((previous / "plan.json").read_text())
     except (OSError, ValueError) as exc:
@@ -347,37 +520,106 @@ def _latest_stage(previous: Path, plan: LeaguePlan) -> dict | None:
     )
     if not stages:
         return None
-    if stages != list(range(len(stages))):
+    if stages != list(range(len(stages))) or stages[-1] > plan.updates:
         raise LeagueRefused("previous run's resume stages are not contiguous")
-    states = []
+    run = _Run(plan, previous)
+    final_stage = stages[-1]
+    labels = _labels(final_stage)
+    # The checkpoints, loaded by SHA-256 once, as the final stage names them.
+    try:
+        last = json.loads((previous / "resume" / f"stage-{final_stage:03d}.json").read_text())
+        named = last["checkpoints"]
+        if not isinstance(named, dict) or sorted(named) != sorted(labels):
+            raise LeagueRefused("resume stage does not name the run's checkpoints")
+        loaded = {label: _load(run.path(label), named[label]) for label in labels}
+        manifest_sha = {
+            label: _sha((run.path(label) / "manifest.json").read_bytes()) for label in labels
+        }
+    except LeagueRefused:
+        raise
+    except (OSError, ValueError, KeyError, TypeError) as exc:
+        raise LeagueRefused(f"resume checkpoints do not verify: {exc}") from exc
+    manifests = {label: loaded[label].manifest for label in labels}
+    initial = manifests["initial"]["training"]
+    if plan.start_checkpoint is not None:
+        parent = _load(Path(plan.start_checkpoint), plan.start_sha256)
+        live, demonstrations = ancestry_consumed(parent)
+        inherited = ancestry_simulator(parent)[1]
+        if named["initial"] != plan.start_sha256 or initial.get("parent_policy_sha") != (
+            plan.start_sha256
+        ):
+            raise LeagueRefused("the run's initial policy is not the plan's parent")
+    else:
+        live, demonstrations, inherited = [], [], []
+        if "parent_policy_sha" in initial:
+            raise LeagueRefused("a fresh run's initial policy names a parent")
+    previous_sha = named["initial"]
+    for index, label in enumerate(labels):
+        training = manifests[label]["training"]
+        expected = inherited if label == "initial" else _consumed(plan, inherited, index - 1)
+        if (
+            training.get("source") != SOURCE
+            or training.get("simulator", {}).get("plan_sha256") != plan.sha256
+            or training.get("live_consumed") != live
+            or training.get("demonstrations_consumed") != demonstrations
+            or training.get("simulator_consumed") != expected
+            or ancestry_simulator(loaded[label])[1] != expected
+            or (label != "initial" and training.get("parent_policy_sha") != previous_sha)
+            or (label.startswith("update-") and training.get("drill") != _drill(plan, index - 2))
+        ):
+            raise LeagueRefused(f"checkpoint {label} does not carry this run's record")
+        previous_sha = named[label]
+    demonstrations_sha = manifests["warmstart"]["training"].get("demonstrations_sha256")
+    _read_verified(previous / "demonstrations.json", demonstrations_sha, MAX_DEMONSTRATION_BYTES)
+    chain = None
     for stage in stages:
+        path = previous / "resume" / f"stage-{stage:03d}.json"
         try:
-            state = json.loads((previous / "resume" / f"stage-{stage:03d}.json").read_text())
+            payload = path.read_bytes()
+            state = json.loads(payload)
         except (OSError, ValueError) as exc:
             raise LeagueRefused(f"resume stage {stage} is unreadable: {exc}") from exc
         if (
             not isinstance(state, dict)
-            or state.get("schema") != STAGE_SCHEMA
-            or state.get("plan_sha256") != plan.sha256
-            or state.get("stage") != stage
+            or set(state) != STAGE_KEYS
+            or state["schema"] != STAGE_SCHEMA
+            or state["plan_sha256"] != plan.sha256
+            or state["stage"] != stage
         ):
             raise LeagueRefused(f"resume stage {stage} belongs to another plan")
+        if state["previous_stage_sha256"] != chain:
+            raise LeagueRefused(f"resume stage {stage} does not follow the previous stage")
+        chain = _sha(payload)
+        own = _labels(stage)
+        model = "warmstart" if stage == 0 else f"update-{stage:03d}"
+        derived = {
+            "model": {"label": model, "sha256": named[model]},
+            "checkpoints": {label: named[label] for label in own},
+            "checkpoint_manifests": {label: manifest_sha[label] for label in own},
+            "league": _league_labels(stage),
+            "simulator_consumed": _consumed(plan, inherited, stage),
+            "demonstrations_sha256": demonstrations_sha,
+            "events": _derived_events(manifests, stage),
+        }
+        for key, value in derived.items():
+            if _normal(state[key]) != _normal(value):
+                raise LeagueRefused(f"resume stage {stage} {key} does not match the run")
         blobs = previous / "resume" / f"stage-{stage:03d}"
-        for descriptor in (*state["optimizers"].values(), state["rng"]):
-            _read_verified(blobs / descriptor["file"], descriptor["sha256"], MAX_BLOB_BYTES)
-        states.append(state)
-    final = states[-1]
-    expected = ["initial", "warmstart", *(f"update-{u:03d}" for u in range(1, final["stage"] + 1))]
-    if sorted(final["checkpoints"]) != sorted(expected):
-        raise LeagueRefused("resume stage does not name the run's checkpoints")
-    run = _Run(plan, previous)
-    for label, sha in final["checkpoints"].items():
-        _load(run.path(label), sha)  # refuses any checkpoint that does not hash to its SHA
-    _read_verified(
-        previous / "demonstrations.json", final["demonstrations_sha256"], MAX_DEMONSTRATION_BYTES
-    )
-    final["_stages"] = stages
-    return final
+        if not isinstance(state["optimizers"], dict) or set(state["optimizers"]) != {
+            "ppo",
+            "rehearsal",
+        }:
+            raise LeagueRefused("malformed resume blob descriptor")
+        decoded = {
+            "ppo": _stage_blob(blobs, state["optimizers"]["ppo"], "ppo-optimizer", stage, plan),
+            "rehearsal": _stage_blob(
+                blobs, state["optimizers"]["rehearsal"], "rehearsal-optimizer", stage, plan
+            ),
+            "rng": _stage_blob(blobs, state["rng"], "rng", stage, plan),
+        }
+    state["_stages"] = stages
+    state["_decoded"] = decoded
+    return state
 
 
 def _copy_run(plan: LeaguePlan, previous: Path, root: Path, state: dict) -> None:
@@ -459,7 +701,7 @@ def _league(plan: LeaguePlan, root: Path, state: dict | None, previous: Path | N
             )
             live, demonstrations, ancestry, consumed, parent = [], [], False, [], {}
         base.update(live_consumed=live, demonstrations_consumed=demonstrations)
-        optimizer = torch.optim.Adam(model.parameters(), lr=plan.bc_learning_rate, eps=1e-5)
+        optimizer = torch.optim.Adam(model.parameters(), lr=plan.bc.learning_rate, eps=1e-5)
         initial_sha = run.save(
             "initial",
             model,
@@ -472,7 +714,7 @@ def _league(plan: LeaguePlan, root: Path, state: dict | None, previous: Path | N
                 "simulator_consumed": consumed,
             },
         )
-        demos = []
+        demos, summaries = [], []
         consumed = list(consumed)
         for index, drill in enumerate(DRILLS):
             trajectories, summary = _collect(
@@ -488,6 +730,7 @@ def _league(plan: LeaguePlan, root: Path, state: dict | None, previous: Path | N
                 teacher_style="pressure" if drill == "melee" else "balanced",
             )
             demos.extend(trajectories)
+            summaries.append(summary)
             consumed.append(["demonstrations", plan.seed + index, drill, plan.bc_steps_per_drill])
             run.record({"stage": "demonstrations", "drill": drill, **summary})
         demonstration_file = _demonstration_file(demos)
@@ -507,6 +750,8 @@ def _league(plan: LeaguePlan, root: Path, state: dict | None, previous: Path | N
                 "parent_policy_sha": initial_sha,
                 "stage": "warmstart",
                 "bc": metrics,
+                "demonstration_summaries": summaries,
+                "demonstrations_sha256": demonstrations_sha,
                 "simulator_trained": trained,
                 "simulator_ancestry": trained,
                 "simulator_consumed": consumed,
@@ -550,17 +795,17 @@ def _league(plan: LeaguePlan, root: Path, state: dict | None, previous: Path | N
         ]
         optimizer = torch.optim.Adam(model.parameters(), lr=plan.ppo.learning_rate, eps=1e-5)
         rehearsal = torch.optim.Adam(model.parameters(), lr=plan.rehearsal_learning_rate, eps=1e-5)
-        blobs = root / "resume" / f"stage-{state['stage']:03d}"
-        optimizer.load_state_dict(_read_blob(blobs, state["optimizers"]["ppo"]))
-        rehearsal.load_state_dict(_read_blob(blobs, state["optimizers"]["rehearsal"]))
+        decoded = state["_decoded"]
+        optimizer.load_state_dict(decoded["ppo"])
+        rehearsal.load_state_dict(decoded["rehearsal"])
         demonstrations_sha = state["demonstrations_sha256"]
         demos = _demonstrations_from(json.loads((root / "demonstrations.json").read_text()))
         consumed = list(state["simulator_consumed"])
-        torch.set_rng_state(_read_blob(blobs, state["rng"]))
+        torch.set_rng_state(decoded["rng"])
         first = state["stage"]
         atomic_json(root / "progress.json", {"events": run.events, "status": "running"})
     for update in range(first, plan.updates):
-        drill = DRILLS[min(3, update * 4 // plan.updates)]
+        drill = _drill(plan, update)
         episodes, rollout = _collect(
             model,
             steps=plan.rollout_steps,
@@ -580,7 +825,7 @@ def _league(plan: LeaguePlan, root: Path, state: dict | None, previous: Path | N
                 model,
                 rehearsal,
                 demos,
-                replace(plan.bc, epochs=plan.rehearsal_epochs),
+                plan.rehearsal,
                 seed=plan.seed + 10000 + update,
             )
         consumed = [*consumed, ["rollout", plan.seed + 1000 + update, drill, plan.rollout_steps]]
@@ -594,6 +839,7 @@ def _league(plan: LeaguePlan, root: Path, state: dict | None, previous: Path | N
                 "stage": "ppo",
                 "update": update + 1,
                 "drill": drill,
+                "rollout": rollout,
                 "metrics": metrics,
                 "optimizer_state": "resumable-adam-per-run",
                 "simulator_trained": True,

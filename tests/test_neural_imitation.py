@@ -515,4 +515,10 @@ def test_imitation_children_of_a_simulator_policy_stay_marked(tmp_path, monkeypa
     })  # fmt: skip
     with pytest.raises(ValueError, match="simulator record"):
         clone(stripped, [train], tmp_path / "x")
+    malformed = saved(tmp_path, "malformed", training={
+        "parent_policy_sha": "f" * 64, "live_consumed": [], "demonstrations_consumed": [],
+        "simulator_trained": "true", "simulator_ancestry": True, "simulator_consumed": [],
+    })  # fmt: skip
+    with pytest.raises(ValueError, match="malformed simulator marker"):
+        clone(malformed, [train], tmp_path / "x")
     assert not (tmp_path / "x").exists()

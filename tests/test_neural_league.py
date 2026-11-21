@@ -23,13 +23,12 @@ from test_neural_training import LINEAGE, SMALL, live_episode, saved
 from anima3.neural import evaluation, league, train
 from anima3.neural.checkpoints import load_checkpoint, save_checkpoint
 from anima3.neural.drills import SIM_DOMAIN, SIMULATOR_SHA256
-from anima3.neural.imitation import ImitationConfig
 from anima3.neural.league import LeaguePlan, LeagueRefused, run_league
 from anima3.neural.model import PolicyConfig, RecurrentPolicy
 from anima3.neural.schema import ACTION_NAMES, FEATURE_NAMES
 from anima3.neural.sim_evaluation import EVALUATION_SEED_FLOOR
 from anima3.neural.teacher import TEACHER_SHA256
-from anima3.neural.train import TrainConfig, ancestry_simulator
+from anima3.neural.train import ancestry_simulator
 
 LABELS = ("initial", "warmstart")
 
@@ -38,20 +37,28 @@ def plan(**overrides) -> LeaguePlan:
     values = {
         "seed": 20261006,
         "bc_steps_per_drill": 8,
-        "bc": ImitationConfig(
-            epochs=1, sequence_length=64, batch_sequences=8, balance_actions=False
-        ),
+        # The source league's settings, every one stated.
+        "bc_epochs": 1,
+        "bc_sequence_length": 64,
+        "bc_batch_sequences": 8,
+        "bc_balance_actions": False,
         "bc_learning_rate": 3e-4,
+        "bc_max_grad_norm": 0.5,
         "rehearsal_epochs": 1,
         "rehearsal_learning_rate": 1e-4,
-        "ppo": TrainConfig(
-            epochs=4,
-            sequence_length=64,
-            burn_in=8,
-            batch_sequences=8,
-            discount_time_unit=1.0,
-            learning_rate=1e-4,
-        ),
+        "ppo_epochs": 4,
+        "ppo_sequence_length": 64,
+        "ppo_burn_in": 8,
+        "ppo_batch_sequences": 8,
+        "ppo_learning_rate": 1e-4,
+        "discount_time_unit": 1.0,
+        "gamma": 0.995,
+        "gae_lambda": 0.95,
+        "clip_range": 0.2,
+        "value_coef": 0.5,
+        "entropy_coef": 0.01,
+        "ppo_max_grad_norm": 0.5,
+        "target_kl": 0.04,
         "updates": 4,
         "rollout_steps": 160,
         "max_steps": 40,
@@ -124,9 +131,9 @@ print("{{}}")
 def source_argv(p: LeaguePlan, out: Path, start=None) -> list[str]:
     argv = [
         "--out", str(out), "--seed", str(p.seed),
-        "--bc-steps-per-drill", str(p.bc_steps_per_drill), "--bc-epochs", str(p.bc.epochs),
+        "--bc-steps-per-drill", str(p.bc_steps_per_drill), "--bc-epochs", str(p.bc_epochs),
         "--bc-rehearsal-epochs", str(p.rehearsal_epochs),
-        "--discount-time-unit", str(p.ppo.discount_time_unit),
+        "--discount-time-unit", str(p.discount_time_unit),
         "--updates", str(p.updates), "--rollout-steps", str(p.rollout_steps),
         "--max-steps", str(p.max_steps),
         "--eval-games-per-style", str(p.evaluation_games_per_style),
@@ -205,7 +212,7 @@ def test_league_from_a_parent_equals_the_source_main(source_tree, tmp_path):
         updates=6,
         rollout_steps=80,
         rehearsal_epochs=0,
-        ppo=dataclasses.replace(plan().ppo, discount_time_unit=0.0),
+        discount_time_unit=0.0,
         start_checkpoint=str(tmp_path / "parent"),
         start_sha256=sha,
     )
@@ -238,12 +245,25 @@ def test_plan_has_no_defaults_and_fixed_bounds():
         {"updates": 0},
         {"updates": 65},
         {"bc_steps_per_drill": 0},
-        {"bc": plan().ppo},
-        {"bc": dataclasses.replace(plan().bc, reference_kl_coef=0.1)},
+        {"bc_epochs": 0},
+        {"bc_sequence_length": 4097},
+        {"bc_balance_actions": None},
         {"bc_learning_rate": 0.0},
+        {"bc_max_grad_norm": 0.0},
         {"rehearsal_learning_rate": float("nan")},
         {"rehearsal_epochs": 9},
-        {"ppo": plan().bc},
+        {"ppo_epochs": 65},
+        {"ppo_burn_in": -1},
+        {"ppo_learning_rate": 0.5},
+        {"discount_time_unit": -1.0},
+        {"discount_time_unit": None},
+        {"gamma": 0.0},
+        {"gae_lambda": 1.5},
+        {"clip_range": 1.0},
+        {"value_coef": -0.1},
+        {"entropy_coef": float("inf")},
+        {"ppo_max_grad_norm": 0.0},
+        {"target_kl": 0.0},
         {"rollout_steps": 0},
         {"max_steps": 1201},
         {"evaluation_seed": EVALUATION_SEED_FLOOR - 1},
@@ -259,6 +279,13 @@ def test_plan_has_no_defaults_and_fixed_bounds():
             plan(**change)
     assert plan().sha256 == plan().sha256 != plan(seed=1).sha256
     assert plan(threads=2).sha256 != plan().sha256
+    # Every value the run uses is a plan field: the derived configurations have no
+    # setting of their own that the plan does not state.
+    p = plan()
+    assert p.ppo.learning_rate == 1e-4 and p.ppo.gamma == 0.995
+    assert p.bc.learning_rate == 3e-4 and p.rehearsal.learning_rate == 1e-4
+    assert p.rehearsal.epochs == 1 and p.bc.reference_kl_coef == 0
+    assert {"bc", "ppo"}.isdisjoint(p.to_json())
 
 
 # --- simulator children ----------------------------------------------------------------------
@@ -350,7 +377,11 @@ def test_live_children_of_a_simulator_policy_stay_marked(tmp_path):
     for stripped in (
         {"simulator_trained": True},
         {"simulator_ancestry": True},
-        {"simulator_trained": True, "simulator_consumed": [["rollout", 1]]},
+        {
+            "simulator_trained": True,
+            "simulator_ancestry": True,
+            "simulator_consumed": [["r", 1, "d"]],
+        },
     ):
         name = f"stripped-{len(list(tmp_path.iterdir()))}"
         bad = saved(tmp_path, name, training={"parent_policy_sha": "f" * 64, "live_consumed": [],
@@ -485,41 +516,187 @@ def test_a_crash_mid_write_resumes_from_the_last_complete_stage(
     assert outcome(tmp_path / "resumed") == outcome(uninterrupted)
 
 
-def tamper(root: Path, where: str) -> None:
-    if where == "optimizer":
-        blob = next((root / "resume" / "stage-004").glob("ppo-optimizer-*.pt"))
-        blob.write_bytes(blob.read_bytes() + b"\0")
-    elif where == "rng":
-        blob = next((root / "resume" / "stage-002").glob("rng-*.pt"))
-        blob.write_bytes(blob.read_bytes()[:-1] + b"\1")
-    elif where == "snapshot":
-        snapshot = root / "snapshots" / "update-002"
-        manifest = json.loads((snapshot / "manifest.json").read_text())
-        target = snapshot / manifest["weights"]["file"]
-        target.write_bytes(target.read_bytes()[:-1] + b"\1")
-    elif where == "demonstrations":
-        path = root / "demonstrations.json"
-        path.write_text(path.read_text().replace("true", "false", 1))
-    elif where == "stage plan":
-        path = root / "resume" / "stage-001.json"
+def _stage_path(root: Path, stage: int) -> Path:
+    return root / "resume" / f"stage-{stage:03d}.json"
+
+
+def rebind(root: Path) -> None:
+    """Re-derive every hash a stage records, as a coordinated forger would.
+
+    Used to isolate one check: after an edit, the checkpoint-manifest hashes and the
+    stage chain are recomputed, so only the content check under test can refuse.
+    """
+    previous = None
+    for stage in range(5):
+        path = _stage_path(root, stage)
         state = json.loads(path.read_text())
-        state["plan_sha256"] = "0" * 64
-        path.write_text(json.dumps(state))
-    elif where == "missing middle stage":
-        (root / "resume" / "stage-001.json").unlink()
+        state["checkpoint_manifests"] = {
+            label: hashlib.sha256(
+                (root / ("snapshots/" + label if label.startswith("update-") else label)
+                 / "manifest.json").read_bytes()
+            ).hexdigest()
+            for label in state["checkpoint_manifests"]
+        }  # fmt: skip
+        state["previous_stage_sha256"] = previous
+        path.write_text(json.dumps(state, indent=2, sort_keys=True) + "\n")
+        previous = hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-@pytest.mark.parametrize(
-    "where",
-    ["optimizer", "rng", "snapshot", "demonstrations", "stage plan", "missing middle stage"],
-)
+def edit_stage(root: Path, stage: int, change, *, chain: bool = True) -> None:
+    path = _stage_path(root, stage)
+    state = json.loads(path.read_text())
+    change(state, root, stage)
+    path.write_text(json.dumps(state, indent=2, sort_keys=True) + "\n")
+    if chain:
+        rebind(root)
+
+
+def _swap(state, root, stage):
+    optimizers = state["optimizers"]
+    optimizers["ppo"], optimizers["rehearsal"] = optimizers["rehearsal"], optimizers["ppo"]
+
+
+def _older_rng(state, root, stage):
+    # The reviewer's probe: stage 0's RNG blob copied into this stage and named there.
+    older = json.loads(_stage_path(root, 0).read_text())["rng"]
+    source = root / "resume" / "stage-000" / older["file"]
+    (root / "resume" / f"stage-{stage:03d}" / older["file"]).write_bytes(source.read_bytes())
+    state["rng"] = older
+
+
+def _outside_rng(state, root, stage):
+    outside = root.parent / "outside"
+    outside.mkdir(exist_ok=True)
+    blob = root / "resume" / f"stage-{stage:03d}" / state["rng"]["file"]
+    (outside / state["rng"]["file"]).write_bytes(blob.read_bytes())
+    state["rng"] = {**state["rng"], "file": "../../../outside/" + state["rng"]["file"]}
+
+
+def _renamed_blob(state, root, stage):
+    descriptor = state["optimizers"]["ppo"]
+    directory = root / "resume" / f"stage-{stage:03d}"
+    renamed = descriptor["file"].replace("ppo-optimizer", "rehearsal-optimizer")
+    (directory / renamed).write_bytes((directory / descriptor["file"]).read_bytes())
+    state["optimizers"]["rehearsal"] = {**descriptor, "file": renamed}
+
+
+def _model_initial(state, root, stage):
+    state["model"] = {"label": "initial", "sha256": state["checkpoints"]["initial"]}
+
+
+def _other_sha(state, root, stage):
+    state["checkpoints"]["initial"] = state["checkpoints"]["warmstart"]
+
+
+def _drop_label(state, root, stage):
+    del state["checkpoints"]["update-001"]
+
+
+def _manifest(root: Path, label: str, change) -> None:
+    path = root / label / "manifest.json"
+    manifest = json.loads(path.read_text())
+    change(manifest)
+    path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n")
+
+
+def _flip(path: Path) -> None:
+    path.write_bytes(path.read_bytes()[:-1] + bytes([path.read_bytes()[-1] ^ 1]))
+
+
+def _weights_file(directory: Path) -> Path:
+    return directory / json.loads((directory / "manifest.json").read_text())["weights"]["file"]
+
+
+def _set(**values):
+    return lambda state, root, stage: state.update(values)
+
+
+# Each edit is refused by the check named in its expected message. Stage edits are
+# re-chained and re-bound (``rebind``) unless the hash chain itself is under test,
+# so no other check can catch them first.
+TAMPER = {
+    "optimizer bytes": (
+        lambda r: _flip(next((r / "resume/stage-004").glob("ppo-optimizer-*"))),
+        "does not hash",
+    ),
+    "rng bytes": (
+        lambda r: _flip(next((r / "resume/stage-002").glob("rng-*.pt"))),
+        "does not hash",
+    ),
+    "snapshot weights": (
+        lambda r: _flip(_weights_file(r / "snapshots/update-002")),
+        "SHA256|SHA-256",
+    ),
+    "demonstrations": (
+        lambda r: (r / "demonstrations.json").write_text(
+            (r / "demonstrations.json").read_text().replace("true", "false", 1)
+        ),
+        "does not hash",
+    ),
+    "stage plan": (
+        lambda r: edit_stage(r, 1, _set(plan_sha256="0" * 64)),
+        "belongs to another plan",
+    ),
+    "missing middle stage": (lambda r: _stage_path(r, 1).unlink(), "not contiguous"),
+    "stage chain broken": (
+        lambda r: (
+            edit_stage(r, 1, _set(), chain=False)
+            or _stage_path(r, 1).write_text(json.dumps(json.loads(_stage_path(r, 1).read_text())))
+        ),
+        "does not follow the previous stage",
+    ),
+    "extra stage key": (lambda r: edit_stage(r, 2, _set(note=1)), "belongs to another plan"),
+    "swapped optimizer descriptors": (lambda r: edit_stage(r, 1, _swap), "foreign"),
+    "renamed optimizer blob": (lambda r: edit_stage(r, 1, _renamed_blob), "another stage or plan"),
+    "older stage rng blob": (lambda r: edit_stage(r, 1, _older_rng), "another stage or plan"),
+    "rng outside the run": (lambda r: edit_stage(r, 1, _outside_rng), "foreign"),
+    "league labels": (
+        lambda r: edit_stage(r, 2, _set(league=["warmstart", "warmstart"])),
+        "league does not match",
+    ),
+    "model set to initial": (lambda r: edit_stage(r, 1, _model_initial), "model does not match"),
+    "head model set to initial": (lambda r: edit_stage(r, 4, _model_initial), "model does not"),
+    "events emptied": (lambda r: edit_stage(r, 1, _set(events=[])), "events does not match"),
+    "head events emptied": (lambda r: edit_stage(r, 4, _set(events=[])), "events does not"),
+    "simulator record emptied": (
+        lambda r: edit_stage(r, 1, _set(simulator_consumed=[])),
+        "simulator_consumed does not match",
+    ),
+    "stage checkpoint SHA replaced": (
+        lambda r: edit_stage(r, 1, _other_sha),
+        "checkpoints does not match",
+    ),
+    "checkpoint label dropped": (
+        lambda r: edit_stage(r, 4, _drop_label),
+        "does not name the run's checkpoints",
+    ),
+    "unbound checkpoint manifest": (
+        lambda r: _manifest(r, "warmstart", lambda m: m.update(created_at="1970")),
+        "checkpoint_manifests does not match",
+    ),
+    "checkpoint record re-bound": (
+        lambda r: (
+            _manifest(
+                r,
+                "snapshots/update-001",
+                lambda m: m["training"].update(live_consumed=[["a" * 32, 1]]),
+            )
+            or rebind(r)
+        ),
+        "does not carry this run's record",
+    ),
+}
+
+
+@pytest.mark.parametrize("where", sorted(TAMPER))
 def test_resume_refuses_tampered_state(uninterrupted, tmp_path, where):
     import shutil
 
     copy = tmp_path / "copy"
     shutil.copytree(uninterrupted, copy)
-    tamper(copy, where)
-    with pytest.raises((LeagueRefused, ValueError)):
+    edit, error = TAMPER[where]
+    edit(copy)
+    with pytest.raises((LeagueRefused, ValueError), match=error):
         run_league(plan(), tmp_path / "resumed", resume_from=copy)
     assert not (tmp_path / "resumed").exists()
 
@@ -567,3 +744,73 @@ def test_league_module_is_not_imported_implicitly():
         "assert 'anima3.neural.league' not in sys.modules"
     )
     subprocess.run([sys.executable, "-c", code], check=True, cwd=Path(__file__).parents[1])
+
+
+def test_league_children_carry_the_parent_records(tmp_path):
+    """Simulator data consumes no live evidence; the parent's records carry over."""
+    live, demos = [["a" * 32, 5]], [["b" * 32, 6]]
+    inherited = [["rollout", 7, "full", 3]]
+    torch.manual_seed(9)
+    parent = RecurrentPolicy(PolicyConfig(len(FEATURE_NAMES), len(ACTION_NAMES), 64, 64))
+    training = {
+        "parent_policy_sha": "f" * 64,
+        "live_consumed": live,
+        "demonstrations_consumed": demos,
+        "simulator_trained": True,
+        "simulator_ancestry": True,
+        "simulator_consumed": inherited,
+    }
+    sha = save_checkpoint(tmp_path / "parent", parent, training=training)["weights"]["sha256"]
+    p = plan(updates=2, start_checkpoint=str(tmp_path / "parent"), start_sha256=sha)
+    with pytest.MonkeyPatch.context() as patch:
+        crash_on_call(patch, league, "ppo_update", 2)
+        with pytest.raises(Crash):
+            run_league(p, tmp_path / "crashed")
+    run_league(p, tmp_path / "run", resume_from=tmp_path / "crashed")
+    shas = checkpoint_shas(tmp_path / "run")
+    for label, sha_ in shas.items():
+        child = load_checkpoint(tmp_path / "run" / label, expected_sha256=sha_)
+        record = child.manifest["training"]
+        assert record["live_consumed"] == live and record["demonstrations_consumed"] == demos
+        assert record["simulator_ancestry"] is True
+        assert record["simulator_consumed"][: len(inherited)] == inherited
+        assert ancestry_simulator(child)[0] is True
+    assert shas["initial"] == sha
+    final = load_checkpoint(tmp_path / "run" / "snapshots/update-002", expected_sha256=shas[
+        "snapshots/update-002"
+    ]).manifest["training"]  # fmt: skip
+    assert len(final["simulator_consumed"]) == len(inherited) + 4 + 2
+
+
+@pytest.mark.parametrize(
+    "training,error",
+    [
+        ({"simulator_trained": "true", "simulator_ancestry": True, "simulator_consumed": []},
+         "malformed simulator marker"),
+        ({"simulator_trained": False, "simulator_ancestry": 1, "simulator_consumed": []},
+         "malformed simulator marker"),
+        ({"source": "simulator-curriculum-league"}, "lacks its simulator record"),
+        ({"domain": SIM_DOMAIN, "simulator_trained": False, "simulator_ancestry": False},
+         "lacks its simulator record"),
+        ({"simulator_trained": True, "simulator_ancestry": False, "simulator_consumed": []},
+         "ancestry marker"),
+        ({"simulator_consumed": [["rollout", 1, "full", 2]]}, "unmarked"),
+        ({"simulator_trained": True}, "simulator record"),
+    ],
+)  # fmt: skip
+def test_malformed_simulator_markers_are_refused_not_dropped(tmp_path, training, error):
+    bad = saved(tmp_path, training={"parent_policy_sha": "f" * 64, "live_consumed": [],
+                                    "demonstrations_consumed": [], **training})  # fmt: skip
+    with pytest.raises(ValueError, match=error):
+        ancestry_simulator(bad)
+    with pytest.raises(ValueError, match=error):
+        train._unsafe_update_from_episodes(
+            bad, [live_episode(bad, match=11)], verify_episode=lambda _: True,
+            out=tmp_path / "never", config=SMALL, seed=1, lineage_dir=LINEAGE,
+        )  # fmt: skip
+    assert not (tmp_path / "never").exists()
+
+
+def test_the_train_module_names_the_simulator_domain():
+    assert train.SIMULATOR_DOMAIN == SIM_DOMAIN
+    assert train.SIMULATOR_SOURCE == league.SOURCE

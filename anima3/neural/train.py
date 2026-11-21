@@ -531,21 +531,39 @@ def ancestry_consumed(loaded: LoadedCheckpoint) -> tuple[list[list], list[list]]
     return _consumed(loaded), _demonstrations_consumed(loaded)
 
 
+SIMULATOR_SOURCE = "simulator-curriculum-league"
+SIMULATOR_DOMAIN = "approximate-pre-aos-simulator"  # drills.SIM_DOMAIN
+
+
 def ancestry_simulator(loaded: LoadedCheckpoint) -> tuple[bool, list[list]]:
     """Whether the ancestry of ``loaded`` was trained in the simulator, and on what.
 
     A simulator-trained checkpoint (``simulator_trained``) and every descendant
     (``simulator_ancestry``) stays marked: each trained child, live PPO and
     imitation alike, carries the marker and the ``simulator_consumed`` record
-    forward, so no descendant can be presented as purely live-trained. A marked
-    checkpoint whose simulator record is missing is refused.
+    forward, so no descendant can be presented as purely live-trained. Refused,
+    rather than read as unmarked: a marker that is not a bool, a simulator-labelled
+    checkpoint (league source or simulator domain) without its markers and record,
+    a marked checkpoint without its record, ``simulator_trained`` without
+    ``simulator_ancestry``, and an unmarked checkpoint that names simulator data.
     """
     training = loaded.manifest.get("training", {})
     if not isinstance(training, dict):
         raise TypeError("checkpoint training metadata is not an object")
-    marked = training.get("simulator_trained") is True or training.get("simulator_ancestry") is True
+    markers = ("simulator_trained", "simulator_ancestry")
+    if any(k in training and type(training[k]) is not bool for k in markers):
+        raise ValueError("checkpoint has a malformed simulator marker")
+    labelled = (
+        training.get("source") == SIMULATOR_SOURCE or training.get("domain") == SIMULATOR_DOMAIN
+    )
+    if labelled and not all(k in training for k in (*markers, "simulator_consumed")):
+        raise ValueError("simulator-labelled checkpoint lacks its simulator record")
+    trained = training.get("simulator_trained", False)
+    marked = trained or training.get("simulator_ancestry", False)
     if marked and "simulator_consumed" not in training:
         raise ValueError("simulator-trained checkpoint lacks its simulator record")
+    if trained and training.get("simulator_ancestry") is not True:
+        raise ValueError("simulator-trained checkpoint lacks its simulator ancestry marker")
     consumed = training.get("simulator_consumed", [])
     if not isinstance(consumed, list) or not all(
         isinstance(i, list)
@@ -557,6 +575,8 @@ def ancestry_simulator(loaded: LoadedCheckpoint) -> tuple[bool, list[list]]:
         for i in consumed
     ):
         raise ValueError("checkpoint lineage has a malformed simulator record")
+    if consumed and not marked:
+        raise ValueError("an unmarked checkpoint names simulator training data")
     return marked, [list(i) for i in consumed]
 
 
