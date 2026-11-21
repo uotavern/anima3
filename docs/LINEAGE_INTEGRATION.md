@@ -1946,8 +1946,9 @@ The outcome is the same: the incumbent is retained.
     - the league membership by label;
     - the demonstration file's SHA-256;
     - the simulator record and the progress events.
-  - What a resume checks: `run_league(plan, out, resume_from=previous)` takes
-    nothing in a stage manifest on trust. It refuses:
+  - What a resume checks: `run_league(plan, out, resume_from=previous)` uses
+    no stage-manifest value that affects the result without checking it (the
+    unused blob `bytes` value is the one field it does not compare). It refuses:
     - a previous run whose `plan.json` is not this plan (any field: seed, budget,
       coefficient, threads);
     - stages that are not contiguous, beyond the plan's updates, with unknown or
@@ -1982,25 +1983,36 @@ The outcome is the same: the incumbent is retained.
     its features, masks, actions and the episodes' zero initial state, so it
     reproduces the rehearsal input exactly.
 - **Determinism scope.** The plan fixes the thread count, and the result is
-  bit-identical on the same platform and torch build. A different build or CPU may
-  differ, as for unit 7's fixed-seed training.
+  bit-identical on the same platform, torch build, thread count and code. A
+  different build or CPU may differ, as for unit 7's fixed-seed training. Neither
+  the plan nor a stage records a code identity for `league.py` or `train.py`, so a
+  resume after a code change is not detected. The checkpoints record the simulator
+  and teacher identities, but a resume does not compare them either.
 
 What is enforced and what is convention:
 
 - **Enforced in code:** everything above.
 - **Trust boundary, exactly:**
-  - **Detected:** any change to any one file a resume uses. Each checkpoint
-    manifest is bound by the stage written after it; a snapshot whose stage was
-    never written is not used. That includes:
+  - **Detected:** any single-file change that would affect the resumed result is
+    refused. Each checkpoint manifest is bound by the stage written after it; a
+    snapshot whose stage was never written is not used. That includes:
     - a stage manifest field (model, league, labels, record, events or a
       descriptor) or blob, and an old stage file swapped for a new one;
     - a checkpoint's weights or, once a stage names it, its manifest;
     - the demonstrations or the plan.
+
+    Two single-file edits to the last stage file are accepted, because nothing
+    hashes that file: a blob descriptor's `bytes` value (unused; the SHA-256 binds
+    the blob) and a reformatting of its JSON. Both leave the weights, registry and
+    events identical.
   - **Not detected:** a coordinated rewrite. Someone who re-derives every
     dependent value can rewrite a checkpoint manifest, recompute its SHA-256 into
     the stage chain and re-chain the later stages, or replace blobs with new
     payloads that carry the right kind, stage and plan. The SHA-256s are not
-    signatures.
+    signatures. The last stage is the cheapest case: nothing chains to it, so a
+    forged RNG blob takes two files, the new blob and the last stage file
+    with that descriptor's hash fields recomputed, and changes the result. An
+    earlier stage also needs every later stage re-chained.
   - **Not detected either:** a checkpoint re-saved without its simulator marker (the
     weight SHA-256 covers weights only), and edits outside the run, such as to the
     parent. A parent's manifest is not hash-bound by the run.
@@ -2131,6 +2143,13 @@ Survivors along the way, each now killed by an added test:
   stage label check.
 - **First pass on the review fixes:** 13, each masked by an overlapping check. The
   tamper cases now re-bind the hashes and match the refusing check's message.
+
+Known, after the independent review of `972e3b6`: six layered guards are not
+killed by a test on their own, because other checks back them against any
+single-file edit. They are the per-checkpoint `simulator_consumed` check, the
+parent-chain check, the drill check, the stage-beyond-updates check, the fresh run
+naming a parent and the initial policy being the plan's parent. The same review
+found the trust-boundary wording too broad; it is corrected above.
 
 CI adds `league.py` and `tests/test_neural_league.py` to the scoped Ruff gate. The
 league tests join the step that runs the simulator equivalence against the archive
