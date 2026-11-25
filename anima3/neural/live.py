@@ -569,8 +569,11 @@ def _actor(
 
     body_id = body.observe().player.serial
     while not stop.is_set() and time.monotonic() < end:
+        # The bridge snapshots state before sending it. Count the whole RPC
+        # against the observation budget because the exact capture time is unknown.
+        observation_at = time.monotonic()
         obs = rpc("observe", body.observe)
-        observation_at = now = time.monotonic()
+        now = time.monotonic()
         enemy = next((m for m in obs.mobiles if m.serial == opponent), None)
         update = server_state(obs)
         if update is not None:

@@ -304,6 +304,10 @@ def test_actor_rpc_timing_uses_actual_clock_but_retains_original_observation_age
     obs = observation()
     taken, submitted = [], []
 
+    def observe():
+        clock[0] += 0.15  # The snapshot can age before the reply reaches the actor.
+        return obs
+
     def act(_):
         clock[0] += 0.2  # A blocking state request and a blocking executor RPC.
 
@@ -335,13 +339,13 @@ def test_actor_rpc_timing_uses_actual_clock_but_retains_original_observation_age
         tick=lambda *a: [{"type": "CastSpell", "spell": 1}],
         drain_events=list,
     )
-    body = SimpleNamespace(observe=lambda: obs, act=act, pump=pump)
+    body = SimpleNamespace(observe=observe, act=act, pump=pump)
     monkeypatch.setattr(live.time, "monotonic", lambda: clock[0])
     monkeypatch.setattr(live, "server_state", lambda _: dict(state))
     monkeypatch.setattr(live, "CombatExecutor", lambda _, **kw: executor)
     result = live._actor(body, 2, worker, tmp_path, threading.Event())
-    assert taken == pytest.approx([100.4])
-    assert submitted[0] == pytest.approx((100.4, 100.0))
+    assert taken == pytest.approx([100.7])
+    assert submitted[0] == pytest.approx((100.7, 100.15))
     assert result["collection_end_phase"] == ending
     assert result["invalid_reasons"] == ["deadline"]
     # RoundOver stops collection, but does not manufacture a verified outcome.
@@ -350,6 +354,8 @@ def test_actor_rpc_timing_uses_actual_clock_but_retains_original_observation_age
         json.loads(line) for line in (tmp_path / MATCH / "actor-1.jsonl").read_text().splitlines()
     ]
     rpc = [row for row in events if row["type"] == "bridge_rpc"]
+    assert rpc[0]["operation"] == "observe"
+    assert rpc[0]["duration_ms"] == pytest.approx(150.0)
     assert [row["duration_ms"] for row in rpc if row["operation"].startswith("act:")] == (
         pytest.approx([200.0, 200.0])
     )
