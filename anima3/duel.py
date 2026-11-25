@@ -327,6 +327,8 @@ class ServerDuel:
                 self.rounds_done.append(line)
                 for fx in (self.a, self.b):
                     fx.agent.memory.pop("duel_opponent", None)
+                    fx.agent.memory.pop("mana_recovery", None)
+                    fx.agent.memory.pop("meditate_after", None)
                 self.state = "between"
             elif low.startswith(("match:", "match aborted:")):
                 self.match = line

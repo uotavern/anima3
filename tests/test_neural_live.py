@@ -667,6 +667,12 @@ def test_existing_collection_needs_explicit_resume_with_identical_plan(tmp_path)
     with pytest.raises(CollectionRefused, match="identical plan"):
         open_collection(log, plan_for(tmp_path, matches=3), resume=True)
     assert open_collection(log, plan, resume=True).issued == 0
+    manifest_path = log / "collection.json"
+    manifest = json.loads(manifest_path.read_text())
+    manifest["executor_sha256"] = "0" * 64
+    manifest_path.write_text(json.dumps(manifest))
+    with pytest.raises(CollectionRefused, match="original combat executor"):
+        open_collection(log, plan, resume=True)
 
 
 def test_interrupted_fixture_is_spent_and_budget_cannot_be_exceeded(tmp_path):

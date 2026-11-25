@@ -23,7 +23,7 @@ from anima3.magic import (
     opening_proc,
 )
 from anima3.neural.executor import CombatExecutor
-from anima3.neural.schema import ACTION_INDEX, SPELL_NAMES
+from anima3.neural.schema import ACTION_INDEX, ACTION_NAMES, SPELL_NAMES
 
 STUN_SKILLS = [Skill(1, 90.0, 90.0, 100.0, 0), Skill(43, 90.0, 90.0, 100.0, 0)]
 
@@ -68,6 +68,32 @@ def test_stun_requests_then_attacks_and_server_feedback_drives_cooldown():
 
 def fight(at):
     return {"phase": "Fighting", "opponent": 2, "_received_at": at}
+
+
+def test_neural_mage_keeps_defending_after_partial_mana_refill():
+    ex = CombatExecutor(2, mana_recovery=True)
+
+    def legal(obs, at):
+        mask = ex.observe(obs, fight(at), now=at).mask
+        return [name for name, allowed in zip(ACTION_NAMES, mask, strict=True) if allowed]
+
+    assert "magic_arrow" in legal(observation(mana=25), 0)
+    low = observation(mana=24, enemy_x=102)
+    assert legal(low, 1) == ["retreat"]
+    assert not ex.start("magic_arrow", low, 1)
+    assert legal(observation(mana=27, hp=50), 2) == ["heal_potion"]
+    far = observation(mana=30)
+    assert legal(far, 3) == ["meditate"]
+    assert ex.start("meditate", far, 3)
+    assert ex.tick(far, 3) == [{"type": "UseSkill", "skill": 46}]
+    ex.tick(far, 4)
+    assert legal(observation(mana=59), 4) == ["hold"]
+    assert "energy_bolt" in legal(observation(mana=60), 5)
+    assert [(row["active"], row["mana"]) for row in ex.drain_events()
+            if row["type"] == "mana_recovery"] == [(True, 24), (False, 60)]
+    assert legal(low, 6) == ["retreat"]
+    ex.reset(2, "match-1/round-2", 7)
+    assert "magic_arrow" in legal(observation(mana=30), 7)
 
 
 def test_stun_requires_both_skills_and_reach():

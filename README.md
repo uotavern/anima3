@@ -318,6 +318,11 @@ cornered. Mana, reagents and the post-cast recovery are checked in code (`magic.
 model only picks which incantation comes next, and the cast procedure reads the server's own
 verdict — fizzle, insufficient mana, more reagents needed, no line of sight.
 
+With 100 max mana, mage duels and live neural duels switch to recovery below 25 mana and
+resume offense at 60. During recovery the fighter treats urgent wounds or poison, backs away
+from a nearby opponent when there is room, and meditates or waits for mana. The thresholds
+scale down for smaller mana pools. A new round clears the recovery state.
+
 ```bash
 uv run python -m anima3.duel --referee server --gm-user anima3gm5 --arena 2 \
     --a anima3m1:mage_a:jev --b anima3m2:mage_b:scripted \

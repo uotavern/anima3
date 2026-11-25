@@ -62,6 +62,25 @@ def test_low_health_skips_opener_and_large_arena_approaches_first():
     assert menu(world(distance=19), {"opening": "weaken-clumsy"})[0].id == "approach:duel"
 
 
+def test_mage_rebuilds_mana_before_reopening_attack_menu(monkeypatch):
+    monkeypatch.setattr("anima3.magic.time.monotonic", lambda: 10.0)
+    memory = {"opening": "weaken-clumsy", "explosion_potions": True, "burst_combo": True}
+    low = world(mana=24)
+    near = world(distance=2, mana=24)
+    near.player.stam = 25
+    assert [verb.id for verb in menu(near, memory)] == ["kite"]
+    meditate, = menu(low, memory)
+    assert meditate.id == "meditate"
+    procedure = meditate.procedure(low, memory)
+    assert next(procedure) == {"type": "UseSkill", "skill": 46}
+    with pytest.raises(StopIteration, match="interrupted by threat"):
+        procedure.send(world(distance=2, mana=25))
+    assert [verb.id for verb in menu(world(distance=19, mana=59), memory)] == ["recover:mana"]
+    assert [verb.id for verb in menu(world(hp=50, mana=40), memory)] == ["cast:greater_heal"]
+    assert [verb.id for verb in menu(world(hp=50, mana=40), {**memory, "showdown": True})] == ["recover:mana"]
+    assert menu(world(mana=60), memory)[0].id == "cast:weaken"
+
+
 def test_cursor_metadata_is_preserved_and_boolean_only_is_not_trusted():
     obs = world(target={"cursor_id": 9, "cursor_flag": 1, "target_type": 0})
     assert obs.target_cursor_id == 9 and combat_combo.cursor(obs, 1, 0)

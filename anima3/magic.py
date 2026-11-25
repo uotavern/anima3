@@ -11,7 +11,7 @@ from __future__ import annotations
 import time
 from dataclasses import dataclass
 
-from .contract import Observation, target_object, use_skill
+from .contract import DIRECTION_DELTAS, Observation, Pos, chebyshev, target_object, use_skill
 
 # --- reagents (art ids) ---------------------------------------------------------
 BLACK_PEARL, BLOODMOSS, GARLIC, GINSENG, MANDRAKE, NIGHTSHADE, SPIDERS_SILK, SULFUROUS_ASH = (
@@ -22,6 +22,15 @@ REAGENT_NAMES = {BLACK_PEARL: "BlackPearl", BLOODMOSS: "Bloodmoss", GARLIC: "Gar
 SPELLBOOK_GRAPHIC = 0x0EFA
 #: Pre-AOS mana by circle.
 MANA = {1: 4, 2: 6, 3: 9, 4: 11, 5: 14, 6: 20, 7: 40, 8: 50}
+MEDITATION_COOLDOWN = 10.0
+MEDITATION_DISTANCE = 3
+
+
+def needs_mana_recovery(mana: int, maximum: int, recovering: bool) -> bool:
+    """Use distinct entry and exit thresholds so a partial refill is saved."""
+    maximum = maximum or 100
+    threshold = min(60, maximum * 0.75) if recovering else min(25, maximum * 0.25)
+    return mana < threshold
 
 
 @dataclass(frozen=True)
@@ -147,11 +156,18 @@ def opening_proc(key, target_serial):
     return proc
 
 
-def meditate_proc():
+def meditate_proc(opponent=None):
     def proc(obs0, memory):
         mana0 = obs0.player.mana
+        memory["meditate_after"] = time.monotonic() + MEDITATION_COOLDOWN
         obs = yield use_skill(46)
         for _ in range(12):
+            if opponent is not None and (
+                obs.player.poisoned or obs.player.hp_pct < 0.65
+                or any(m.serial == opponent and not m.hidden and m.distance < MEDITATION_DISTANCE
+                       for m in obs.mobiles)
+            ):
+                return "interrupted by threat"
             if obs.player.mana > mana0 + 2:
                 return "ok"
             if any(j.cliloc in (500118, 501846, 502628) for j in obs.new_journal):
@@ -239,6 +255,8 @@ def mage_verbs(obs: Observation, f, memory: dict, threat) -> list:
     p = obs.player
     mana = p.mana
     out: list[Affordance] = []
+    recovering = needs_mana_recovery(mana, p.mana_max, memory.get("mana_recovery", False))
+    memory["mana_recovery"] = recovering
 
     def cast(key: str, why: str = "") -> None:
         s = SPELLS[key]
@@ -251,6 +269,29 @@ def mage_verbs(obs: Observation, f, memory: dict, threat) -> list:
     if memory.get("tick", 0) < memory.get("recover_until", 0):
         return [Affordance("recover", "Catch your breath for a moment; the last spell still echoes.")]
     hp = f.hp_pct
+    if recovering:
+        if hp < 0.5 or p.poisoned:
+            memory["opening_abandoned"] = True
+        if p.paralyzed or obs.pending_target:
+            return [Affordance("recover:mana", "Hold position while mana regenerates.")]
+        if p.poisoned:
+            cast("cure")
+        elif hp < 0.65:
+            cast("greater_heal")
+            cast("heal")
+        if out:
+            return out[:1]
+        if threat.distance < MEDITATION_DISTANCE and p.stam > 0:
+            for direction, name in _step_options(obs, away_from=threat.pos):
+                dx, dy = DIRECTION_DELTAS[direction]
+                if chebyshev(Pos(p.pos.x + dx, p.pos.y + dy), threat.pos) > threat.distance:
+                    return [Affordance("kite", "Make room to recover mana: " + name,
+                                       (walk(direction, run=True),))]
+        if (threat.distance >= MEDITATION_DISTANCE and not p.poisoned
+                and time.monotonic() >= memory.get("meditate_after", 0)):
+            return [Affordance("meditate", "Meditate to rebuild mana.",
+                               procedure=meditate_proc(threat.serial))]
+        return [Affordance("recover:mana", "Hold position while mana regenerates.")]
     if threat.distance > 10:
         if hp < 0.5:
             cast("greater_heal")
@@ -260,7 +301,6 @@ def mage_verbs(obs: Observation, f, memory: dict, threat) -> list:
             return out
         # Large native arenas can spawn opponents beyond spell range. Move one
         # walkable step per observation, so movement stops before casting.
-        from .contract import DIRECTION_DELTAS
         steps = _step_options(obs)
         if steps:
             direction, name = min(steps, key=lambda step: max(
@@ -281,8 +321,6 @@ def mage_verbs(obs: Observation, f, memory: dict, threat) -> list:
             if key:
                 memory["opening_abandoned"] = True
     if memory.get("burst_combo") and not obs.pending_target and hp >= 0.65 and not p.poisoned and 3 <= threat.distance <= 10:
-        import time
-
         from .combat_combo import burst_proc
         finisher = "flamestrike" if memory.get("playbook") == "control" and mana >= 75 else "energy_bolt"
         potion = next((i for i in obs.own_pack() if i.graphic == 0xF0D), None)
@@ -304,7 +342,8 @@ def mage_verbs(obs: Observation, f, memory: dict, threat) -> list:
     for key in spell_order(playbook, hp, p.poisoned, getattr(threat, "paralyzed", False), getattr(threat, "poisoned", False), reflect_due):
         cast(key, why.get(key, ""))
     meditate_below = 0.6 if playbook in ("sustain", "interrupt") else 0.4
-    if mana < meditate_below * max(1, p.mana_max) and threat.distance >= 3:
+    if (mana < meditate_below * max(1, p.mana_max) and threat.distance >= MEDITATION_DISTANCE
+            and time.monotonic() >= memory.get("meditate_after", 0)):
         out.append(Affordance("meditate", f"Meditate to recover mana ({mana}/{p.mana_max}); the opponent is {threat.distance} tiles off.",
                               procedure=meditate_proc()))
     if threat.distance <= 1:

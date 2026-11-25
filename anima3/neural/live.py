@@ -511,6 +511,7 @@ def _actor(
     hold_explosion = bool(worker or teacher) or probe in ("dump-held", "dump-primed")
     executor = CombatExecutor(
         opponent,
+        mana_recovery=worker is not None,
         **({"fast_timing": True, "hold_explosion": hold_explosion} if fast_timing else {}),
     )
     if fast_timing:
@@ -1109,6 +1110,8 @@ def open_collection(log: Path, plan: CollectionPlan, *, resume: bool = False) ->
             or manifest.get("plan") != plan.to_json()
         ):
             raise CollectionRefused("resume requires the identical plan and policy identities")
+        if manifest.get("executor_sha256") != EXECUTION_FINGERPRINT:
+            raise CollectionRefused("resume requires the original combat executor")
     elif resume:
         raise CollectionRefused("nothing to resume in this directory")
     else:

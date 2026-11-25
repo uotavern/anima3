@@ -26,7 +26,14 @@ from anima3.contract import (
     use_skill,
     walk,
 )
-from anima3.magic import SPELLS, VERDICTS, WORDS
+from anima3.magic import (
+    MEDITATION_COOLDOWN,
+    MEDITATION_DISTANCE,
+    SPELLS,
+    VERDICTS,
+    WORDS,
+    needs_mana_recovery,
+)
 
 from .schema import ACTION_INDEX, ACTION_NAMES, REAGENT_GRAPHICS, CombatView, Frame, encode
 
@@ -34,7 +41,7 @@ POTION_GRAPHICS = {"heal_potion": 0x0F0C, "cure_potion": 0x0F07, "explosion_poti
 FUSE_SECONDS = 3.75
 SPELL_RECOVERY = 0.75
 STATE_FRESH_SECONDS = 3.0
-EXECUTOR_VERSION = "pre-aos-options-v12-potion-landing-tracking"
+EXECUTOR_VERSION = "pre-aos-options-v13-mana-recovery"
 CAST_VERDICTS = {**VERDICTS, 500641: "concentration disturbed"}
 
 
@@ -85,9 +92,11 @@ class CombatExecutor:
     """
 
     def __init__(self, opponent_serial: int, emit: Callable[[dict], None] | None = None,
-                 *, fast_timing=False, hold_explosion=False):
+                 *, fast_timing=False, hold_explosion=False, mana_recovery=False):
         self.fast_timing = fast_timing
         self.hold_explosion = hold_explosion
+        self.mana_recovery = mana_recovery
+        self._recovering_mana = False
         self.opponent_serial = int(opponent_serial)
         self.emit = emit
         self.epoch = ""
@@ -188,6 +197,7 @@ class CombatExecutor:
         self._stun_armed = self._stun_pending = self._melee_active = False
         self._stun_until = self._melee_until = self._resource_until = 0.0
         self._meditation_until = 0.0
+        self._recovering_mana = False
         self._event("executor_reset", now, opponent=self.opponent_serial)
 
     def _opponent(self, obs: Observation):
@@ -456,7 +466,30 @@ class CombatExecutor:
             incoming_explosion_seconds=incoming_explosion,
             last_action=self._last_action,
         )
-        return encode(self._last_view)
+        frame = encode(self._last_view)
+        if not self.mana_recovery or not (ready and fresh):
+            return frame
+        recovering = needs_mana_recovery(p.mana, p.mana_max, self._recovering_mana)
+        if recovering != self._recovering_mana:
+            self._recovering_mana = recovering
+            self._event("mana_recovery", now, active=recovering, mana=p.mana, mana_max=p.mana_max)
+        if not recovering:
+            return frame
+
+        # Restrict the mask before sampling and recheck it at execution. Keep
+        # defensive actions legal without substituting them for sampled attacks.
+        choices = []
+        if p.poisoned:
+            choices += ["cure_potion", "cure"]
+        elif p.hp_pct < 0.65:
+            choices += ["heal_potion", "greater_heal", "heal"]
+        if self.view.distance < MEDITATION_DISTANCE:
+            choices += ["retreat", "refresh_potion"]
+        else:
+            choices += ["meditate"]
+        choices += ["hold"]
+        choice = next(ACTION_INDEX[name] for name in choices if frame.mask[ACTION_INDEX[name]])
+        return Frame(features=frame.features, mask=[i == choice for i in range(len(frame.mask))])
 
     def start(self, action: int | str, obs: Observation, now: float | None = None) -> bool:
         now = time.monotonic() if now is None else now
@@ -839,7 +872,7 @@ class CombatExecutor:
                     packets += self._wire({"type": "StunRequest"}, now)
                 return packets + self._wire({"type": "Attack", "serial": self.opponent_serial}, now)
             elif proc.name == "meditate":
-                self._meditation_until = now + 10.0
+                self._meditation_until = now + MEDITATION_COOLDOWN
                 self._stage("simple_wait", now, now + 0.8)
                 return self._wire(use_skill(46), now)
             elif proc.name in ("heal_potion", "cure_potion", "refresh_potion", "agility_potion"):
